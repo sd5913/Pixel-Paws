@@ -133,11 +133,24 @@ function onKey(event, isPressed) {
   if (event.code === 'Space' && isPressed) jump();
 }
 
-window.addEventListener('keydown', (event) => onKey(event, true));
-window.addEventListener('keyup', (event) => onKey(event, false));
+window.addEventListener('keydown', (event) => {
+  onKey(event, true);
+  if (event.code === 'ArrowLeft' || event.code === 'KeyA' || event.code === 'ArrowRight' || event.code === 'KeyD') {
+    controls.pointerActive = false;
+  }
+});
+window.addEventListener('keyup', (event) => {
+  onKey(event, false);
+  if (event.code === 'ArrowLeft' || event.code === 'KeyA' || event.code === 'ArrowRight' || event.code === 'KeyD') {
+    controls.pointerActive = false;
+  }
+});
 window.addEventListener('pointermove', (event) => {
   controls.pointerTargetX = (event.clientX / window.innerWidth) * 2 - 1;
   controls.pointerActive = true;
+});
+window.addEventListener('pointerleave', () => {
+  controls.pointerActive = false;
 });
 
 ui.start.addEventListener('click', () => {
@@ -162,12 +175,13 @@ function stepGame(delta) {
 
   const moveDirection = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
 
-  if (controls.pointerActive) {
-    const pointerTarget = controls.pointerTargetX * 5.2;
-    playerState.x += (pointerTarget - playerState.x) * 0.18;
-  } else {
+  if (moveDirection !== 0) {
     playerState.speed += (moveDirection * 12 - playerState.speed) * 0.12;
     playerState.x += playerState.speed * delta;
+    controls.pointerActive = false;
+  } else if (controls.pointerActive) {
+    const pointerTarget = controls.pointerTargetX * 5.2;
+    playerState.x += (pointerTarget - playerState.x) * 0.18;
   }
 
   playerState.x = THREE.MathUtils.clamp(playerState.x, -5.2, 5.2);
