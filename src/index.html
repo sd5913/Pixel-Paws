@@ -1,3 +1,30 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#162a29"><title>Team Signal</title><link rel="stylesheet" href="style.css"></head>
-<body><main><p class="eyebrow">YOUR FIRST SHARED BUILD / 01</p><h1>Make a little<br><em>signal.</em></h1><p>Tap the button to send a burst of colour. Change this interaction into something your team wants to build.</p><button id="signal" type="button">Send signal <span aria-hidden="true">↗</span></button><p id="status" role="status">Ready when you are.</p></main><script type="module" src="app.js"></script></body></html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="theme-color" content="#08131f">
+    <title>Moonlight Pounce</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main class="game-layout">
+      <header class="hud">
+        <div>
+          <p class="eyebrow">PIXEL PAWS / 01</p>
+          <h1>Moonlight<br><em>Pounce</em></h1>
+        </div>
+        <button id="start" type="button">Start run</button>
+      </header>
+
+      <div id="game-root" aria-label="3D game arena"></div>
+
+      <footer class="meta">
+        <p id="score">Score 0</p>
+        <p id="status" role="status">Ready when you are.</p>
+      </footer>
+    </main>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
