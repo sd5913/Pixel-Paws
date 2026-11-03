@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "asset-pipeline-preview",
+  "instances": [
+    {
+      "id": "preview-crate",
+      "assetId": "placeholder-crate",
+      "transform": {
+        "position": [3.8, -0.7, 0],
+        "rotation": [0, 0, 0, 1],
+        "scale": [1, 1, 1]
+      },
+      "physics": {
+        "bodyType": "static",
+        "colliderSet": "default"
+      }
+    }
+  ]
+}

@@ -22,6 +22,9 @@ instructions. Actions uploads the `web` folder and an Android **debug APK**;
 download an artifact from the run and test it. The APK is not a signed store
 release.
 
+For GLB placement, validation, and the physics handoff contract, see
+[`docs/asset-pipeline.md`](docs/asset-pipeline.md).
+
 ## Publish a versioned release
 
 When your team is ready to share a tested build, push a version tag:

@@ -1,5 +1,7 @@
 import { nextMessage } from './logic.js';
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js';
+import * as THREE from 'three';
+
+import { addAssetPreview } from './assets/preview.js';
 
 const ui = {
   score: document.querySelector('#score'),
@@ -29,6 +31,7 @@ scene.add(sun);
 
 const world = new THREE.Group();
 scene.add(world);
+void addAssetPreview(world).catch((error) => console.error('Asset preview failed to load.', error));
 
 const ground = new THREE.Mesh(
   new THREE.BoxGeometry(18, 1, 70),
