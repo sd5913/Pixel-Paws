@@ -101,7 +101,15 @@ test('asset files must stay inside the source root and contain GLB data', async 
 
   const traversal = structuredClone(validManifest);
   traversal.assets[0].path = '../outside.glb';
-  await assert.rejects(validateAssetFiles(traversal, sourceRoot), /inside the source root/i);
+  await assert.rejects(validateAssetFiles(traversal, sourceRoot), /assets\/models/i);
+
+  const absolute = structuredClone(validManifest);
+  absolute.assets[0].path = join(sourceRoot, 'assets', 'models', 'placeholder-crate.glb');
+  await assert.rejects(validateAssetFiles(absolute, sourceRoot), /assets\/models/i);
+
+  const unpackaged = structuredClone(validManifest);
+  unpackaged.assets[0].path = 'private/placeholder-crate.glb';
+  await assert.rejects(validateAssetFiles(unpackaged, sourceRoot), /assets\/models/i);
 
   await writeFile(join(modelDir, 'placeholder-crate.glb'), Buffer.from('not-a-glb'));
   await assert.rejects(validateAssetFiles(validManifest, sourceRoot), /GLB header/i);
@@ -117,5 +125,21 @@ test('checked-in manifest and preview layout validate together', async () => {
 });
 
 test('asset validation script verifies the checked-in pipeline data', async () => {
-  assert.deepEqual(await validateCheckedInAssets(), { assetCount: 1, instanceCount: 1 });
+  assert.deepEqual(await validateCheckedInAssets(), { assetCount: 1, sceneCount: 1, instanceCount: 1 });
+});
+
+test('asset validation script checks every packaged scene layout', async () => {
+  const sourceRoot = await mkdtemp(join(tmpdir(), 'pixel-paws-scenes-'));
+  await mkdir(join(sourceRoot, 'assets', 'models'), { recursive: true });
+  await mkdir(join(sourceRoot, 'scenes'), { recursive: true });
+  await writeFile(join(sourceRoot, 'assets', 'asset-manifest.json'), JSON.stringify(validManifest));
+  await writeFile(join(sourceRoot, 'assets', 'models', 'placeholder-crate.glb'), Buffer.from('glTF0000'));
+  await writeFile(join(sourceRoot, 'scenes', 'valid.scene.json'), JSON.stringify(validLayout));
+
+  const invalidLayout = structuredClone(validLayout);
+  invalidLayout.id = 'invalid-second-layout';
+  invalidLayout.instances[0].assetId = 'missing-asset';
+  await writeFile(join(sourceRoot, 'scenes', 'invalid.scene.json'), JSON.stringify(invalidLayout));
+
+  await assert.rejects(validateCheckedInAssets({ sourceRoot }), /unknown asset/i);
 });

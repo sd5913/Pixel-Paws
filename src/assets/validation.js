@@ -23,6 +23,16 @@ function isPositiveVector(value, length) {
   return isFiniteVector(value, length) && value.every((component) => component > 0);
 }
 
+function isPackagedModelPath(value) {
+  if (typeof value !== 'string') return false;
+  const segments = value.split('/');
+  return segments.length >= 3
+    && segments[0] === 'assets'
+    && segments[1] === 'models'
+    && segments.at(-1).endsWith('.glb')
+    && segments.every((segment) => /^[a-z0-9][a-z0-9._-]*$/.test(segment));
+}
+
 export function validateAssetManifest(manifest) {
   invariant(manifest && typeof manifest === 'object', 'Asset manifest must be an object.');
   invariant(manifest.schemaVersion === 1, 'Asset manifest schemaVersion must be 1.');
@@ -41,7 +51,7 @@ export function validateAssetManifest(manifest) {
     invariant(!assetIds.has(asset.id), `Duplicate asset id: ${asset.id}`);
     assetIds.add(asset.id);
 
-    invariant(typeof asset.path === 'string' && asset.path.endsWith('.glb'), `Asset ${asset.id} path must reference a .glb file.`);
+    invariant(isPackagedModelPath(asset.path), `Asset ${asset.id} path must be a relative .glb path under assets/models/.`);
     invariant(isPositiveVector(asset.visualScale, 3), `Asset ${asset.id} visualScale must contain three positive numbers.`);
     invariant(asset.pivot?.type === 'base-center' || asset.pivot?.type === 'center', `Asset ${asset.id} pivot type is invalid.`);
     invariant(isFiniteVector(asset.pivot?.offset, 3), `Asset ${asset.id} pivot offset must contain three finite numbers.`);
