@@ -24,6 +24,8 @@ const validManifest = {
       id: 'placeholder-crate',
       path: 'assets/models/placeholder-crate.glb',
       visualScale: [1, 1, 1],
+      dimensionsMeters: [1, 1, 1],
+      physics: { bodyType: 'static', suggestedMass: 0, friction: 0.65, restitution: 0.1 },
       pivot: { type: 'base-center', offset: [0, 0, 0] },
       bounds: { center: [0, 0.5, 0], halfExtents: [0.5, 0.5, 0.5] },
       colliders: [
@@ -95,7 +97,7 @@ test('asset files must stay inside the source root and contain GLB data', async 
   const sourceRoot = await mkdtemp(join(tmpdir(), 'pixel-paws-assets-'));
   const modelDir = join(sourceRoot, 'assets', 'models');
   await mkdir(modelDir, { recursive: true });
-  await writeFile(join(modelDir, 'placeholder-crate.glb'), Buffer.from('glTF0000'));
+  await writeFile(join(modelDir, 'placeholder-crate.glb'), await readFile('src/assets/models/placeholder-crate.glb'));
 
   await assert.doesNotReject(validateAssetFiles(validManifest, sourceRoot));
 
@@ -125,7 +127,7 @@ test('checked-in manifest and preview layout validate together', async () => {
 });
 
 test('asset validation script verifies the checked-in pipeline data', async () => {
-  assert.deepEqual(await validateCheckedInAssets(), { assetCount: 1, sceneCount: 1, instanceCount: 1 });
+  assert.deepEqual(await validateCheckedInAssets(), { assetCount: 2, sceneCount: 1, instanceCount: 1 });
 });
 
 test('asset validation script checks every packaged scene layout', async () => {
@@ -133,7 +135,7 @@ test('asset validation script checks every packaged scene layout', async () => {
   await mkdir(join(sourceRoot, 'assets', 'models'), { recursive: true });
   await mkdir(join(sourceRoot, 'scenes'), { recursive: true });
   await writeFile(join(sourceRoot, 'assets', 'asset-manifest.json'), JSON.stringify(validManifest));
-  await writeFile(join(sourceRoot, 'assets', 'models', 'placeholder-crate.glb'), Buffer.from('glTF0000'));
+  await writeFile(join(sourceRoot, 'assets', 'models', 'placeholder-crate.glb'), await readFile('src/assets/models/placeholder-crate.glb'));
   await writeFile(join(sourceRoot, 'scenes', 'valid.scene.json'), JSON.stringify(validLayout));
 
   const invalidLayout = structuredClone(validLayout);

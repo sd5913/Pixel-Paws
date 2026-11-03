@@ -1,4 +1,4 @@
-/** Deterministic mesh authoring; meters, Y-up, base-center origin. npm install; npm run generate. */
+/** Deterministic mesh authoring; meters, Y-up, base-center origin. Reproduction: npm run assets:reproduce:mug (isolated output). */
 import * as T from 'three';
 import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
@@ -33,6 +33,6 @@ const paw=new T.Mesh(facet(mergeGeometries(stamps)),pawMat);paw.name='Raised paw
 group.userData={units:'meters',upAxis:'Y',pivot:'base center',front:'+Z',handle:'+X',collision:'Use compound convex colliders; do not use a single convex hull if handle aperture matters.'};
 const scene=new T.Scene();scene.add(group);
 const data=await new GLTFExporter().parseAsync(scene,{binary:true,onlyVisible:true});
-const path=fileURLToPath(new URL('mug.glb',import.meta.url));await writeFile(path,Buffer.from(data));
+const path=fileURLToPath(new URL('../models/mug.glb',import.meta.url));await writeFile(path,Buffer.from(data));
 const box=new T.Box3().setFromObject(group),size=box.getSize(new T.Vector3());let tris=0,verts=0;group.traverse(m=>{if(m.isMesh){tris+=m.geometry.index.count/3;verts+=m.geometry.attributes.position.count;}});
-const spec={triangles:tris,vertices:verts,dimensionsMeters:size.toArray(),bounds:{min:box.min.toArray(),max:box.max.toArray()},bytes:data.byteLength,materials:2,drawCalls:2,textures:0};await writeFile(new URL('asset-spec.json',import.meta.url),JSON.stringify(spec,null,2));console.log(spec);
+const spec={triangles:tris,vertices:verts,dimensionsMeters:size.toArray(),bounds:{min:box.min.toArray(),max:box.max.toArray()},bytes:data.byteLength,materials:2,drawCalls:2,textures:0};await writeFile(new URL('../asset-spec.json',import.meta.url),JSON.stringify(spec,null,2));console.log(spec);
