@@ -56,3 +56,17 @@ normals. Overlapping hidden ceramic parts in the approved mug are intentional.
 
 Do not alter the mug to conform to a later convention. Scale and origin exceptions
 are documented in [SCALE_GUIDE.md](SCALE_GUIDE.md).
+
+## Study desk application
+
+The generated study desk is a production candidate that applies the approved mug's
+language at environment scale. Its tabletop, aprons and four chunky legs use oat
+wood `#C8AA86`; the centered drawer uses soft sage `#A9BBA0`; and the small pull
+uses warm cream `#FFF0D7`. All three materials have metalness 0 and roughness
+0.78–0.82. Rounded boxes use two bevel segments with split face normals, retaining
+broad readable planes and gentle facets without texture detail.
+
+The desk has **3,600 triangles, 10,800 position vertices, three materials/three
+draw calls, zero textures**, and is **457,140 bytes**. The increase over the mug is
+limited to its much larger silhouette and repeated rounded structural parts. It
+does not introduce a new palette color, texture workflow or glossy material.

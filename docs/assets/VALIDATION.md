@@ -4,8 +4,10 @@ Use Node 24 and the committed npm lockfile. From repository root:
 
 ```sh
 npm ci
+npm run assets:inspect -- src/assets/models/desk.glb
 npm run assets:inspect -- src/assets/models/mug.glb
 npm run assets:validate
+npm run assets:reproduce:desk
 npm run assets:reproduce:mug
 npm test
 npm run build
@@ -46,10 +48,12 @@ and difference; never overwrite the approved artifact to make verification pass.
 
 `npm run assets:preview` builds an isolated viewer under ignored `work/asset-preview/`
 and serves it locally at `http://127.0.0.1:4173`. It does not change the app or export
-any assets. Select the mug, inspect the 65°, 70°, 75° orthographic portrait views,
-toggle collider bounds, and use desk-scale view to judge its actual size. Rotate the
-view azimuth to inspect the +Z paw, +X handle, rim, inner wall and underside edges.
-Review at 390×844 and 360×800. The desk rectangle is a scale guide, not a new desk asset.
+any assets. It opens on the desk-and-mug composition when the desk is present. Inspect
+the 65°, 70° and 75° orthographic portrait views, toggle all five desk collider bounds,
+and confirm the mug stays at native scale on the tabletop. The default 150° azimuth
+shows the desk's -Z drawer front; rotate the view to inspect the underside and the
+mug's +Z paw and +X handle. Review at 390×844 and 360×800. Select an individual prop
+and use desk-scale view when comparing it with the full play surface.
 
 Record loading errors, clipping, silhouette, color/material comparison, contact
 plane and collider offset. Keep visual approval distinct from automated checks:

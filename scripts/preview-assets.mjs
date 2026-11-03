@@ -6,8 +6,10 @@ import { context } from 'esbuild';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const output = resolve(root, 'work/asset-preview');
 await mkdir(resolve(output, 'assets'), { recursive: true });
+await mkdir(resolve(output, 'scenes'), { recursive: true });
 await cp(resolve(root, 'src/assets/models'), resolve(output, 'assets/models'), { recursive: true });
 await cp(resolve(root, 'src/assets/asset-manifest.json'), resolve(output, 'assets/asset-manifest.json'));
+await cp(resolve(root, 'src/scenes'), resolve(output, 'scenes'), { recursive: true });
 await cp(resolve(root, 'scripts/asset-review/index.html'), resolve(output, 'index.html'));
 const build = await context({
   entryPoints: [resolve(root, 'scripts/asset-review/main.js')],

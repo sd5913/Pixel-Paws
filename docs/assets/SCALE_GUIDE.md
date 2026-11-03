@@ -20,6 +20,22 @@ In the existing manifest this convention is named `base-center`.
 These are initial targets, not permission to scale approved assets. Measure exports
 before making decisions. Leave unspecified dimensions unspecified until design.
 
+## Study desk: measured export
+
+The generated desk meets its initial target at native scale:
+
+| Measurement | Meters |
+| --- | --- |
+| Width × height × depth | 1.7999999523 × 0.7499999881 × 0.8999999762 |
+| Minimum XYZ | [-0.8999999762, 0.0000000119, -0.4499999881] |
+| Maximum XYZ | [0.8999999762, 0.75, 0.4499999881] |
+| Manifest dimensions | 1.80 × 0.75 × 0.90 |
+
+The differences from the decimal targets are 32-bit vertex precision and remain
+below the manifest tolerance of 1e-6 m. The native origin is the full-bounds
+bottom-center, root scale is `[1,1,1]`, and the visual front is -Z. The flat
+walkable surface and top of the tabletop collider are both Y=0.75.
+
 ## Approved mug: measured, unchanged
 
 The GLB's transformed vertex bounds (including handle and emblem) are:

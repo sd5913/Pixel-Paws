@@ -67,6 +67,102 @@
       }
     },
     {
+      "id": "desk",
+      "path": "assets/models/desk.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        1.8,
+        0.75,
+        0.9
+      ],
+      "pivot": {
+        "type": "base-center",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "bounds": {
+        "center": [
+          0,
+          0.375,
+          0
+        ],
+        "halfExtents": [
+          0.9,
+          0.375,
+          0.45
+        ]
+      },
+      "interactionSurfaces": [
+        {
+          "id": "tabletop",
+          "kind": "walkable",
+          "height": 0.75,
+          "centerXZ": [
+            0,
+            0
+          ],
+          "halfExtentsXZ": [
+            0.9,
+            0.45
+          ]
+        }
+      ],
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0,
+            0.7,
+            0
+          ],
+          "halfExtents": [
+            0.9,
+            0.05,
+            0.45
+          ]
+        },
+        {
+          "type": "box",
+          "center": [-0.72, 0.325, -0.31],
+          "halfExtents": [0.08, 0.325, 0.08]
+        },
+        {
+          "type": "box",
+          "center": [0.72, 0.325, -0.31],
+          "halfExtents": [0.08, 0.325, 0.08]
+        },
+        {
+          "type": "box",
+          "center": [-0.72, 0.325, 0.31],
+          "halfExtents": [0.08, 0.325, 0.08]
+        },
+        {
+          "type": "box",
+          "center": [0.72, 0.325, 0.31],
+          "halfExtents": [0.08, 0.325, 0.08]
+        }
+      ],
+      "physics": {
+        "bodyType": "static",
+        "suggestedMass": 0,
+        "friction": 0.75,
+        "restitution": 0.05
+      },
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "visualFront": "-Z",
+      "sourceGenerator": "assets/generators/generate-desk.mjs"
+    },
+    {
       "id": "mug",
       "path": "assets/models/mug.glb",
       "visualScale": [

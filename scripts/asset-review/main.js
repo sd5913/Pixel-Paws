@@ -1,5 +1,5 @@
 import * as T from 'three';
-import { loadGlb } from '../../src/assets/load-assets.js';
+import { instantiateAssetLayout, loadGlb } from '../../src/assets/load-assets.js';
 
 const viewport = document.querySelector('#viewport');
 const status = document.querySelector('#status');
@@ -53,7 +53,7 @@ function render() {
   camera.lookAt(target);
   document.querySelector('#angle').value = `${controls.elevation.value}°`;
   colliderGroup.visible = controls.collider.checked;
-  deskOutline.visible = deskScale;
+  deskOutline.visible = deskScale && entry.id !== 'desk';
   ground.visible = deskScale;
   renderer.render(scene, camera);
 }
@@ -63,17 +63,35 @@ try {
   if (!response.ok) throw new Error(`Manifest HTTP ${response.status}`);
   const manifest = await response.json();
   for (const asset of manifest.assets) controls.asset.add(new Option(asset.id, asset.id));
-  controls.asset.value = 'mug';
+  controls.asset.value = manifest.assets.some(asset => asset.id === 'desk') ? 'desk' : 'mug';
   async function select() {
     const token = ++request;
     status.textContent = 'Loading…';
     try {
       const asset = manifest.assets.find(a => a.id === controls.asset.value);
-      const source = await loadGlb(`./${asset.path}`);
+      let source;
+      let compositionLabel = '';
+      if (asset.id === 'desk') {
+        const layoutResponse = await fetch('./scenes/study-desk-preview.scene.json');
+        if (!layoutResponse.ok) throw new Error(`Desk preview layout HTTP ${layoutResponse.status}`);
+        const layout = await layoutResponse.json();
+        const descriptors = await instantiateAssetLayout({
+          manifest,
+          layout,
+          loadModel: path => loadGlb(`./${path}`),
+        });
+        source = new T.Group();
+        source.name = 'study-desk-preview';
+        source.add(...descriptors.map(descriptor => descriptor.object3D));
+        compositionLabel = ' Approved mug is at [0.58, 0.75, 0.27], leaving the center/front playable.';
+        controls.desk.checked = true;
+      } else {
+        source = await loadGlb(`./${asset.path}`);
+      }
       if (token !== request) return;
       if (model) scene.remove(model);
       model = source.clone(true);
-      model.scale.fromArray(asset.visualScale);
+      if (asset.id !== 'desk') model.scale.fromArray(asset.visualScale);
       scene.add(model);
       entry = asset;
       for (const child of [...colliderGroup.children]) {
@@ -85,7 +103,7 @@ try {
         const half = new T.Vector3().fromArray(collider.halfExtents);
         colliderGroup.add(new T.Box3Helper(new T.Box3(center.clone().sub(half), center.clone().add(half)), '#514A50'));
       }
-      status.textContent = `${asset.id}: ${asset.dimensionsMeters.map(n => n.toFixed(4)).join(' × ')} m (W × H × D). Orthographic; native scale and origin preserved. Collider overlay supports boxes.`;
+      status.textContent = `${asset.id}: ${asset.dimensionsMeters.map(n => n.toFixed(4)).join(' × ')} m (W × H × D). Orthographic; native scale and origin preserved. Collider overlay supports boxes.${compositionLabel}`;
       render();
     } catch (error) { status.textContent = `Preview failed: ${error.message}`; console.error(error); }
   }

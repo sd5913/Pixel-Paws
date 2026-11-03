@@ -14,6 +14,8 @@ Leave enough clear desk area for movement and paw reach. Keep edges visually leg
 - Look toward the desk center; choose azimuth for readable cat front paws and prop
   silhouettes. Review several cat headings; a camera angle alone does not prove
   the paws remain visible.
+- The study-desk asset preview starts at 150° azimuth so its -Z drawer front is
+  visible. This is a review default, not a gameplay camera lock.
 - For distance `r`, elevation `e`, azimuth `a`, use camera offset
   `[r*cos(e)*sin(a), r*sin(e), r*cos(e)*cos(a)]` from the look-at target.
   Convert degrees to radians. Orthographic distance does not determine zoom;
