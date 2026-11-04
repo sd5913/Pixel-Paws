@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f0e7">
+  <link rel="icon" href="data:,">
+  <title>Pixel Paws — Illustrated rendering study</title>
+  <style>/* INLINE_STYLE */</style>
+</head>
+<body>
+  <header><a href="./" aria-label="Pixel Paws study home"><svg class="mark" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M5.6 18.4L18.4 5.6"/></svg> PIXEL PAWS</a><span class="tag">RENDER STUDY <span> / 001</span></span></header>
+  <main>
+    <section class="direction">
+      <p class="eyebrow">A LITTLE WORLD, SOFTLY LIT</p>
+      <h1>A quieter <br>kind of cozy.</h1>
+      <p class="intro">One desk. One little mug. Three ways to paint the afternoon.</p>
+      <fieldset><legend>CHOOSE A RENDERING PRESET</legend>
+        <label class="preset"><input type="radio" name="preset" value="soft-pastel"><span class="swatch pastel"></span><span><strong>Soft Pastel</strong><small>Airy color · soft, open shadows</small></span><span class="number">01</span></label>
+        <label class="preset"><input type="radio" name="preset" value="warm-illustrated" checked><span class="swatch warm"></span><span><strong>Warm Illustrated</strong><small>Honey light · a peachy afternoon</small></span><span class="number">02</span></label>
+        <label class="preset"><input type="radio" name="preset" value="faceted-diorama"><span class="swatch faceted"></span><span><strong>Faceted Diorama</strong><small>Broad planes · sculpted color</small></span><span class="number">03</span></label>
+      </fieldset>
+      <p class="study-note">Inspired by sun-warmed wood, powdery color and the small, handmade feeling of an illustrated diorama.</p>
+      <p class="experiment-label"><span></span> Visual experiment · independent of gameplay</p>
+    </section>
+    <section class="artboard" aria-label="Interactive rendering preview">
+      <div class="board-heading"><span>THE AFTERNOON DESK</span><span id="preset-number">02 / 03</span></div>
+      <div id="viewport" role="img" aria-label="Orthographic diorama of the existing study desk and mug"><p id="loading" role="status">Setting the afternoon light…</p></div>
+      <div class="scene-controls" aria-label="Composition"><button id="scene-view" aria-pressed="true">Diorama</button><button id="mug-view" aria-pressed="false">Mug detail</button></div>
+      <div class="board-caption"><div><p class="eyebrow">CURRENT PALETTE</p><h2 id="preset-title">Warm Illustrated</h2><p id="preset-description">Apricot wood, honey light and lavender shade.</p></div><div id="palette" aria-label="Palette swatches"></div></div>
+      <div class="board-footer"><span>ORTHOGRAPHIC <b>70°</b> / NATIVE SCALE</span><button id="download" disabled>Save image ↓</button></div>
+    </section>
+  </main>
+  <footer><span>ILLUSTRATED RENDERING / THROWAWAY EXPLORATION</span><a href="" download="pixel-paws-rendering-study.html" style="color:inherit">Download standalone preview ↓</a></footer>
+  <script type="module">/* INLINE_SCRIPT */</script>
+</body>
+</html>
