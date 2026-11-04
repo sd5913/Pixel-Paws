@@ -67,10 +67,15 @@ export async function instantiateAssetLayout({ manifest, layout, loadModel = loa
       pivot: structuredClone(asset.pivot),
       bounds: structuredClone(asset.bounds),
       physics: {
-        bodyType: instance.physics.bodyType,
-        colliderSet: instance.physics.colliderSet,
-        colliders: structuredClone(asset.colliders),
-      },
+      bodyType: instance.physics.bodyType,
+      colliderSet: instance.physics.colliderSet,
+      colliders: structuredClone(asset.colliders),
+
+      // 物理参数
+      suggestedMass: asset.suggestedMass,
+      friction: asset.friction,
+      restitution: asset.restitution,
+    },
     };
   }));
 }
