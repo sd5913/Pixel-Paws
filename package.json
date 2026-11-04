@@ -12,7 +12,10 @@
     "assets:reproduce:mug": "node scripts/reproduce-mug.mjs",
     "assets:generate:desk": "node src/assets/generators/generate-desk.mjs",
     "assets:reproduce:desk": "node scripts/reproduce-desk.mjs",
-    "assets:preview": "node scripts/preview-assets.mjs"
+    "assets:preview": "node scripts/preview-assets.mjs",
+    "viewer:build": "node tools/asset-viewer/build.mjs",
+    "viewer:serve": "node tools/asset-viewer/serve.mjs",
+    "viewer:check": "node tools/asset-viewer/browser-check.mjs"
   },
   "dependencies": {
     "@capacitor/android": "8.5.3",
@@ -23,6 +26,7 @@
     "@capacitor/cli": "8.5.3",
     "esbuild": "^0.25.12",
     "gltf-validator": "2.0.0-dev.3.10",
+    "playwright": "1.62.1",
     "three-mug-reference": "npm:three@0.180.0"
   },
   "engines": {

@@ -1,5 +1,9 @@
 # Illustrated rendering experiment
 
+For the shared manifest-driven viewer with Model Inspection, Art Preview,
+orbit controls and overlays, see [the Asset Viewer](../../tools/asset-viewer/README.md).
+This original fixed-composition experiment and its visual results remain available.
+
 Throwaway visual exploration for Pixel Paws. Branch:
 `experiment/illustrated-rendering`, based on `feature/study-desk` at
 `e7d7942c67559263421dba57123b11b20260705b`.

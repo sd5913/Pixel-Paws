@@ -1,0 +1,24 @@
+// Shared, unchanged values from the original illustrated rendering study.
+export const presets = {
+  'soft-pastel': {
+    name: 'Soft Pastel', number: '01', description: 'Powdery blue, oat wood and a soft rose atmosphere.',
+    background: '#eee8e2', floor: '#dfcdbb', seam: '#cebba9', wall: '#e4c5b9',
+    trim: '#d1aba0', window: '#cfdae4', base: '#d5b9ac', rug: '#e2d7cb',
+    sky: '#fff4ef', bounce: '#c8bbd6', sun: '#fff4dc', ambient: 2.5, key: 1.0,
+    exposure: 1.05, wash: 0.25, tint: '#ffe8dc', palette: ['#dfcdbb', '#b4ced1', '#e4c5b9', '#cfdae4'],
+  },
+  'warm-illustrated': {
+    name: 'Warm Illustrated', number: '02', description: 'Apricot wood, honey light and lavender shade.',
+    background: '#eee3d6', floor: '#e3b880', seam: '#ce9e69', wall: '#e9b292',
+    trim: '#cb8d6d', window: '#c9c5df', base: '#ca9778', rug: '#ecd2ae',
+    sky: '#ffe9cf', bounce: '#aa9bc0', sun: '#ffe2ad', ambient: 2.3, key: 1.5,
+    exposure: 1.0, wash: 0.12, tint: '#ffc591', palette: ['#e3b880', '#e9b292', '#c9c5df', '#9dcbc5'],
+  },
+  'faceted-diorama': {
+    name: 'Faceted Diorama', number: '03', description: 'Matte planes, sage accents and sculpted shadows.',
+    background: '#e7ddcf', floor: '#cda880', seam: '#b59070', wall: '#d0a18b',
+    trim: '#ad785e', window: '#b5b8ce', base: '#b7836b', rug: '#ded0b9',
+    sky: '#fff0db', bounce: '#9c9ab3', sun: '#ffe4b7', ambient: 1.25, key: 2.1,
+    exposure: 1, wash: 0.04, tint: '#ffe5c2', palette: ['#cda880', '#9eaf9b', '#b5b8ce', '#b7836b'],
+  },
+};

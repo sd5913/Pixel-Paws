@@ -25,6 +25,14 @@ release.
 For GLB placement, validation, and the physics handoff contract, see
 [`docs/asset-pipeline.md`](docs/asset-pipeline.md).
 
+## Shared 3D Asset Viewer
+
+Run `npm run viewer:serve` after `npm ci`, then open
+http://localhost:4175/asset-viewer/ to inspect manifest assets, visualize bounds
+and colliders, or compare illustrated rendering presets. This viewer is separate
+from the game. See [`tools/asset-viewer/README.md`](tools/asset-viewer/README.md)
+for controls, offline export, validation, and Pages packaging without deployment.
+
 ## Publish a versioned release
 
 When your team is ready to share a tested build, push a version tag:

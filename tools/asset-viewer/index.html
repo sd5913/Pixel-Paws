@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f5f0e7"><link rel="icon" href="data:,"><title>Pixel Paws · Asset Viewer</title><style>/* INLINE_STYLE */</style></head>
+<body>
+  <header><div class="brand"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#aa6c52" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M5.6 18.4L18.4 5.6"/></svg><div>PIXEL PAWS <small>SHARED ASSET STUDIO</small></div></div><span class="header-note">Explore the form. Find the feeling.</span><span class="read-only">READ-ONLY ASSETS</span></header>
+  <main>
+    <aside class="controls" aria-label="Viewer controls">
+      <p class="eyebrow">THE ASSET LIBRARY</p><h1>Small objects. <br>Many possibilities.</h1>
+      <p class="lede">Inspect the craft, or paint a little afternoon.</p>
+      <label class="field" for="asset">ASSET / COMPOSITION<select id="asset"><option>Loading catalog…</option></select></label>
+      <label class="field" for="mode">VIEWING MODE<select id="mode"><option value="inspection">Model Inspection</option><option value="art" selected>Art Preview</option></select></label>
+      <div id="preset-field"><label class="field" for="preset">ILLUSTRATED RENDERING<select id="preset"><option value="soft-pastel">Soft Pastel</option><option value="warm-illustrated" selected>Warm Illustrated</option><option value="faceted-diorama">Faceted Diorama</option></select></label><p id="preset-description" class="hint"></p><div id="palette" aria-label="Preset palette"></div></div>
+      <p id="inspection-note" class="hint" hidden>Original GLB materials under neutral lighting. Native geometry, scale and pivot.</p>
+      <fieldset class="layers"><legend>INSPECTION LAYERS</legend><label><input type="checkbox" id="wireframe"> Wireframe <span>Mesh</span></label><label><input type="checkbox" id="bounds"> Bounding boxes <span>Blue</span></label><label><input type="checkbox" id="colliders"> Colliders <span>Green</span></label></fieldset>
+      <div class="camera-actions"><button id="reset">Reset camera</button><button id="save-image" disabled>Save PNG</button></div>
+      <p class="hint interaction-help">Drag to orbit · scroll to zoom <br>Two fingers to zoom / pan on touch</p>
+      <p class="note">A shared visual workspace.<br>No gameplay or physics simulation.</p>
+    </aside>
+    <section class="workspace" aria-label="3D asset workspace">
+      <div class="viewport-card"><div class="viewport-title"><span id="selection-label">DESK SCENE</span><span id="mode-label">ART PREVIEW</span></div>
+        <div id="viewport" tabindex="0" aria-label="3D asset preview; drag to orbit, scroll to zoom"><p id="loading" role="status">Opening the asset library…</p></div>
+        <div class="viewport-bottom"><span id="camera-label">ORTHOGRAPHIC · 70°</span><div class="zoom-controls"><button id="zoom-out" aria-label="Zoom out">−</button><button id="zoom-in" aria-label="Zoom in">+</button></div></div>
+      </div>
+      <div class="status-bar"><span class="status-dot" aria-hidden="true"></span><p id="status" role="status" aria-live="polite">Loading approved assets…</p></div>
+      <section class="metadata-panel" aria-labelledby="metadata-title"><div class="metadata-heading"><h2 id="metadata-title">The details</h2><span>METERS · Y-UP · NATIVE SCALE</span></div><div id="metadata"></div></section>
+    </section>
+  </main>
+  <footer><span>PIXEL PAWS / ASSET VIEWER</span><a href="" download="pixel-paws-asset-viewer.html">Download offline viewer ↓</a></footer>
+  <script type="module">/* INLINE_SCRIPT */</script>
+</body></html>
