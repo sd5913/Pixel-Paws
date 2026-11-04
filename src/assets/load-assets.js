@@ -2,7 +2,18 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 import { validateAssetManifest, validateSceneLayout } from './validation.js';
 
-const sharedLoader = new GLTFLoader();
+// r186 treats extras.pivot as its numeric pivot extension. Older approved GLBs
+// use this key as descriptive text. Adapt parsed metadata, never the GLB bytes.
+const sharedLoader = new GLTFLoader().register((parser) => ({
+  name: 'PIXEL_PAWS_legacy_pivot_metadata',
+  beforeRoot() {
+    for (const node of parser.json.nodes ?? []) {
+      if (typeof node.extras?.pivot !== 'string') continue;
+      node.extras = { ...node.extras, pivotConvention: node.extras.pivot };
+      delete node.extras.pivot;
+    }
+  },
+}));
 const modelCache = new Map();
 
 export function parseGlb(data, resourcePath = '', loader = sharedLoader) {

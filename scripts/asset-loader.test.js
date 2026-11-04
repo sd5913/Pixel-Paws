@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
+import { Box3, Vector3 } from 'three';
 
 import {
   instantiateAssetLayout,
@@ -19,6 +20,15 @@ async function readPipelineData() {
     glb,
   };
 }
+
+test('approved mug text pivot metadata loads without changing its transform', async () => {
+  const glb = await readFile('src/assets/models/mug.glb');
+  const source = await parseGlb(glb.buffer.slice(glb.byteOffset, glb.byteOffset + glb.byteLength));
+  const size = new Box3().setFromObject(source, true).getSize(new Vector3()).toArray();
+  assert.ok(size.every(Number.isFinite), 'Imported mug bounds must be finite');
+  assert.ok(Math.abs(size[1] - 0.09600000083446503) < 1e-7);
+  assert.equal(source.getObjectByName('Cloud_Paw_Mug').userData.pivotConvention, 'base center');
+});
 
 test('parseGlb loads the locally packaged placeholder model', async () => {
   const { glb } = await readPipelineData();

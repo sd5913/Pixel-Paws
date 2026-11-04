@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 
 import { validateAssetManifest } from '../src/assets/validation.js';
+import { inspectGlb, validateMeasuredAsset } from './inspect-glb.mjs';
 
 export async function validateAssetFiles(manifest, sourceRoot) {
   validateAssetManifest(manifest);
@@ -17,6 +18,11 @@ export async function validateAssetFiles(manifest, sourceRoot) {
     const file = await readFile(absoluteAssetPath);
     if (file.length < 4 || file.subarray(0, 4).toString('ascii') !== 'glTF') {
       throw new Error(`Asset ${asset.id} does not have a valid GLB header.`);
+    }
+    const measurement = await inspectGlb(file);
+    validateMeasuredAsset(asset, measurement);
+    if (measurement.issues.numWarnings) {
+      throw new Error(`Asset ${asset.id} has GLB warnings: ${JSON.stringify(measurement.issues.messages)}`);
     }
   }
 

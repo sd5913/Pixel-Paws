@@ -1,5 +1,13 @@
 # Asset pipeline
 
+For asset creation and review, use the repository skill
+`.agents/skills/cozy-lowpoly-assets/SKILL.md`. Start with
+[style](assets/STYLE_GUIDE.md), [scale](assets/SCALE_GUIDE.md),
+[scene/character design](assets/SCENE_GUIDE.md),
+[manifest fields](assets/ASSET_MANIFEST.md), and [validation](assets/VALIDATION.md).
+The approved mug and its generator are organized under `src/assets/`; its original
+export report is `src/assets/asset-spec.json`. It is not added to gameplay.
+
 The app bundles the npm-installed `three` package and `GLTFLoader` with esbuild. GLB files and JSON scene data are copied from `src/` to `www/`, so the Capacitor application does not need a CDN or a network connection to load Three.js assets.
 
 ## Add an asset
@@ -14,7 +22,7 @@ The placeholder model is reproducible with `node scripts/create-placeholder-glb.
 
 ## Manifest and layout contract
 
-`src/assets/validation.js` is the executable schema for schema version 1. It validates identifiers, coordinates, scale, pivots, bounds, collider descriptors, render flags, scene references, body types, and transforms. `scripts/validate-asset-files.mjs` additionally rejects paths outside `src/`, missing files, and files without a GLB header.
+`src/assets/validation.js` is the executable schema for schema version 1. It validates identifiers, coordinates, scale, pivots, measured dimensions, bounds, collider descriptors, physical defaults, render flags, scene references, body types, and transforms. `scripts/validate-asset-files.mjs` additionally checks packaged paths, Khronos GLB validation, actual transformed vertex bounds, and approved file hashes.
 
 Supported collider type names are `none`, `box`, `sphere`, `capsule`, `cylinder`, `convex-hull`, and `trimesh`. A box provides `halfExtents`; a sphere provides `radius`; capsules and cylinders provide `radius` and `halfHeight`; convex hulls and triangle meshes provide the GLB node names in `includeNodes`. All collidable shapes provide a local-space `center`. Milestone 1 only validates and exposes these descriptors; it does not create collision shapes or physics bodies.
 
@@ -52,7 +60,7 @@ The preview deliberately does not register its placeholder with the runner's cur
 
 - bundles `src/app.js`, `three`, and Three.js add-ons into `www/app.js`;
 - copies `index.html` and `style.css`;
-- copies `src/assets/` to `www/assets/`;
+- copies the manifest and models from `src/assets/` to `www/assets/` (authoring generators and reports stay out of the app build);
 - copies `src/scenes/` to `www/scenes/`.
 
 The existing Capacitor `webDir` remains `www`, so `npm run android:sync` and the Android build workflow are unchanged.
