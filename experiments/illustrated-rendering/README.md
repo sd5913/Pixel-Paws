@@ -29,8 +29,18 @@ node experiments/illustrated-rendering/build.mjs work/illustrated-review
 
 The default file is `work/illustrated-rendering/index.html`. Double-click it in a
 modern WebGL browser; no server, CDN, network or game installation is needed.
-The `work/` directory is already ignored. Generated HTML and screenshots are not
-committed. `PORT=4175` overrides the preview server's default port.
+The `work/` directory is already ignored. Generated HTML is not committed.
+`PORT=4175` overrides the preview server's default port.
+
+## Captured comparison
+
+![Three rendering presets, with matching diorama and mug-detail views](screenshots/comparison.png)
+
+Portrait screenshots at 390×844 CSS pixels, captured at 2× pixel ratio:
+
+- [Soft Pastel](screenshots/soft-pastel-portrait.png)
+- [Warm Illustrated](screenshots/warm-illustrated-portrait.png)
+- [Faceted Diorama](screenshots/faceted-diorama-portrait.png)
 
 ## Visual choices
 
