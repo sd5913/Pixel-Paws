@@ -81,6 +81,22 @@ test('asset manifest requires collider dimensions for each primitive shape', () 
   assert.throws(() => validateAssetManifest(invalidHull), /includeNodes/i);
 });
 
+test('asset manifest validates optional interaction surfaces', () => {
+  const validSurface = structuredClone(validManifest);
+  validSurface.assets[0].interactionSurfaces = [{
+    id: 'tabletop',
+    kind: 'walkable',
+    height: 1,
+    centerXZ: [0, 0],
+    halfExtentsXZ: [0.5, 0.5],
+  }];
+  assert.equal(validateAssetManifest(validSurface), validSurface);
+
+  const invalidSurface = structuredClone(validSurface);
+  invalidSurface.assets[0].interactionSurfaces[0].height = Number.NaN;
+  assert.throws(() => validateAssetManifest(invalidSurface), /interaction surface/i);
+});
+
 test('scene layout validates asset references and normalized transforms', () => {
   assert.equal(validateSceneLayout(validLayout, validManifest), validLayout);
 
@@ -127,7 +143,7 @@ test('checked-in manifest and preview layout validate together', async () => {
 });
 
 test('asset validation script verifies the checked-in pipeline data', async () => {
-  assert.deepEqual(await validateCheckedInAssets(), { assetCount: 2, sceneCount: 1, instanceCount: 1 });
+  assert.deepEqual(await validateCheckedInAssets(), { assetCount: 3, sceneCount: 2, instanceCount: 3 });
 });
 
 test('asset validation script checks every packaged scene layout', async () => {

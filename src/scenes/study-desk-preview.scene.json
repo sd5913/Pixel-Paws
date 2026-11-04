@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "study-desk-preview",
+  "instances": [
+    {
+      "id": "preview-study-desk",
+      "assetId": "desk",
+      "transform": {
+        "position": [0, 0, 0],
+        "rotation": [0, 0, 0, 1],
+        "scale": [1, 1, 1]
+      },
+      "physics": {
+        "bodyType": "static",
+        "colliderSet": "default"
+      }
+    },
+    {
+      "id": "preview-mug-on-desk",
+      "assetId": "mug",
+      "transform": {
+        "position": [0.58, 0.75, 0.27],
+        "rotation": [0, 0, 0, 1],
+        "scale": [1, 1, 1]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
+      }
+    }
+  ]
+}

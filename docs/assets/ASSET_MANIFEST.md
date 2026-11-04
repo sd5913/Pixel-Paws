@@ -19,6 +19,7 @@ No physics engine is imported or invoked by the generator, validator or preview.
 | `pivot.basis` | Optional explanation of approved exceptions (mug centered on vessel body) |
 | `bounds.center` | Actual AABB center relative to native origin, after visualScale |
 | `bounds.halfExtents` | Positive XYZ half sizes; doubled values equal dimensionsMeters |
+| `interactionSurfaces` | Optional named handoff planes; a walkable surface records local `height`, `centerXZ`, and `halfExtentsXZ` without implementing movement or collision |
 | `colliders` | Engine-neutral shape descriptors; compound shapes are multiple entries |
 | `physics.bodyType` | Suggested `static`, `dynamic`, or existing supported `kinematic`; layout controls actual instance classification |
 | `physics.suggestedMass` | Kilograms; zero for static, positive for dynamic/kinematic (kinematic mass is ignored by engines that do not use it) |
@@ -61,6 +62,19 @@ The mug's initial box is conservative: full size
 aperture. This is suitable as a provisional pushable prop proxy, not a claim of
 exact collision geometry. If openings matter, the physics developer supplies
 compound convex descriptors in this manifest without editing the generator.
+
+## Study desk handoff
+
+The desk is a static environment object with zero mass, friction 0.75 and
+restitution 0.05. Its `tabletop` interaction surface spans 1.80 × 0.90 m at local
+Y=0.75. The recommended compound collider consists of one tabletop box centered
+at `[0,0.70,0]` with half-extents `[0.90,0.05,0.45]`, plus four leg boxes centered
+at X=±0.72, Y=0.325, Z=±0.31 with half-extents `[0.08,0.325,0.08]`.
+
+These shapes keep the walkable top and ground supports aligned while leaving the
+decorative aprons and drawer out of collision. A physics adapter can load
+`assets/models/desk.glb`, read these five local boxes and attach them to one static
+body without importing or modifying the desk generator.
 
 ## Consumer procedure
 

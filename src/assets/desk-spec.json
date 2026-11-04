@@ -1,0 +1,123 @@
+{
+  "generatorVersion": 1,
+  "parameters": {
+    "dimensionsMeters": [
+      1.8,
+      0.75,
+      0.9
+    ],
+    "tabletop": {
+      "size": [
+        1.8,
+        0.1,
+        0.9
+      ],
+      "center": [
+        0,
+        0.7,
+        0
+      ],
+      "radius": 0.045
+    },
+    "leg": {
+      "size": [
+        0.16,
+        0.65,
+        0.16
+      ],
+      "y": 0.325,
+      "x": 0.72,
+      "z": 0.31,
+      "radius": 0.035
+    },
+    "frontBackApron": {
+      "size": [
+        1.48,
+        0.12,
+        0.1
+      ],
+      "y": 0.59,
+      "z": 0.36,
+      "radius": 0.025
+    },
+    "sideApron": {
+      "size": [
+        0.1,
+        0.12,
+        0.62
+      ],
+      "y": 0.59,
+      "x": 0.76,
+      "radius": 0.025
+    },
+    "drawerBody": {
+      "size": [
+        0.62,
+        0.15,
+        0.38
+      ],
+      "center": [
+        0,
+        0.55,
+        -0.2
+      ],
+      "radius": 0.025
+    },
+    "drawerFront": {
+      "size": [
+        0.66,
+        0.18,
+        0.035
+      ],
+      "center": [
+        0,
+        0.55,
+        -0.43
+      ],
+      "radius": 0.02
+    },
+    "drawerPull": {
+      "size": [
+        0.18,
+        0.035,
+        0.012
+      ],
+      "center": [
+        0,
+        0.55,
+        -0.443
+      ],
+      "radius": 0.012
+    },
+    "roundedSegments": 2
+  },
+  "palette": {
+    "oatWood": "#C8AA86",
+    "softSage": "#A9BBA0",
+    "warmCream": "#FFF0D7"
+  },
+  "triangles": 3600,
+  "vertices": 10800,
+  "dimensionsMeters": [
+    1.7999999523162842,
+    0.7499999880790709,
+    0.8999999761581421
+  ],
+  "bounds": {
+    "min": [
+      -0.8999999761581421,
+      1.1920929132713809e-8,
+      -0.44999998807907104
+    ],
+    "max": [
+      0.8999999761581421,
+      0.75,
+      0.44999998807907104
+    ]
+  },
+  "bytes": 457140,
+  "materials": 3,
+  "drawCalls": 3,
+  "textures": 0,
+  "tabletopHeightMeters": 0.75
+}
