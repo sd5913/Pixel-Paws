@@ -114,3 +114,25 @@ button {
     width: 100%;
   }
 }
+.scene-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.scene-controls button {
+  font: inherit;
+}
+
+.scene-controls button.active {
+  background: #7cf0ff;
+  color: #08131f;
+  border-color: #7cf0ff;
+}
+
+@media (max-width: 600px) {
+  .scene-controls {
+    justify-content: flex-start;
+  }
+}

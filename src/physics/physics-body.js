@@ -88,13 +88,43 @@ export function createPhysicsBody(physicsWorld, instance) {
     w: rotation[3],
   });
 
-  // 在创建刚体之前设置初始质量
+  // Set mass, center of mass and rotational inertia
 if (
   physics.bodyType === 'dynamic' &&
   Number.isFinite(physics.suggestedMass) &&
   physics.suggestedMass > 0
 ) {
-  rigidBodyDesc.setAdditionalMass(physics.suggestedMass);
+  const boxCollider = physics.colliders.find(
+    (collider) => collider.type === 'box',
+  );
+
+  if (boxCollider) {
+    const mass = physics.suggestedMass;
+    const [hx, hy, hz] = boxCollider.halfExtents.map(
+      (value, index) => value * scale[index],
+    );
+
+    const center = boxCollider.center ?? [0, 0, 0];
+
+    const centerOfMass = {
+      x: center[0] * scale[0],
+      y: center[1] * scale[1],
+      z: center[2] * scale[2],
+    };
+
+    const principalAngularInertia = {
+      x: (mass / 3) * (hy ** 2 + hz ** 2),
+      y: (mass / 3) * (hx ** 2 + hz ** 2),
+      z: (mass / 3) * (hx ** 2 + hy ** 2),
+    };
+
+    rigidBodyDesc.setAdditionalMassProperties(
+      mass,
+      centerOfMass,
+      principalAngularInertia,
+      { x: 0, y: 0, z: 0, w: 1 },
+    );
+  }
 }
 
   const rigidBody = world.createRigidBody(rigidBodyDesc);
@@ -111,7 +141,7 @@ if (
 
     if (!colliderDesc) continue;
 
-    // 如果已经指定动态物体质量，避免碰撞体重复贡献质量
+    // Keep collider density so the Mug has rotational inertia
 if (
   physics.bodyType === 'dynamic' &&
   Number.isFinite(physics.suggestedMass) &&

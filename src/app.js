@@ -2,6 +2,7 @@ import { nextMessage } from './logic.js';
 import * as THREE from 'three';
 
 import { addAssetPreview } from './assets/preview.js';
+import { loadSceneAssetInstances } from './assets/load-assets.js';
 
 import { createPhysicsWorld } from './physics/physics-world.js';
 import {
@@ -14,9 +15,12 @@ const ui = {
   score: document.querySelector('#score'),
   status: document.querySelector('#status'),
   start: document.querySelector('#start'),
+  gameMode: document.querySelector('#game-mode'),
+  physicsMode: document.querySelector('#physics-mode'),
 };
 
 const gameRoot = document.querySelector('#game-root');
+let currentMode = 'game';
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#08131f');
 scene.fog = new THREE.Fog('#08131f', 18, 56);
@@ -38,7 +42,11 @@ scene.add(sun);
 
 const world = new THREE.Group();
 scene.add(world);
-void addAssetPreview(world).catch((error) => console.error('Asset preview failed to load.', error));
+
+// Separate group for the Physics Demo
+const physicsDemoGroup = new THREE.Group();
+scene.add(physicsDemoGroup);
+physicsDemoGroup.visible = false;
 
 const ground = new THREE.Mesh(
   new THREE.BoxGeometry(18, 1, 70),
@@ -49,6 +57,7 @@ world.add(ground);
 // Physics system
 let physics = null;
 const physicsBodies = [];
+let mugPhysicsBody = null;
 
 let kinematicPhysicsBody = null;
 /**
@@ -76,9 +85,28 @@ function destroyPhysicsBody(physicsBody) {
 }
 
 async function initPhysics() {
+  // 1. Create Rapier physics world
   physics = await createPhysicsWorld();
 
-  // 1. Static ground
+  // 2. Load Study Desk and Mug
+  const assetInstances = await addAssetPreview(physicsDemoGroup, {
+    loadInstances: () => loadSceneAssetInstances({
+      layoutUrl: './scenes/study-desk-preview.scene.json',
+    }),
+  });
+
+  // 3. Create physics bodies for Desk and Mug
+  for (const instance of assetInstances) {
+  const body = createPhysicsBody(physics, instance);
+  physicsBodies.push(body);
+
+  // Keep a separate reference to the Mug physics body
+  if (instance.assetId === 'mug') {
+    mugPhysicsBody = body;
+  }
+}
+
+  // 4. Keep the original game ground
   const groundPhysicsBody = createPhysicsBody(physics, {
     object3D: ground,
     physics: {
@@ -100,243 +128,7 @@ async function initPhysics() {
 
   physicsBodies.push(groundPhysicsBody);
 
-  // 2. Dynamic test cube
-  const testCube = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 1, 1),
-    new THREE.MeshStandardMaterial({
-      color: '#ffbf69',
-      roughness: 0.6,
-    }),
-  );
-
-  testCube.position.set(3, 4, 0);
-  scene.add(testCube);
-
-  const cubePhysicsBody = createPhysicsBody(physics, {
-    object3D: testCube,
-    physics: {
-      bodyType: 'dynamic',
-      suggestedMass: 1,
-      colliders: [
-        {
-          type: 'box',
-          center: [0, 0, 0],
-          halfExtents: [0.5, 0.5, 0.5],
-        },
-      ],
-    },
-    initialTransform: {
-      position: [3, 4, 0],
-      rotation: [0, 0, 0, 1],
-      scale: [1, 1, 1],
-    },
-  });
-
-  physicsBodies.push(cubePhysicsBody);
-
-  // 3. Kinematic test cube
-  const kinematicCube = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 1, 1),
-    new THREE.MeshStandardMaterial({
-      color: '#7cf0ff',
-      roughness: 0.6,
-    }),
-  );
-
-  kinematicCube.position.set(-3, 1.5, 0);
-  scene.add(kinematicCube);
-
-  kinematicPhysicsBody = createPhysicsBody(physics, {
-    object3D: kinematicCube,
-    physics: {
-      bodyType: 'kinematic',
-      colliders: [
-        {
-          type: 'box',
-          center: [0, 0, 0],
-          halfExtents: [0.5, 0.5, 0.5],
-        },
-      ],
-    },
-    initialTransform: {
-      position: [-3, 1.5, 0],
-      rotation: [0, 0, 0, 1],
-      scale: [1, 1, 1],
-    },
-  });
-
-  physicsBodies.push(kinematicPhysicsBody);
-
-  // 4. Test different masses
-  const massTestConfigs = [
-    {
-      name: 'Light Cube',
-      position: [-5, 4, 0],
-      mass: 0.5,
-      color: '#90be6d',
-    },
-    {
-      name: 'Normal Cube',
-      position: [-7, 4, 0],
-      mass: 1,
-      color: '#577590',
-    },
-    {
-      name: 'Heavy Cube',
-      position: [-9, 4, 0],
-      mass: 5,
-      color: '#f94144',
-    },
-  ];
-
-  for (const config of massTestConfigs) {
-    const cube = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshStandardMaterial({
-        color: config.color,
-        roughness: 0.6,
-      }),
-    );
-
-    cube.position.set(...config.position);
-    scene.add(cube);
-
-    const body = createPhysicsBody(physics, {
-      object3D: cube,
-      physics: {
-        bodyType: 'dynamic',
-        suggestedMass: config.mass,
-        friction: 0.5,
-        restitution: 0.2,
-        colliders: [
-          {
-            type: 'box',
-            center: [0, 0, 0],
-            halfExtents: [0.5, 0.5, 0.5],
-          },
-        ],
-      },
-      initialTransform: {
-        position: config.position,
-        rotation: [0, 0, 0, 1],
-        scale: [1, 1, 1],
-      },
-    });
-
-    physicsBodies.push(body);
-  }
-
-  // 5. Test different friction values
-  const frictionTestConfigs = [
-    {
-      name: 'Low Friction',
-      position: [3, 4, -3],
-      friction: 0.05,
-      color: '#577590',
-    },
-    {
-      name: 'High Friction',
-      position: [5, 4, -3],
-      friction: 1.0,
-      color: '#90be6d',
-    },
-  ];
-
-  for (const config of frictionTestConfigs) {
-    const cube = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshStandardMaterial({
-        color: config.color,
-        roughness: 0.6,
-      }),
-    );
-
-    cube.position.set(...config.position);
-    scene.add(cube);
-
-    const body = createPhysicsBody(physics, {
-      object3D: cube,
-      physics: {
-        bodyType: 'dynamic',
-        suggestedMass: 1,
-        friction: config.friction,
-        restitution: 0.2,
-        colliders: [
-          {
-            type: 'box',
-            center: [0, 0, 0],
-            halfExtents: [0.5, 0.5, 0.5],
-          },
-        ],
-      },
-      initialTransform: {
-        position: config.position,
-        rotation: [0, 0, 0, 1],
-        scale: [1, 1, 1],
-      },
-    });
-
-    physicsBodies.push(body);
-
-    // Give both cubes the same horizontal velocity
-    body.rigidBody.setLinvel(
-      { x: 3, y: 0, z: 0 },
-      true,
-    );
-  }
-
-  // 6. Test different restitution values
-  const restitutionTestConfigs = [
-    {
-      name: 'Low Restitution',
-      position: [-2, 4, -8],
-      restitution: 0.0,
-      color: '#577590',
-    },
-    {
-      name: 'High Restitution',
-      position: [1, 4, -8],
-      restitution: 0.9,
-      color: '#f94144',
-    },
-  ];
-
-  for (const config of restitutionTestConfigs) {
-    const cube = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshStandardMaterial({
-        color: config.color,
-        roughness: 0.6,
-      }),
-    );
-
-    cube.position.set(...config.position);
-    scene.add(cube);
-
-    const body = createPhysicsBody(physics, {
-      object3D: cube,
-      physics: {
-        bodyType: 'dynamic',
-        suggestedMass: 1,
-        friction: 0.5,
-        restitution: config.restitution,
-        colliders: [
-          {
-            type: 'box',
-            center: [0, 0, 0],
-            halfExtents: [0.5, 0.5, 0.5],
-          },
-        ],
-      },
-      initialTransform: {
-        position: config.position,
-        rotation: [0, 0, 0, 1],
-        scale: [1, 1, 1],
-      },
-    });
-
-    physicsBodies.push(body);
-  }
+  console.log('Physics initialized: ground, desk and mug.');
 }
 
 // Initialize physics once
@@ -409,6 +201,43 @@ function setStarted(value) {
   }
 }
 
+function switchMode(mode) {
+  currentMode = mode;
+
+  const isGameMode = mode === 'game';
+
+  // Show the correct scene objects
+  physicsDemoGroup.visible = !isGameMode;
+  world.visible = true;
+  player.visible = isGameMode;
+
+  for (const obstacle of obstacles) {
+    obstacle.visible = isGameMode;
+  }
+
+  for (const pickup of pickups) {
+    pickup.visible = isGameMode;
+  }
+
+  // Switch camera position
+  if (isGameMode) {
+    camera.position.set(0, 4.5, 12);
+    camera.lookAt(0, 1.2, 0);
+  } else {
+    camera.position.set(2.8, 2.4, 3.8);
+    camera.lookAt(0, 0.5, 0);
+  }
+
+  // Update active button styles
+  ui.gameMode.classList.toggle('active', isGameMode);
+  ui.physicsMode.classList.toggle('active', !isGameMode);
+
+  // Update status
+  ui.status.textContent = isGameMode
+    ? 'Original Game mode'
+    : 'Physics Demo mode';
+}
+
 function spawnObstacle() {
   const obstacle = new THREE.Mesh(
     new THREE.BoxGeometry(1.2, 1.2, 1.2),
@@ -444,6 +273,37 @@ function onKey(event, isPressed) {
 
 window.addEventListener('keydown', (event) => {
   onKey(event, true);
+
+  console.log('Key pressed:', event.code, 'Mode:', currentMode, 'Mug found:', Boolean(mugPhysicsBody));
+
+  // Knock over the Mug in Physics Demo mode
+  if (
+    currentMode === 'physics' &&
+    event.code === 'KeyK' &&
+    !event.repeat &&
+    mugPhysicsBody
+  ) {
+    const rigidBody = mugPhysicsBody.rigidBody;
+
+// Apply one rotational impulse to knock over the Mug
+rigidBody.applyTorqueImpulse(
+  { x: 0.01, y: 0.01, z: 0.02 },
+  true,
+);
+
+// Debug information
+console.log('Mug position:', rigidBody.translation());
+console.log('Mug velocity:', rigidBody.linvel());
+const angularVelocity = rigidBody.angvel();
+console.log(
+  'Mug angular velocity:',
+  angularVelocity.x,
+  angularVelocity.y,
+  angularVelocity.z
+);
+console.log('Mug sleeping:', rigidBody.isSleeping());
+  }
+
   if (event.code === 'ArrowLeft' || event.code === 'KeyA' || event.code === 'ArrowRight' || event.code === 'KeyD') {
     controls.pointerActive = false;
   }
@@ -462,7 +322,17 @@ window.addEventListener('pointerleave', () => {
   controls.pointerActive = false;
 });
 
+ui.gameMode.addEventListener('click', () => {
+  switchMode('game');
+});
+
+ui.physicsMode.addEventListener('click', () => {
+  switchMode('physics');
+});
+
 ui.start.addEventListener('click', () => {
+    if (currentMode !== 'game') return;
+
   score = 0;
   updateHud();
   for (const obstacle of obstacles) scene.remove(obstacle);
@@ -557,22 +427,12 @@ function animate(timestamp) {
   const delta = Math.min((timestamp - (lastTimestamp || timestamp)) / 1000, 0.05);
   lastTimestamp = timestamp;
 
+  if (currentMode === 'game') {
   stepGame(delta);
+  }
 
   // Update physics world
 if (physics) {
-  // Update kinematic test cube
-  if (kinematicPhysicsBody && !kinematicPhysicsBody.removed) {
-    const time = timestamp * 0.001;
-    const nextY = 1.5 + Math.sin(time * 2) * 0.8;
-
-    kinematicPhysicsBody.rigidBody.setNextKinematicTranslation({
-      x: -3,
-      y: nextY,
-      z: 0,
-    });
-  }
-
   // Step physics simulation
   physics.step(delta);
 
@@ -580,6 +440,7 @@ if (physics) {
   for (const physicsBody of physicsBodies) {
     if (!physicsBody.removed) {
       syncPhysicsBody(physicsBody);
+
     }
   }
 }
@@ -599,4 +460,5 @@ window.addEventListener('resize', resizeRenderer);
 resizeRenderer();
 updateHud();
 setStarted(false);
+switchMode('game');
 requestAnimationFrame(animate);

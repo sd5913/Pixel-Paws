@@ -72,9 +72,9 @@ export async function instantiateAssetLayout({ manifest, layout, loadModel = loa
       colliders: structuredClone(asset.colliders),
 
       // 物理参数
-      suggestedMass: asset.suggestedMass,
-      friction: asset.friction,
-      restitution: asset.restitution,
+      suggestedMass: asset.physics.suggestedMass,
+      friction: asset.physics.friction,
+      restitution: asset.physics.restitution,
     },
     };
   }));
