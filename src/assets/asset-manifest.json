@@ -10,26 +10,123 @@
     {
       "id": "placeholder-crate",
       "path": "assets/models/placeholder-crate.glb",
-      "visualScale": [1, 1, 1],
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
       "pivot": {
         "type": "base-center",
-        "offset": [0, 0, 0]
+        "offset": [
+          0,
+          0,
+          0
+        ]
       },
       "bounds": {
-        "center": [0, 0.5, 0],
-        "halfExtents": [0.5, 0.5, 0.5]
+        "center": [
+          0,
+          0.5,
+          0
+        ],
+        "halfExtents": [
+          0.5,
+          0.5,
+          0.5
+        ]
       },
       "colliders": [
         {
           "type": "box",
-          "center": [0, 0.5, 0],
-          "halfExtents": [0.5, 0.5, 0.5]
+          "center": [
+            0,
+            0.5,
+            0
+          ],
+          "halfExtents": [
+            0.5,
+            0.5,
+            0.5
+          ]
         }
       ],
       "render": {
         "castShadow": true,
         "receiveShadow": true
+      },
+      "dimensionsMeters": [
+        1,
+        1,
+        1
+      ],
+      "physics": {
+        "bodyType": "static",
+        "suggestedMass": 0,
+        "friction": 0.65,
+        "restitution": 0.1
       }
+    },
+    {
+      "id": "mug",
+      "path": "assets/models/mug.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        0.11909234523773193,
+        0.09600000083446503,
+        0.08799999952316284
+      ],
+      "pivot": {
+        "type": "base-center",
+        "offset": [
+          0,
+          0,
+          0
+        ],
+        "basis": "vessel-body; approved handle extends toward +X"
+      },
+      "bounds": {
+        "center": [
+          0.015546172857284546,
+          0.04800000041723251,
+          0.0
+        ],
+        "halfExtents": [
+          0.05954617261886597,
+          0.04800000041723251,
+          0.04399999976158142
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0.015546172857284546,
+            0.04800000041723251,
+            0.0
+          ],
+          "halfExtents": [
+            0.05954617261886597,
+            0.04800000041723251,
+            0.04399999976158142
+          ]
+        }
+      ],
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.25,
+        "friction": 0.65,
+        "restitution": 0.1
+      },
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "approvedSha256": "e13d5667b6688c7a74e3c81a427b92fec4f49f79a27660c067eee6237c34b79e",
+      "visualFront": "+Z"
     }
   ]
 }

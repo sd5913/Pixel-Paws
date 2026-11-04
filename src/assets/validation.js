@@ -57,6 +57,13 @@ export function validateAssetManifest(manifest) {
     invariant(isFiniteVector(asset.pivot?.offset, 3), `Asset ${asset.id} pivot offset must contain three finite numbers.`);
     invariant(isFiniteVector(asset.bounds?.center, 3), `Asset ${asset.id} bounds center must contain three finite numbers.`);
     invariant(isPositiveVector(asset.bounds?.halfExtents, 3), `Asset ${asset.id} bounds halfExtents must contain three positive numbers.`);
+    invariant(isPositiveVector(asset.dimensionsMeters, 3), `Asset ${asset.id} dimensionsMeters must contain width, height, depth.`);
+    invariant(asset.dimensionsMeters.every((n, i) => Math.abs(n - 2 * asset.bounds.halfExtents[i]) < 1e-6), `Asset ${asset.id} dimensionsMeters must match bounds.`);
+    invariant(BODY_TYPES.has(asset.physics?.bodyType), `Asset ${asset.id} physics.bodyType is invalid.`);
+    invariant(Number.isFinite(asset.physics?.suggestedMass) && (asset.physics.bodyType === 'static' ? asset.physics.suggestedMass === 0 : asset.physics.suggestedMass > 0), `Asset ${asset.id} physics.suggestedMass must be zero for static bodies and positive otherwise.`);
+    invariant(Number.isFinite(asset.physics?.friction) && asset.physics.friction >= 0, `Asset ${asset.id} physics.friction must be nonnegative.`);
+    invariant(Number.isFinite(asset.physics?.restitution) && asset.physics.restitution >= 0 && asset.physics.restitution <= 1, `Asset ${asset.id} physics.restitution must be between zero and one.`);
+    if (asset.approvedSha256 !== undefined) invariant(/^[a-f0-9]{64}$/.test(asset.approvedSha256), `Asset ${asset.id} approvedSha256 must be a SHA-256 digest.`);
     invariant(Array.isArray(asset.colliders), `Asset ${asset.id} colliders must be an array.`);
 
     for (const collider of asset.colliders) {
