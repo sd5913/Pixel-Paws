@@ -1,3 +1,4 @@
+
 {
   "schemaVersion": 1,
   "id": "study-desk-preview",
@@ -26,6 +27,12 @@
       "physics": {
         "bodyType": "dynamic",
         "colliderSet": "default"
+      },
+      "events": {
+        "collision": true,
+        "tippedOver": true,
+        "fallen": true,
+        "settled": true
       }
     }
   ]

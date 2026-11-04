@@ -5,6 +5,7 @@ import { addAssetPreview } from './assets/preview.js';
 import { loadSceneAssetInstances } from './assets/load-assets.js';
 
 import { createPhysicsWorld } from './physics/physics-world.js';
+import { physicsEvents } from './physics/physics-events.js';
 import {
   createPhysicsBody,
   syncPhysicsBody,
@@ -69,6 +70,7 @@ function destroyPhysicsBody(physicsBody) {
   }
 
   // 从 Rapier 和 Three.js 中销毁对象
+  physicsEvents.unregisterBody(physicsBody);
   removePhysicsBody(physics, physicsBody);
 
   // 从物理对象管理列表中移除
@@ -99,6 +101,7 @@ async function initPhysics() {
   for (const instance of assetInstances) {
   const body = createPhysicsBody(physics, instance);
   physicsBodies.push(body);
+  physicsEvents.registerBody(body);
 
   // Keep a separate reference to the Mug physics body
   if (instance.assetId === 'mug') {
@@ -127,6 +130,7 @@ async function initPhysics() {
   });
 
   physicsBodies.push(groundPhysicsBody);
+  physicsEvents.registerBody(groundPhysicsBody);
 
   console.log('Physics initialized: ground, desk and mug.');
 }
@@ -433,8 +437,13 @@ function animate(timestamp) {
 
   // Update physics world
 if (physics) {
-  // Step physics simulation
   physics.step(delta);
+
+  // 分发本次物理更新产生的碰撞事件
+  physicsEvents.processCollisionEvents(
+    physics.drainCollisionEvents(),
+  );
+  physicsEvents.updateBodyStates(delta);
 
   // Sync remaining physics bodies with Three.js objects
   for (const physicsBody of physicsBodies) {

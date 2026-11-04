@@ -9,6 +9,13 @@ const COLLIDER_TYPES = new Set([
 ]);
 const BODY_TYPES = new Set(['static', 'dynamic', 'kinematic']);
 
+const EVENT_TYPES = [
+  'collision',
+  'tippedOver',
+  'fallen',
+  'settled',
+];
+
 function invariant(condition, message) {
   if (!condition) throw new Error(message);
 }
@@ -130,7 +137,27 @@ export function validateSceneLayout(layout, manifest) {
     const quaternionLength = Math.hypot(...instance.transform.rotation);
     invariant(Math.abs(quaternionLength - 1) < 1e-6, `Scene instance ${instance.id} must use a normalized quaternion.`);
     invariant(BODY_TYPES.has(instance.physics?.bodyType), `Scene instance ${instance.id} physics bodyType is invalid.`);
-    invariant(instance.physics?.colliderSet === 'default', `Scene instance ${instance.id} colliderSet must be default.`);
+    if (instance.events !== undefined) {
+  invariant(
+    instance.events !== null &&
+      typeof instance.events === 'object' &&
+      !Array.isArray(instance.events),
+    `Scene instance "${instance.id}" events must be an object.`,
+  );
+
+  for (const [eventType, enabled] of Object.entries(instance.events)) {
+    invariant(
+      EVENT_TYPES.includes(eventType),
+      `Scene instance "${instance.id}" has unsupported event "${eventType}".`,
+    );
+
+    invariant(
+      typeof enabled === 'boolean',
+      `Scene instance "${instance.id}" event "${eventType}" must be a boolean.`,
+    );
+  }
+}
+    
   }
 
   return layout;
