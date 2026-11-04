@@ -7,7 +7,9 @@ import { startViewerServer } from './serve.mjs';
 
 const output = resolve('work/asset-viewer-review');
 await mkdir(output, { recursive: true });
-const { htmlPath } = await buildViewer();
+const sourceRoot = resolve(process.env.VIEWER_SOURCE_ROOT || 'src');
+const manifest = JSON.parse(await readFile(resolve(sourceRoot, 'assets/asset-manifest.json'), 'utf8'));
+const { htmlPath } = await buildViewer({ sourceRoot });
 const server = await startViewerServer({ port: 0 });
 const browser = await chromium.launch({ executablePath: process.env.VIEWER_BROWSER_PATH || undefined,
   args: ['--no-sandbox', '--enable-unsafe-swiftshader', '--use-angle=swiftshader'] });
@@ -23,10 +25,11 @@ try {
   const pixels = () => page.locator('canvas').evaluate(c => c.toDataURL());
   await page.goto(url);
   await page.waitForSelector('html[data-viewer-ready=true]', { timeout: 10000 });
-  assert.equal(await page.locator('#asset option').count(), 4);
+  assert.equal(await page.locator('#asset option').count(), manifest.assets.length + 1);
   await page.selectOption('#mode', 'inspection');
-  for (const [asset, expected] of [['mug', '0.1191'], ['desk', '1.8000'], ['placeholder-crate', '1.0000']]) {
-    await page.selectOption('#asset', asset); await frames();
+  for (const asset of manifest.assets) {
+    const expected = asset.dimensionsMeters[0].toFixed(4);
+    await page.selectOption('#asset', asset.id); await frames();
     assert.ok((await page.locator('#metadata').textContent()).includes(expected));
     assert.ok(!(await page.locator('#status').textContent()).includes('failed'));
   }
@@ -81,7 +84,7 @@ try {
   await page.selectOption('#asset', 'mug'); await page.selectOption('#mode', 'inspection'); await frames();
   assert.ok((await page.locator('#metadata').textContent()).includes('0.0960'));
   assert.deepEqual(errors, []);
-  const result = { assets: 3, presets: 3, orbit: true, zoomReset: true, wireframe: true, bounds: true,
+  const result = { assets: manifest.assets.length, presets: 3, orbit: true, zoomReset: true, wireframe: true, bounds: true,
     colliders: true, materialRestoration: true, pngExport: true, offline: true, errors,
     viewports: ['1440x1000', '390x844', '360x800', '768x1024'] };
   await writeFile(`${output}/verification.json`, JSON.stringify(result, null, 2));

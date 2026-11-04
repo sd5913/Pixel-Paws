@@ -89,6 +89,17 @@ Before a future, explicitly approved Pages publication:
 
 No site is enabled, overwritten or deployed by this PR.
 
+## Review captures
+
+Captured in Chromium at 2× pixel ratio:
+
+- [Art Preview — Warm Illustrated](screenshots/art-preview.png)
+- [Model Inspection — bounding boxes and compound colliders](screenshots/inspection-colliders.png)
+- [Responsive portrait view — 390×844](screenshots/mobile.png)
+
+These curated review captures are committed; automated runs write fresh evidence
+to ignored `work/asset-viewer-review/` and upload it as an Actions artifact.
+
 ## Validate
 
 ```sh
@@ -106,7 +117,9 @@ On machines with Chromium already installed:
 VIEWER_BROWSER_PATH=/usr/bin/chromium npm run viewer:check
 ```
 
-Browser checks cover each asset, both modes, all presets, material restoration,
+Browser checks derive their asset list and counts from the manifest. `VIEWER_SOURCE_ROOT`
+can point to a source fixture directory to exercise a different valid catalog.
+Checks cover each asset, both modes, all presets, material restoration,
 orbit, camera zoom/reset, overlays, PNG export, URL persistence, invalid URL
 fallback, responsive widths 360/390/768/1440, and standalone offline execution.
 Screenshots and JSON results go to ignored `work/asset-viewer-review/`. Managed
