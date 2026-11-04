@@ -151,20 +151,20 @@ bodyStates.set(physicsBody, {
       });
     }
 
-    // 2. 检测掉落：比初始高度下降 1.5 个单位
-    if (
-      events.fallen === true &&
-      !state.fallen &&
-      position.y < state.initialY - 1.5
-    ) {
-      state.fallen = true;
+    // 2. 检测掉落：比初始高度下降 0.5 个单位
+if (
+  events.fallen === true &&
+  !state.fallen &&
+  position.y < state.initialY - 0.5
+) {
+  state.fallen = true;
 
-      emit({
-        type: 'fallen',
-        objectId: body.id,
-        otherObjectId: null,
-      });
-    }
+  emit({
+    type: 'fallen',
+    objectId: body.id,
+    otherObjectId: null,
+  });
+}
 
     // 3. 检测静止：低速持续 0.6 秒
     const speed = Math.hypot(
