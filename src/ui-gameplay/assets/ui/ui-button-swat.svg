@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="384" height="384" viewBox="0 0 384 384">
+  <circle cx="192" cy="192" r="182" fill="#e3edf1"/>
+  <circle cx="192" cy="192" r="161" fill="#a43828" stroke="#631506" stroke-width="7"/>
+  <g fill="#ecd2b9" transform="rotate(-12 192 150)">
+    <ellipse cx="129" cy="117" rx="21" ry="29"/>
+    <ellipse cx="174" cy="87" rx="21" ry="29"/>
+    <ellipse cx="222" cy="91" rx="21" ry="29"/>
+    <ellipse cx="261" cy="128" rx="21" ry="29"/>
+    <path d="M147 165 Q169 119 195 135 Q218 130 238 174 Q258 216 218 216 Q194 200 174 214 Q127 227 147 165Z"/>
+  </g>
+  <path d="M89 154 66 144 M98 188 73 190 M278 178 302 165" stroke="#e3edf1" stroke-width="8" stroke-linecap="round"/>
+  <text x="192" y="294" text-anchor="middle" fill="#e3edf1" font-family="Arial,sans-serif" font-weight="900" font-size="61">SWAT</text>
+</svg>
