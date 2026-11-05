@@ -62,7 +62,14 @@ function createColliderDescriptor(RAPIER, collider, scale) {
 export function createPhysicsBody(physicsWorld, instance) {
   const { rapier: RAPIER, world } = physicsWorld;
 
-  const { object3D, initialTransform, physics } = instance;
+  const {
+    id,
+    assetId,
+    object3D,
+    initialTransform,
+    physics,
+    events = {},
+  } = instance;
 
   // 获取模型的初始位置、旋转和缩放
   const position = initialTransform.position;
@@ -88,17 +95,48 @@ export function createPhysicsBody(physicsWorld, instance) {
     w: rotation[3],
   });
 
-  // 在创建刚体之前设置初始质量
-if (
-  physics.bodyType === 'dynamic' &&
-  Number.isFinite(physics.suggestedMass) &&
-  physics.suggestedMass > 0
-) {
-  rigidBodyDesc.setAdditionalMass(physics.suggestedMass);
-}
+  // 设置质量、重心和转动惯量
+  if (
+    physics.bodyType === 'dynamic' &&
+    Number.isFinite(physics.suggestedMass) &&
+    physics.suggestedMass > 0
+  ) {
+    const boxCollider = physics.colliders.find(
+      (collider) => collider.type === 'box',
+    );
+
+    if (boxCollider) {
+      const mass = physics.suggestedMass;
+
+      const [hx, hy, hz] = boxCollider.halfExtents.map(
+        (value, index) => value * scale[index],
+      );
+
+      const center = boxCollider.center ?? [0, 0, 0];
+
+      const centerOfMass = {
+        x: center[0] * scale[0],
+        y: center[1] * scale[1],
+        z: center[2] * scale[2],
+      };
+
+      const principalAngularInertia = {
+        x: (mass / 3) * (hy ** 2 + hz ** 2),
+        y: (mass / 3) * (hx ** 2 + hz ** 2),
+        z: (mass / 3) * (hx ** 2 + hy ** 2),
+      };
+
+      rigidBodyDesc.setAdditionalMassProperties(
+        mass,
+        centerOfMass,
+        principalAngularInertia,
+        { x: 0, y: 0, z: 0, w: 1 },
+      );
+    }
+  }
 
   const rigidBody = world.createRigidBody(rigidBodyDesc);
-  
+
   // 创建碰撞体
   const colliders = [];
 
@@ -111,23 +149,32 @@ if (
 
     if (!colliderDesc) continue;
 
-    // 如果已经指定动态物体质量，避免碰撞体重复贡献质量
-if (
-  physics.bodyType === 'dynamic' &&
-  Number.isFinite(physics.suggestedMass) &&
-  physics.suggestedMass > 0
-) {
-  colliderDesc.setDensity(0);
-}
+    // 保留显式设置的刚体质量
+    if (
+      physics.bodyType === 'dynamic' &&
+      Number.isFinite(physics.suggestedMass) &&
+      physics.suggestedMass > 0
+    ) {
+      colliderDesc.setDensity(0);
+    }
+
     // 设置摩擦力
-if (Number.isFinite(physics.friction)) {
-  colliderDesc.setFriction(physics.friction);
-}
+    if (Number.isFinite(physics.friction)) {
+      colliderDesc.setFriction(physics.friction);
+    }
 
     // 设置碰撞弹性
-if (Number.isFinite(physics.restitution)) {
-  colliderDesc.setRestitution(physics.restitution);
-}
+    if (Number.isFinite(physics.restitution)) {
+      colliderDesc.setRestitution(physics.restitution);
+    }
+
+    // 根据场景配置启用碰撞事件
+    if (events.collision === true) {
+      colliderDesc.setActiveEvents(
+        RAPIER.ActiveEvents.COLLISION_EVENTS,
+      );
+    }
+
     const rapierCollider = world.createCollider(
       colliderDesc,
       rigidBody,
@@ -136,13 +183,17 @@ if (Number.isFinite(physics.restitution)) {
     colliders.push(rapierCollider);
   }
 
-    // 立即重新计算刚体质量
+  // 重新计算刚体质量属性
   rigidBody.recomputeMassPropertiesFromColliders();
-  
+
   return {
+    id: id ?? assetId ?? object3D.name,
+    assetId,
     rigidBody,
     colliders,
     object3D,
+    events: { ...events },
+    removed: false,
   };
 }
 
@@ -183,16 +234,15 @@ export function removePhysicsBody(physicsWorld, physicsBody) {
   const { world } = physicsWorld;
   const { rigidBody, object3D } = physicsBody;
 
-  // Remove the rigid body and its attached colliders from Rapier
+  // 删除 Rapier 刚体及其附属碰撞体
   if (rigidBody && world.getRigidBody(rigidBody.handle)) {
     world.removeRigidBody(rigidBody);
   }
 
-  // Remove the Three.js object from the scene
+  // 删除 Three.js 模型
   if (object3D) {
     object3D.removeFromParent();
 
-    // Dispose geometries and materials
     object3D.traverse((child) => {
       if (!child.isMesh) return;
 
@@ -206,6 +256,5 @@ export function removePhysicsBody(physicsWorld, physicsBody) {
     });
   }
 
-  // Mark this physics body as removed
   physicsBody.removed = true;
 }

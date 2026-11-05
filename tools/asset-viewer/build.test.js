@@ -25,7 +25,7 @@ test('Pages package preserves existing root content and automatically embeds new
     await writeFile(join(outputRoot, 'index.html'), 'existing homepage');
     await writeFile(join(outputRoot, 'CNAME'), 'existing.example.com');
     const { htmlPath, assetCount } = await buildViewer({ outputRoot, sourceRoot });
-    assert.equal(assetCount, 4);
+    assert.equal(assetCount, manifest.assets.length);
     assert.equal(htmlPath, join(outputRoot, 'asset-viewer/index.html'));
     assert.equal(await readFile(join(outputRoot, 'index.html'), 'utf8'), 'existing homepage');
     assert.equal(await readFile(join(outputRoot, 'CNAME'), 'utf8'), 'existing.example.com');

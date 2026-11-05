@@ -143,7 +143,7 @@ test('checked-in manifest and preview layout validate together', async () => {
 });
 
 test('asset validation script verifies the checked-in pipeline data', async () => {
-  assert.deepEqual(await validateCheckedInAssets(), { assetCount: 3, sceneCount: 2, instanceCount: 3 });
+  assert.deepEqual(await validateCheckedInAssets(), { assetCount: 4, sceneCount: 3, instanceCount: 9 });
 });
 
 test('asset validation script checks every packaged scene layout', async () => {

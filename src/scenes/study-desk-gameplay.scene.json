@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "id": "study-desk-gameplay",
+  "instances": [
+    {
+      "id": "preview-study-desk",
+      "assetId": "desk",
+      "transform": {
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0.7071067811865476,
+          0,
+          0.7071067811865476
+        ],
+        "scale": [
+          2.2,
+          1,
+          3.3
+        ]
+      },
+      "physics": {
+        "bodyType": "static",
+        "colliderSet": "default"
+      }
+    },
+    {
+      "id": "preview-mug-on-desk",
+      "assetId": "mug",
+      "transform": {
+        "position": [
+          0.891,
+          0.75,
+          -1.276
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "scale": [
+          3.6,
+          3.6,
+          3.6
+        ]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
+      },
+      "scoring": {
+        "size": "small"
+      }
+    },
+    {
+      "id": "mug-2",
+      "assetId": "mug",
+      "transform": {
+        "position": [
+          -0.8,
+          0.75,
+          -0.9
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "scale": [
+          4.2,
+          4.2,
+          4.2
+        ]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
+      },
+      "scoring": {
+        "size": "small"
+      }
+    },
+    {
+      "id": "mug-3",
+      "assetId": "mug",
+      "transform": {
+        "position": [
+          0.65,
+          0.75,
+          0.65
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "scale": [
+          4.8,
+          4.8,
+          4.8
+        ]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
+      },
+      "scoring": {
+        "size": "small"
+      }
+    },
+    {
+      "id": "mug-4",
+      "assetId": "mug",
+      "transform": {
+        "position": [
+          -0.75,
+          0.75,
+          1.1
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "scale": [
+          5.4,
+          5.4,
+          5.4
+        ]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
+      },
+      "scoring": {
+        "size": "small"
+      }
+    },
+    {
+      "id": "mug-5",
+      "assetId": "mug",
+      "transform": {
+        "position": [
+          0.05,
+          0.75,
+          -1.35
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "scale": [
+          6,
+          6,
+          6
+        ]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
+      },
+      "scoring": {
+        "size": "small"
+      }
+    }
+  ]
+}

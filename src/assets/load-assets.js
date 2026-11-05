@@ -1,9 +1,10 @@
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { clone } from 'three/addons/utils/SkeletonUtils.js';
 
 import { validateAssetManifest, validateSceneLayout } from './validation.js';
 
-// r186 treats extras.pivot as its numeric pivot extension. Older approved GLBs
-// use this key as descriptive text. Adapt parsed metadata, never the GLB bytes.
+// Older exporters used extras.pivot as descriptive text. Three r186 expects
+// numeric pivot data under that name; retain the text under a safe metadata key.
 const sharedLoader = new GLTFLoader().register((parser) => ({
   name: 'PIXEL_PAWS_legacy_pivot_metadata',
   beforeRoot() {
@@ -18,14 +19,20 @@ const modelCache = new Map();
 
 export function parseGlb(data, resourcePath = '', loader = sharedLoader) {
   return new Promise((resolve, reject) => {
-    loader.parse(data, resourcePath, (gltf) => resolve(gltf.scene), reject);
+    loader.parse(data, resourcePath, (gltf) => {
+      gltf.scene.animations = gltf.animations;
+      resolve(gltf.scene);
+    }, reject);
   });
 }
 
 export function loadGlb(path, loader = sharedLoader) {
   if (!modelCache.has(path)) {
     modelCache.set(path, new Promise((resolve, reject) => {
-      loader.load(path, (gltf) => resolve(gltf.scene), undefined, reject);
+      loader.load(path, (gltf) => {
+        gltf.scene.animations = gltf.animations;
+        resolve(gltf.scene);
+      }, undefined, reject);
     }));
   }
   return modelCache.get(path);
@@ -44,7 +51,7 @@ export async function instantiateAssetLayout({ manifest, layout, loadModel = loa
     }
 
     const source = await sourcesByAssetId.get(asset.id);
-    const object3D = source.clone(true);
+    const object3D = clone(source);
     object3D.name = instance.id;
     object3D.position.fromArray(instance.transform.position);
     object3D.quaternion.fromArray(instance.transform.rotation);
@@ -67,15 +74,13 @@ export async function instantiateAssetLayout({ manifest, layout, loadModel = loa
       pivot: structuredClone(asset.pivot),
       bounds: structuredClone(asset.bounds),
       physics: {
-      bodyType: instance.physics.bodyType,
-      colliderSet: instance.physics.colliderSet,
-      colliders: structuredClone(asset.colliders),
-
-      // 物理参数
-      suggestedMass: asset.suggestedMass,
-      friction: asset.friction,
-      restitution: asset.restitution,
-    },
+        bodyType: instance.physics.bodyType,
+        colliderSet: instance.physics.colliderSet,
+        colliders: structuredClone(asset.colliders),
+        suggestedMass: asset.physics?.suggestedMass,
+        friction: asset.physics?.friction,
+        restitution: asset.physics?.restitution,
+      },
     };
   }));
 }
