@@ -12,6 +12,8 @@ test('buildSite bundles local Three.js and copies packaged assets', async () => 
   const outputDir = join(fixtureRoot, 'www');
 
   await mkdir(join(sourceDir, 'assets', 'models'), { recursive: true });
+  await mkdir(join(sourceDir, 'assets', 'ui'), { recursive: true });
+  await writeFile(join(sourceDir, 'assets', 'ui', 'joystick.svg'), '<svg xmlns="http://www.w3.org/2000/svg"/>');
   await mkdir(join(sourceDir, 'scenes'), { recursive: true });
   await writeFile(join(sourceDir, 'index.html'), '<script type="module" src="app.js"></script>');
   await writeFile(join(sourceDir, 'style.css'), 'body { margin: 0; }');
@@ -31,6 +33,7 @@ test('buildSite bundles local Three.js and copies packaged assets', async () => 
   assert.doesNotMatch(bundle, /from\s+["']three["']/);
   assert.match(bundle, /REVISION/);
   assert.equal(await readFile(join(outputDir, 'assets', 'models', 'placeholder.glb'), 'utf8'), 'glTF');
+  assert.equal(await readFile(join(outputDir, 'assets', 'ui', 'joystick.svg'), 'utf8'), '<svg xmlns="http://www.w3.org/2000/svg"/>');
   assert.equal(await readFile(join(outputDir, 'assets', 'asset-manifest.json'), 'utf8'), '{"schemaVersion":1}');
   assert.equal(await readFile(join(outputDir, 'scenes', 'preview.scene.json'), 'utf8'), '{"schemaVersion":1}');
   await assert.rejects(readFile(join(outputDir, 'assets', 'validation.js')), { code: 'ENOENT' });

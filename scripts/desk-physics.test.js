@@ -1,0 +1,132 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { readFile } from 'node:fs/promises';
+import { Group, Vector3 } from 'three';
+import { loadStudyScene } from '../src/assets/study-scene.js';
+import { parseGlb } from '../src/assets/load-assets.js';
+import { createDeskPhysics } from '../src/physics/desk-physics.js';
+import { createPhysicsEventManager } from '../src/physics/physics-events.js';
+import { connectPhysicsScoring } from '../src/physics-score-bridge.js';
+import { createScoring } from '../src/scoring.js';
+
+async function fixture() {
+  return loadStudyScene({
+    fetchImpl: async path => ({ ok: true, json: async () => JSON.parse(await readFile(`src/${path.slice(2)}`, 'utf8')) }),
+    loadModel: async path => {
+      const bytes = await readFile(`src/${path}`);
+      return parseGlb(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    },
+  });
+}
+
+test('real cat contact pushes the mug off the desk, scores and resets physics', async () => {
+  const study = await fixture();
+  const player = new Group();
+  player.position.y = study.surface.height;
+  const endings = [];
+  const score = createScoring({ onEnd: result => endings.push(result) });
+  score.startRound(study.targets.filter(target => target.id === 'preview-mug-on-desk')); // Isolate original cup scoring in this contact test.
+  const events = createPhysicsEventManager();
+  const disconnect = connectPhysicsScoring(events, score);
+  const simulation = await createDeskPhysics(study, player, { events });
+  try {
+    const mug = simulation.bodies.find(entry => entry.instance.assetId === 'mug');
+    assert.ok(Math.abs(mug.body.rigidBody.mass() - 0.25) < 1e-5);
+    // Reach the cup using the same walking speed and tabletop limits as gameplay.
+    for (let frame = 0; frame < 600 && !endings.length; frame++) {
+      if (frame < 100) player.position.x = Math.min(0.891, player.position.x + 0.55 / 60);
+      else player.position.z = Math.max(-1.98 + 0.352, player.position.z - 0.55 / 60);
+      simulation.step(1 / 60);
+    }
+    assert.equal(score.snapshot().total, 20);
+    assert.equal(endings.length, 1);
+    assert.equal(endings[0].reason, 'cleared');
+    player.position.set(0, study.surface.height, 0);
+    study.reset();
+    simulation.reset();
+    assert.ok(mug.instance.object3D.position.distanceTo(new Vector3(0.891, 0.75, -1.276)) < 1e-6);
+    assert.deepEqual(Object.values(mug.body.rigidBody.linvel()), [0, 0, 0]);
+    assert.deepEqual(Object.values(mug.body.rigidBody.angvel()), [0, 0, 0]);
+    score.startRound(study.targets.filter(target => target.id === 'preview-mug-on-desk')); // Isolate original cup scoring in this contact test.
+    for (let frame = 0; frame < 60; frame++) simulation.step(1 / 60);
+    assert.equal(score.snapshot().total, 0);
+  } finally { disconnect(); simulation.dispose(); }
+});
+
+test('five real cup bodies settle independently and restart without stale events', async () => {
+  const study = await fixture();
+  const player = new Group();
+  player.position.y = study.surface.height;
+  const endings = [];
+  const score = createScoring({ onEnd: result => endings.push(result) });
+  score.startRound(study.targets);
+  const events = createPhysicsEventManager();
+  const disconnect = connectPhysicsScoring(events, score);
+  const simulation = await createDeskPhysics(study, player, { events });
+  try {
+    const mugs = simulation.bodies.filter(entry => entry.instance.assetId === 'mug');
+    assert.equal(mugs.length, 5);
+    // Visuals and physical bounds must grow together; mass stays fixed for comparison.
+    for (const { instance, body } of mugs) {
+      const scale = instance.initialTransform.scale;
+      const expected = instance.physics.colliders[0].halfExtents.map((value, axis) => value * scale[axis]);
+      const actual = body.colliders[0].halfExtents();
+      for (const [axis, value] of Object.entries(actual)) {
+        assert.ok(Math.abs(value - expected['xyz'.indexOf(axis)]) < 1e-6);
+      }
+      assert.ok(Math.abs(body.rigidBody.mass() - 0.25) < 1e-5);
+    }
+    for (let frame = 0; frame < 60; frame++) simulation.step(1 / 60);
+    assert.equal(score.snapshot().total, 0);
+    // Move actual rigid bodies below the tabletop; detectors produce the events.
+    mugs[0].body.rigidBody.setTranslation({ x: 0, y: -2, z: 0 }, true);
+    simulation.step(1 / 60);
+    assert.equal(score.snapshot().total, 20);
+    assert.equal(score.snapshot().state, 'playing');
+    for (const { body } of mugs.slice(1)) body.rigidBody.setTranslation({ x: 0, y: -2, z: 0 }, true);
+    simulation.step(1 / 60);
+    assert.equal(score.snapshot().total, 100);
+    assert.equal(endings.length, 1);
+    study.reset();
+    simulation.reset();
+    score.startRound(study.targets);
+    for (let frame = 0; frame < 60; frame++) simulation.step(1 / 60);
+    assert.equal(score.snapshot().total, 0);
+    assert.equal(score.snapshot().fallenCount, 0);
+    assert.equal(endings.length, 1);
+    for (const { instance } of mugs) {
+      assert.deepEqual(instance.object3D.scale.toArray(), instance.initialTransform.scale);
+    }
+  } finally { disconnect(); simulation.dispose(); }
+});
+
+test('swat hits all colliders in the fixed forward box, excludes side/back/far bodies and never scores directly', async () => {
+  const study = await fixture();
+  const player = new Group();
+  player.position.y = study.surface.height;
+  const events = createPhysicsEventManager();
+  const score = createScoring();
+  score.startRound(study.targets);
+  const disconnect = connectPhysicsScoring(events, score);
+  const simulation = await createDeskPhysics(study, player, { events });
+  try {
+    const mugs = simulation.bodies.filter(entry => entry.instance.assetId === 'mug');
+    // Side/far targets overlapped the previous larger box, but must now miss.
+    const places = [[-.15, -.45], [.15, -.45], [.52, -.45], [0, 1], [0, -.9]];
+    mugs.forEach(({ body }, i) => body.rigidBody.setTranslation({ x: places[i][0], y: .75, z: places[i][1] }, true));
+    simulation.physics.world.propagateModifiedBodyPositionsToColliders();
+    const hits = simulation.swat(player.position, Math.PI);
+    assert.deepEqual(hits, mugs.slice(0, 2).map(entry => entry.instance.id));
+    assert.equal(score.snapshot().total, 0);
+    for (const { body } of mugs.slice(0, 2)) {
+      assert.ok(Math.abs(body.rigidBody.linvel().z + 2.1) < 1e-5);
+      assert.ok(Math.abs(body.rigidBody.linvel().y - .35) < 1e-5);
+      assert.ok(body.rigidBody.angvel().y > 0, 'left-side contact adds rightward yaw');
+      assert.ok(Math.hypot(...Object.values(body.rigidBody.angvel())) > 0);
+    }
+    for (const { body } of mugs.slice(2)) assert.equal(Math.hypot(...Object.values(body.rigidBody.linvel())), 0);
+    assert.deepEqual(simulation.swat({ x: 20, y: .75, z: 20 }, 0), []);
+    simulation.step(1 / 60);
+    assert.ok(mugs[0].body.rigidBody.translation().z < places[0][1]);
+  } finally { disconnect(); simulation.dispose(); }
+});

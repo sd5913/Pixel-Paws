@@ -13,10 +13,11 @@ Install Node 24, then from the repository root:
 npm ci
 npm test
 npm run build
+npm run preview
 ```
 
-Open `www/index.html` using a local web server, e.g. `npx serve www`, and click
-**Send signal**. Change `src/logic.js` or the interface; rerun the checks. A
+Open `http://127.0.0.1:4173/` and click **Start**. Move the joystick to push
+mugs; drag beyond its inner pad for continuous Dash. Change `src/` and rerun the checks. A
 teammate can branch, commit, push and open a PR with a description and test
 instructions. Actions uploads the `web` folder and an Android **debug APK**;
 download an artifact from the run and test it. The APK is not a signed store
@@ -24,6 +25,16 @@ release.
 
 For GLB placement, validation, and the physics handoff contract, see
 [`docs/asset-pipeline.md`](docs/asset-pipeline.md).
+
+For the first tabletop scoring system, test instructions and the
+physics integration API, see [`docs/scoring.md`](docs/scoring.md). The current
+scene connects five mugs to shared physical topple/fall events: toppling earns
+10 points and falling completes each target to 20 points. Rounds end when all targets fall or after 60 seconds. See
+[`docs/physics-integration.md`](docs/physics-integration.md) for detector limits.
+Use `?debugScoring=1` to explicitly enable simulated scoring controls.
+
+For mobile UI artwork filenames, export sizes and layout handoff requirements,
+see [`docs/ui-assets.md`](docs/ui-assets.md).
 
 ## Publish a versioned release
 

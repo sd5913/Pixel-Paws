@@ -2,27 +2,73 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <meta name="theme-color" content="#08131f">
-    <title>Moonlight Pounce</title>
+    <title>Pixel Paws</title>
     <link rel="stylesheet" href="style.css">
   </head>
-  <body>
+  <body data-game-state="ready">
     <main class="game-layout">
       <header class="hud">
-        <div>
-          <p class="eyebrow">PIXEL PAWS / 01</p>
-          <h1>Moonlight<br><em>Pounce</em></h1>
+        <div class="hud-panel timer-panel" aria-label="Time remaining 60 seconds">
+          <img src="assets/ui/ui-timer-panel.png" alt="">
+          <span id="timer">01:00</span>
         </div>
-        <button id="start" type="button">Start run</button>
+        <div class="hud-panel score-panel">
+          <img src="assets/ui/ui-score-panel.png" alt="">
+          <span id="score" aria-label="Score 0">0</span>
+        </div>
       </header>
+      <button id="pause-button" type="button" aria-label="Pause"><img src="assets/ui/ui-button-pause.png" alt=""></button>
+      <div id="entry-menu">
+        <img id="game-logo" src="assets/ui/pixel-paws-logo-v2.png" alt="Pixel Paws">
+        <button id="start" class="art-button" type="button" aria-label="Start">
+          <img id="start-art" src="assets/ui/ui-button-start.png" alt="">
+        </button>
+      </div>
+      <div id="game-root" aria-label="3D game arena">
+        <button id="swat" type="button" aria-label="Swat" disabled>
+          <img src="assets/ui/ui-button-swat.svg" alt="">
+        </button>
+        <div class="movement-controls">
+          <div id="joystick" aria-label="Movement joystick. Drag inside to walk, outside to dash, release to stop.">
+            <span class="joystick-dash-zone" aria-hidden="true"></span>
+            <span class="joystick-knob"></span>
+          </div>
 
-      <div id="game-root" aria-label="3D game arena"></div>
+        </div>
+      </div>
 
-      <footer class="meta">
-        <p id="score">Score 0</p>
-        <p id="status" role="status">Ready when you are.</p>
+      <dialog id="pause-menu" aria-label="Paused">
+        <div class="pause-card">
+          <img class="pause-art" src="assets/ui/ui-pause-panel.png" alt="Paused">
+          <div class="pause-actions">
+            <button id="resume" class="art-button" aria-label="Resume"><img src="assets/ui/ui-button-resume.png" alt=""></button>
+            <button id="pause-restart" class="art-button" aria-label="Restart round"><img src="assets/ui/ui-button-restart.png" alt=""></button>
+            <button class="home-button art-button" aria-label="Home"><img src="assets/ui/ui-button-home.png" alt=""></button>
+          </div>
+        </div>
+      </dialog>
+      <dialog id="result" aria-label="Game Over">
+        <div class="result-card">
+          <img class="result-art" src="assets/ui/ui-result-panel-timeout.png" alt="">
+          <h2 class="sr-only">Game Over</h2>
+          <p id="final-score" aria-label="Final score 0">0</p>
+          <button id="replay" class="art-button" type="button" aria-label="Replay">
+            <img src="assets/ui/ui-button-replay.png" alt="">
+          </button>
+        </div>
+      </dialog>
+      <footer class="meta" hidden>
+
+        <p id="status" role="status">Ready when you are.</p><button id="retry" class="art-button" aria-label="Retry" hidden><img src="assets/ui/ui-button-retry.png" alt=""></button>
       </footer>
+      <details id="scoring-debug" hidden aria-label="Developer scoring tests">
+        <summary>Developer scoring tests</summary>
+        <h2>Developer tests: simulated events (not real physics)</h2>
+        <p>Press Start first. Repeated events award no extra points. Topple awards 10 points. Fall completes each target to 20 points. All three direct falls award 60 points.</p>
+        <button id="debug-clear" type="button">Simulate all targets falling</button>
+      </details>
     </main>
 
     <script type="module" src="app.js"></script>
