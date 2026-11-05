@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144" fill="none">
+  <defs>
+    <linearGradient id="surface" x1="40" y1="16" x2="108" y2="128" gradientUnits="userSpaceOnUse"><stop stop-color="#FFFFFF"/><stop offset="1" stop-color="#B8BEC7"/></linearGradient>
+  </defs>
+  <circle cx="72" cy="77" r="63" fill="#111827" fill-opacity=".25"/>
+  <circle cx="72" cy="70" r="61" fill="url(#surface)" stroke="#F9FAFB" stroke-width="4"/>
+  <circle cx="72" cy="70" r="45" stroke="#9CA3AF" stroke-opacity=".4" stroke-width="2"/>
+  <circle cx="72" cy="70" r="8" fill="#6B7280" fill-opacity=".55"/>
+</svg>
