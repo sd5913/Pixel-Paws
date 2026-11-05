@@ -1,0 +1,46 @@
+name: Asset Viewer checks and Pages package
+
+on:
+  pull_request:
+    paths:
+      - 'tools/asset-viewer/**'
+      - 'experiments/illustrated-rendering/**'
+      - 'src/assets/**'
+      - 'src/scenes/**'
+      - 'package*.json'
+      - '.github/workflows/asset-viewer.yml'
+  push:
+    branches: ['experiment/illustrated-rendering']
+  workflow_dispatch:
+
+# Build and review only. No pages:write, id-token:write, deploy-pages, or site configuration changes.
+permissions:
+  contents: read
+
+jobs:
+  viewer:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run viewer:check
+      - name: Upload Pages-ready viewer package (does not deploy)
+        uses: actions/upload-artifact@v7
+        with:
+          name: asset-viewer-pages
+          path: work/viewer-pages/
+          if-no-files-found: error
+      - name: Upload browser review evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: asset-viewer-review
+          path: work/asset-viewer-review/
+          if-no-files-found: ignore

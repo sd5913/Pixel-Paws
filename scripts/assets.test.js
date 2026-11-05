@@ -24,6 +24,8 @@ const validManifest = {
       id: 'placeholder-crate',
       path: 'assets/models/placeholder-crate.glb',
       visualScale: [1, 1, 1],
+      dimensionsMeters: [1, 1, 1],
+      physics: { bodyType: 'static', suggestedMass: 0, friction: 0.65, restitution: 0.1 },
       pivot: { type: 'base-center', offset: [0, 0, 0] },
       bounds: { center: [0, 0.5, 0], halfExtents: [0.5, 0.5, 0.5] },
       colliders: [
@@ -79,6 +81,22 @@ test('asset manifest requires collider dimensions for each primitive shape', () 
   assert.throws(() => validateAssetManifest(invalidHull), /includeNodes/i);
 });
 
+test('asset manifest validates optional interaction surfaces', () => {
+  const validSurface = structuredClone(validManifest);
+  validSurface.assets[0].interactionSurfaces = [{
+    id: 'tabletop',
+    kind: 'walkable',
+    height: 1,
+    centerXZ: [0, 0],
+    halfExtentsXZ: [0.5, 0.5],
+  }];
+  assert.equal(validateAssetManifest(validSurface), validSurface);
+
+  const invalidSurface = structuredClone(validSurface);
+  invalidSurface.assets[0].interactionSurfaces[0].height = Number.NaN;
+  assert.throws(() => validateAssetManifest(invalidSurface), /interaction surface/i);
+});
+
 test('scene layout validates asset references and normalized transforms', () => {
   assert.equal(validateSceneLayout(validLayout, validManifest), validLayout);
 
@@ -95,7 +113,7 @@ test('asset files must stay inside the source root and contain GLB data', async 
   const sourceRoot = await mkdtemp(join(tmpdir(), 'pixel-paws-assets-'));
   const modelDir = join(sourceRoot, 'assets', 'models');
   await mkdir(modelDir, { recursive: true });
-  await writeFile(join(modelDir, 'placeholder-crate.glb'), Buffer.from('glTF0000'));
+  await writeFile(join(modelDir, 'placeholder-crate.glb'), await readFile('src/assets/models/placeholder-crate.glb'));
 
   await assert.doesNotReject(validateAssetFiles(validManifest, sourceRoot));
 
@@ -133,7 +151,7 @@ test('asset validation script checks every packaged scene layout', async () => {
   await mkdir(join(sourceRoot, 'assets', 'models'), { recursive: true });
   await mkdir(join(sourceRoot, 'scenes'), { recursive: true });
   await writeFile(join(sourceRoot, 'assets', 'asset-manifest.json'), JSON.stringify(validManifest));
-  await writeFile(join(sourceRoot, 'assets', 'models', 'placeholder-crate.glb'), Buffer.from('glTF0000'));
+  await writeFile(join(sourceRoot, 'assets', 'models', 'placeholder-crate.glb'), await readFile('src/assets/models/placeholder-crate.glb'));
   await writeFile(join(sourceRoot, 'scenes', 'valid.scene.json'), JSON.stringify(validLayout));
 
   const invalidLayout = structuredClone(validLayout);

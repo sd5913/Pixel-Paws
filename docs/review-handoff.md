@@ -30,8 +30,13 @@ Use Node 24; run npm ci, npm test, npm run build and npm run preview. Open http:
 
 ## Integration notes
 
-The feature branch starts at e30d92c, before the fetched main at f9872f5. No main/physics branch merge was performed. Reviewers must reconcile overlapping changes in src/app.js, src/assets/asset-manifest.json, src/assets/load-assets.js, package.json/package-lock.json, README and asset tests against current main. Preserve teammate asset tooling and physics changes; do not replace main wholesale with this older branch snapshot.
+The PR conflict resolution integrates fetched main f9872f5 into feature/ui-gameplay. Main itself is not modified. The resource viewer, illustrated-rendering experiments, generators, validation rules and all package scripts/dependencies from main are preserved. Gameplay app.js remains the tabletop game instead of the old runner/physics demo. Physics world/body retain the newer shared event-enabled implementation from the teammate physics branch. The loader reads the nested asset.physics contract. The shared manifest preserves main entries and adds measured cat metadata; no model bytes change.
 
 Physics helpers/events come from fetched origin/physics/rapier-integration ec940cb. Detection remains >45 degrees from world up (immediate) and body origin >0.5 below initial Y, rather than the original full-bounds proposal. Gameplay impulses live in the adapter; score rules remain separate. Box colliders, varied mug sizes, swat timing and Android performance need teammate/device review. PawWave is accelerated, with approximate contact timing.
 
 Legacy JPGs, unused masks and the old logo were backed up outside the repository. Current PNG assets retain supplied transparency. No generated www, node_modules, credentials, signing material, commit, push, PR or deployment is included. Use GitHub Desktop to review all changed files, commit on feature/ui-gameplay, Publish branch / Push origin, then open a PR targeting main for teammate review.
+
+
+## Conflict-resolution validation
+
+Node 24: npm ci, all 64 npm tests, npm run build and npm run viewer:build passed. npm run assets:reproduce:mug was attempted both inside and outside the sandbox but is blocked by Windows EPERM on a dependency directory symlink; no reference model was regenerated. Approved mug digest/GLB checks and desk/cat measurements pass. Viewer asset-count testing now follows manifest growth rather than a hardcoded count.

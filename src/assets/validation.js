@@ -57,6 +57,26 @@ export function validateAssetManifest(manifest) {
     invariant(isFiniteVector(asset.pivot?.offset, 3), `Asset ${asset.id} pivot offset must contain three finite numbers.`);
     invariant(isFiniteVector(asset.bounds?.center, 3), `Asset ${asset.id} bounds center must contain three finite numbers.`);
     invariant(isPositiveVector(asset.bounds?.halfExtents, 3), `Asset ${asset.id} bounds halfExtents must contain three positive numbers.`);
+    invariant(isPositiveVector(asset.dimensionsMeters, 3), `Asset ${asset.id} dimensionsMeters must contain width, height, depth.`);
+    invariant(asset.dimensionsMeters.every((n, i) => Math.abs(n - 2 * asset.bounds.halfExtents[i]) < 1e-6), `Asset ${asset.id} dimensionsMeters must match bounds.`);
+    invariant(BODY_TYPES.has(asset.physics?.bodyType), `Asset ${asset.id} physics.bodyType is invalid.`);
+    invariant(Number.isFinite(asset.physics?.suggestedMass) && (asset.physics.bodyType === 'static' ? asset.physics.suggestedMass === 0 : asset.physics.suggestedMass > 0), `Asset ${asset.id} physics.suggestedMass must be zero for static bodies and positive otherwise.`);
+    invariant(Number.isFinite(asset.physics?.friction) && asset.physics.friction >= 0, `Asset ${asset.id} physics.friction must be nonnegative.`);
+    invariant(Number.isFinite(asset.physics?.restitution) && asset.physics.restitution >= 0 && asset.physics.restitution <= 1, `Asset ${asset.id} physics.restitution must be between zero and one.`);
+    if (asset.approvedSha256 !== undefined) invariant(/^[a-f0-9]{64}$/.test(asset.approvedSha256), `Asset ${asset.id} approvedSha256 must be a SHA-256 digest.`);
+    if (asset.interactionSurfaces !== undefined) {
+      invariant(Array.isArray(asset.interactionSurfaces), `Asset ${asset.id} interaction surfaces must be an array.`);
+      const surfaceIds = new Set();
+      for (const surface of asset.interactionSurfaces) {
+        invariant(typeof surface.id === 'string' && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(surface.id), `Asset ${asset.id} interaction surface id must be kebab-case.`);
+        invariant(!surfaceIds.has(surface.id), `Asset ${asset.id} interaction surface id must be unique.`);
+        surfaceIds.add(surface.id);
+        invariant(surface.kind === 'walkable', `Asset ${asset.id} interaction surface kind is invalid.`);
+        invariant(Number.isFinite(surface.height) && surface.height >= 0 && surface.height <= asset.dimensionsMeters[1] + 1e-6, `Asset ${asset.id} interaction surface height is invalid.`);
+        invariant(isFiniteVector(surface.centerXZ, 2), `Asset ${asset.id} interaction surface centerXZ must contain two finite numbers.`);
+        invariant(isPositiveVector(surface.halfExtentsXZ, 2), `Asset ${asset.id} interaction surface halfExtentsXZ must contain two positive numbers.`);
+      }
+    }
     invariant(Array.isArray(asset.colliders), `Asset ${asset.id} colliders must be an array.`);
 
     for (const collider of asset.colliders) {

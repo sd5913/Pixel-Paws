@@ -36,6 +36,14 @@ Use `?debugScoring=1` to explicitly enable simulated scoring controls.
 For mobile UI artwork filenames, export sizes and layout handoff requirements,
 see [`docs/ui-assets.md`](docs/ui-assets.md).
 
+## Shared 3D Asset Viewer
+
+Run `npm run viewer:serve` after `npm ci`, then open
+http://localhost:4175/asset-viewer/ to inspect manifest assets, visualize bounds
+and colliders, or compare illustrated rendering presets. This viewer is separate
+from the game. See [`tools/asset-viewer/README.md`](tools/asset-viewer/README.md)
+for controls, offline export, validation, and Pages packaging without deployment.
+
 ## Publish a versioned release
 
 When your team is ready to share a tested build, push a version tag:

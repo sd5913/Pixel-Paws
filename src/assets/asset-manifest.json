@@ -53,44 +53,17 @@
       "render": {
         "castShadow": true,
         "receiveShadow": true
-      }
-    },
-    {
-      "id": "mikan-cat",
-      "path": "assets/models/mikan-cat.glb",
-      "visualScale": [
+      },
+      "dimensionsMeters": [
         1,
         1,
         1
       ],
-      "pivot": {
-        "type": "base-center",
-        "offset": [
-          0,
-          0,
-          0
-        ]
-      },
-      "bounds": {
-        "center": [
-          0,
-          0.2,
-          -0.0155
-        ],
-        "halfExtents": [
-          0.08,
-          0.2,
-          0.2045
-        ]
-      },
-      "colliders": [
-        {
-          "type": "none"
-        }
-      ],
-      "render": {
-        "castShadow": true,
-        "receiveShadow": true
+      "physics": {
+        "bodyType": "static",
+        "suggestedMass": 0,
+        "friction": 0.65,
+        "restitution": 0.1
       }
     },
     {
@@ -281,6 +254,56 @@
         "receiveShadow": true
       },
       "approvedSha256": "e13d5667b6688c7a74e3c81a427b92fec4f49f79a27660c067eee6237c34b79e",
+      "visualFront": "+Z"
+    },
+    {
+      "id": "mikan-cat",
+      "path": "assets/models/mikan-cat.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "pivot": {
+        "type": "base-center",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "bounds": {
+        "center": [
+          0,
+          0.19999999780207872,
+          -0.015500000864267366
+        ],
+        "halfExtents": [
+          0.07999999955296516,
+          0.1999999962374568,
+          0.2044999949634075
+        ]
+      },
+      "colliders": [
+        {
+          "type": "none"
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "dimensionsMeters": [
+        0.15999999910593032,
+        0.3999999924749136,
+        0.408999989926815
+      ],
+      "physics": {
+        "bodyType": "kinematic",
+        "suggestedMass": 1,
+        "friction": 0.5,
+        "restitution": 0
+      },
       "visualFront": "+Z"
     }
   ]
