@@ -1,3 +1,5 @@
+import { AUDIO_MATERIALS } from '../feedback/config.js';
+
 const COLLIDER_TYPES = new Set([
   'none',
   'box',
@@ -47,6 +49,7 @@ export function validateAssetManifest(manifest) {
 
   const assetIds = new Set();
   for (const asset of manifest.assets) {
+    validateAudioMetadata(asset);
     invariant(typeof asset.id === 'string' && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(asset.id), 'Asset id must be kebab-case.');
     invariant(!assetIds.has(asset.id), `Duplicate asset id: ${asset.id}`);
     assetIds.add(asset.id);
@@ -119,6 +122,7 @@ export function validateSceneLayout(layout, manifest) {
   const assetIds = new Set(manifest.assets.map((asset) => asset.id));
   const instanceIds = new Set();
   for (const instance of layout.instances) {
+    validateAudioMetadata(instance);
     invariant(typeof instance.id === 'string' && instance.id.length > 0, 'Scene instance id is required.');
     invariant(!instanceIds.has(instance.id), `Duplicate scene instance id: ${instance.id}`);
     instanceIds.add(instance.id);
@@ -136,3 +140,10 @@ export function validateSceneLayout(layout, manifest) {
   return layout;
 }
 
+
+function validateAudioMetadata(item) {
+  for (const key of ['audioMaterial', 'surfaceMaterial']) {
+    invariant(item[key] === undefined || AUDIO_MATERIALS.includes(item[key]), `Invalid ${key}: ${item[key]}`);
+  }
+  invariant(item.isObstacle === undefined || typeof item.isObstacle === 'boolean', 'isObstacle must be boolean.');
+}

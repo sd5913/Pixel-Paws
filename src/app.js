@@ -1,3 +1,6 @@
+import { AudioManager } from './feedback/audio-manager.js';
+import { ImpactVFXManager } from './feedback/impact-vfx-manager.js';
+import { createObstacleFeedback } from './feedback/obstacle-feedback.js';
 import { createCatAvatar, CAT_EDGE_MARGIN } from './assets/cat-avatar.js';
 import { createJoystick, JOYSTICK_SPEED } from './joystick.js';
 import { createScoring } from './scoring.js';
@@ -57,6 +60,12 @@ let catLoadError = false;
 let movementX = 0;
 let movementZ = 0;
 const scoreAnchors = new Map();
+const audio = new AudioManager();
+audio.init(camera, scene);
+void audio.preload();
+const disconnectAudio = physicsEvents.bus.on('physics:impact', event => audio.playImpact(event));
+const impactVFX = new ImpactVFXManager(physicsEvents.bus);
+const obstacleFeedback = createObstacleFeedback(physicsEvents.bus, scene, id => scoreAnchors.get(id));
 let lastScoringId = null;
 let lastDisplayedScore = 0;
 let resultRevealTimer;
@@ -129,7 +138,7 @@ function notifyFallen(id) {
   lastScoringId = id;
   return scoring.notifyFallen(id);
 }
-connectPhysicsScoring(physicsEvents, { notifyToppled, notifyFallen });
+const disconnectScoring = connectPhysicsScoring(physicsEvents, { notifyToppled, notifyFallen });
 window.pixelPawsScoring = {
   configureRound({ targets, resetScene }) {
     if (scoring.snapshot().state === 'playing') throw new Error('End current round first');
@@ -231,6 +240,7 @@ window.addEventListener('blur', resetInput);
 document.addEventListener('visibilitychange', () => { if (document.hidden) resetInput(); });
 
 function resetPrototypeScene() {
+  obstacleFeedback.reset();
   for (const popup of gameRoot.querySelectorAll('.score-popup')) popup.remove();
   player.position.set(0, tabletop.height, 0);
   catAvatar?.reset();
@@ -247,6 +257,7 @@ function resetPrototypeScene() {
 
 async function startRound() {
   if (ui.start.disabled) return;
+  void audio.unlock().then(unlocked => { if (unlocked) audio.playUISound('start'); });
   ui.start.disabled = true;
   paused = false;
   if (pauseMenu.open) pauseMenu.close();
@@ -350,6 +361,7 @@ function animate(timestamp) {
   if (started) deskPhysics?.step(delta);
   if (!paused) catAvatar?.update(delta, movementX, movementZ);
   updateFollowCamera(delta);
+  obstacleFeedback.update(delta);
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
 }
@@ -372,3 +384,13 @@ window.addEventListener('resize', resizeRenderer);
 resizeRenderer();
 renderScore(scoring.snapshot());
 requestAnimationFrame(animate);
+
+window.addEventListener('pagehide', event => {
+  if (event.persisted) return;
+  disconnectAudio();
+  disconnectScoring();
+  impactVFX.dispose();
+  obstacleFeedback.dispose();
+  audio.dispose();
+  deskPhysics?.dispose();
+});

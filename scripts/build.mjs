@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { build } from 'esbuild';
+import { buildAudioAssets } from './audio-assets.mjs';
 
 export async function buildSite({ sourceDir = 'src', outputDir = 'www' } = {}) {
   await rm(outputDir, { recursive: true, force: true });
@@ -17,6 +18,8 @@ export async function buildSite({ sourceDir = 'src', outputDir = 'www' } = {}) {
     cp(resolve(sourceDir, 'assets', 'ui'), resolve(outputDir, 'assets', 'ui'), { recursive: true }),
     cp(resolve(sourceDir, 'scenes'), resolve(outputDir, 'scenes'), { recursive: true }),
   ]);
+
+  await buildAudioAssets(resolve(sourceDir, 'assets/audio'), resolve(outputDir, 'assets/audio'));
 
   await build({
     entryPoints: [resolve(sourceDir, 'app.js')],

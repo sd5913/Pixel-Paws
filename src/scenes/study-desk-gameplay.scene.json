@@ -5,6 +5,7 @@
     {
       "id": "preview-study-desk",
       "assetId": "desk",
+      "surfaceMaterial": "wood",
       "transform": {
         "position": [
           0,
@@ -31,6 +32,7 @@
     {
       "id": "preview-mug-on-desk",
       "assetId": "mug",
+      "audioMaterial": "ceramic",
       "transform": {
         "position": [
           0.891,

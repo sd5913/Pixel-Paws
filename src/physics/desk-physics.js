@@ -45,12 +45,13 @@ export async function createDeskPhysics(study, player, { events = physicsEvents 
     },
     step(delta) {
       cat.rigidBody.setNextKinematicTranslation({ x: player.position.x, y: player.position.y, z: player.position.z });
-      const steps = physics.step(delta) || 0;
+      const steps = physics.step(delta, (world, timestep) => events.processImpacts?.(world, timestep)) || 0;
       for (const { body } of dynamic) syncPhysicsBody(body);
       events.processCollisionEvents(physics.drainCollisionEvents());
       if (steps) events.updateBodyStates(steps * physics.timestep);
     },
     reset() {
+      events.resetImpacts?.();
       for (const { instance, body } of bodies) {
         const [x, y, z] = instance.initialTransform.position;
         const [qx, qy, qz, qw] = instance.initialTransform.rotation;
@@ -72,7 +73,7 @@ export async function createDeskPhysics(study, player, { events = physicsEvents 
       }
       physics.world.propagateModifiedBodyPositionsToColliders();
     },
-    dispose() { tracked.forEach(body => events.unregisterBody(body)); physics.dispose(); },
+    dispose() { events.resetImpacts?.(); tracked.forEach(body => events.unregisterBody(body)); physics.dispose(); },
     // Integration tests can inspect real body poses without synthesizing score events.
     bodies, physics,
   };

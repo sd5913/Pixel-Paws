@@ -130,3 +130,27 @@ test('swat hits all colliders in the fixed forward box, excludes side/back/far b
     assert.ok(mugs[0].body.rigidBody.translation().z < places[0][1]);
   } finally { disconnect(); simulation.dispose(); }
 });
+
+test('real Rapier impulse reports ceramic on wood, then goes quiet while resting', async () => {
+  const study = await fixture();
+  const player = new Group();
+  player.position.set(0, study.surface.height, 0);
+  const events = createPhysicsEventManager();
+  const impacts = [];
+  events.bus.on('physics:impact', event => impacts.push(event));
+  const simulation = await createDeskPhysics(study, player, { events });
+  try {
+    const mug = simulation.bodies[1].body;
+    mug.rigidBody.setTranslation({ x: .891, y: 1.2, z: -1.276 }, true);
+    for (let i = 0; i < 90; i++) simulation.step(1 / 60);
+    const hit = impacts.find(event => event.objectId === mug.id && event.surfaceMaterial === 'wood');
+    assert.ok(hit, 'real contact manifold emits opted-in material pair');
+    assert.equal(hit.audioMaterial, 'ceramic');
+    assert.ok(hit.impactStrength > 0.025);
+    assert.ok(Object.values(hit.position).every(Number.isFinite));
+    const count = impacts.length;
+    for (let i = 0; i < 120; i++) simulation.step(1 / 60);
+    assert.equal(impacts.length, count, 'resting contacts stay silent');
+    simulation.reset();
+  } finally { simulation.dispose(); }
+});
