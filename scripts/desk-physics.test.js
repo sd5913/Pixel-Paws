@@ -53,6 +53,38 @@ test('real cat contact pushes the mug off the desk, scores and resets physics', 
   } finally { disconnect(); simulation.dispose(); }
 });
 
+test('swatting the pencil holder spills separate pieces and restarting puts them back', async () => {
+  const study = await fixture();
+  const world = new Group();
+  world.add(...study.instances.map(instance => instance.object3D));
+  const holder = study.instances.find(instance => instance.id === 'pencil-holder').object3D;
+  const model = holder.children[0];
+  const player = new Group();
+  player.position.y = study.surface.height;
+  const simulation = await createDeskPhysics(study, player, { events: createPhysicsEventManager() });
+  const pieces = ['long-pencil', 'short-pencil', 'scissors'].map(name => model.getObjectByName(name));
+  const advance = frames => {
+    for (let frame = 0; frame < frames; frame++) simulation.step(1 / 60);
+  };
+  try {
+    advance(45);
+    assert.ok(pieces.every(piece => piece.parent === model));
+    assert.ok(simulation.swat(player.position, Math.PI).includes('pencil-holder'));
+    advance(80);
+    assert.ok(pieces.every(piece => piece.parent === world && piece.position.y >= study.surface.height));
+    assert.ok(pieces[0].position.distanceTo(pieces[1].position) > 0.12);
+    study.reset();
+    simulation.reset();
+    advance(15);
+    assert.ok(pieces.every(piece => piece.parent === model));
+    assert.ok(simulation.swat(player.position, Math.PI).includes('pencil-holder'));
+    advance(80);
+    assert.ok(pieces.every(piece => piece.parent === world));
+  } finally {
+    simulation.dispose();
+  }
+});
+
 test('five real cup bodies settle independently and restart without stale events', async () => {
   const study = await fixture();
   const player = new Group();
@@ -102,6 +134,7 @@ test('five real cup bodies settle independently and restart without stale events
 
 test('swat hits all colliders in the fixed forward box, excludes side/back/far bodies and never scores directly', async () => {
   const study = await fixture();
+  study.instances = study.instances.filter(instance => instance.assetId !== 'pencil-holder');
   const player = new Group();
   player.position.y = study.surface.height;
   const events = createPhysicsEventManager();

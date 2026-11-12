@@ -305,6 +305,65 @@
         "restitution": 0
       },
       "visualFront": "+Z"
+    },
+    {
+      "id": "pencil-holder",
+      "path": "assets/models/pencil-holder.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        0.1227116585,
+        0.1900045127,
+        0.1000000015
+      ],
+      "pivot": {
+        "type": "base-center",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "bounds": {
+        "center": [
+          0,
+          0.09500225635,
+          0
+        ],
+        "halfExtents": [
+          0.06135582925,
+          0.09500225635,
+          0.05000000075
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            -0.011355829,
+            0.04625,
+            0
+          ],
+          "halfExtents": [
+            0.045,
+            0.04625,
+            0.045
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.18,
+        "friction": 0.55,
+        "restitution": 0.05
+      }
     }
   ]
 }
