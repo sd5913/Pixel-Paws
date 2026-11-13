@@ -3,7 +3,7 @@ import { createPhysicsBody, syncPhysicsBody } from './physics-body.js';
 import { physicsEvents } from './physics-events.js';
 import { SWAT } from '../swat.js';
 
-export async function createDeskPhysics(study, player, { events = physicsEvents } = {}) {
+export async function createDeskPhysics(study, player, { events = physicsEvents, windowWall = true } = {}) {
   const physics = await createPhysicsWorld();
   const bodies = study.instances.map(instance => ({ instance, body: createPhysicsBody(physics, {
     ...instance, events: instance.physics.bodyType === 'dynamic'
@@ -19,10 +19,25 @@ export async function createDeskPhysics(study, player, { events = physicsEvents 
   const dynamic = bodies.filter(entry => entry.instance.physics.bodyType === 'dynamic');
   const fixedObstacles = bodies.filter(({ instance }) => instance.isObstacle && instance.physics.bodyType === 'static')
     .flatMap(({ body }) => body.colliders);
+  if (windowWall) {
+    const { height, centerXZ: [x, z], halfExtentsXZ: [halfWidth, halfDepth] } = study.surface;
+    const halfThickness = 0.32;
+    const halfHeight = (height + 2.4) / 2;
+    // The inner face meets the tabletop edge, leaving no gap below the window.
+    const wall = physics.rapier.ColliderDesc.cuboid(halfWidth + 0.35, halfHeight, halfThickness)
+      .setTranslation(x, halfHeight, z - halfDepth - halfThickness)
+      .setFriction(0.75)
+      .setRestitution(0);
+    const wallBody = physics.world.createRigidBody(physics.rapier.RigidBodyDesc.fixed());
+    fixedObstacles.push(physics.world.createCollider(wall, wallBody));
+    // A ricochet can hit the wall again within the same physics tick.
+    physics.world.maxCcdSubsteps = 4;
+  }
   const catShape = cat.colliders[0].shape;
   const upright = { x: 0, y: 0, z: 0, w: 1 };
   dynamic.forEach(({ body }) => {
     body.rigidBody.enableCcd(true);
+    if (windowWall) body.rigidBody.setSoftCcdPrediction(0.32);
   });
   const tracked = [...bodies.map(entry => entry.body), cat];
   tracked.forEach(body => events.registerBody(body));

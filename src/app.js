@@ -12,6 +12,7 @@ import { createSwat } from './swat.js';
 import * as THREE from 'three';
 
 import { loadStudyScene } from './assets/study-scene.js';
+import { createWindowBackdrop } from './assets/window-backdrop.js';
 
 const ui = {
   score: document.querySelector('#score'),
@@ -26,26 +27,42 @@ const ui = {
 
 const gameRoot = document.querySelector('#game-root');
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#EEE5E9');
+scene.background = new THREE.Color('#f1e8e3');
 
 const camera = new THREE.OrthographicCamera(-1.8, 1.8, 3, -3, 0.01, 100);
 camera.position.set(0, 4.5, 12);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(gameRoot.clientWidth, gameRoot.clientHeight);
 gameRoot.appendChild(renderer.domElement);
 
-const ambient = new THREE.HemisphereLight('#dff7ff', '#11252e', 1.4);
+const ambient = new THREE.HemisphereLight('#f2f6ff', '#c6a494', 1.65);
 scene.add(ambient);
 
-const sun = new THREE.DirectionalLight('#ffe1a8', 1.4);
-sun.position.set(6, 10, 4);
+// Window light enters from the back left and casts shadows across the desk.
+const sun = new THREE.DirectionalLight('#ffe2bf', 2.25);
+sun.position.set(-3.6, 6, -4.8);
+sun.target.position.y = 0.75;
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { left: -3.4, right: 3.4, top: 3.4, bottom: -3.4, near: 0.5, far: 15 });
+sun.shadow.camera.updateProjectionMatrix();
+sun.shadow.normalBias = 0.008;
+sun.shadow.bias = -0.00015;
+sun.shadow.radius = 4;
+sun.shadow.intensity = 0.76;
 scene.add(sun);
+scene.add(sun.target);
 
 const world = new THREE.Group();
 scene.add(world);
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: '#EEE5E9', roughness: 1 }));
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: '#e6d9d1', roughness: 1 }));
+floor.receiveShadow = true;
 floor.rotation.x = -Math.PI / 2;
 floor.position.y = -0.01;
 world.add(floor);
@@ -74,6 +91,12 @@ ui.status.textContent = 'Loading desk and cat...';
 void Promise.all([createCatAvatar(), loadStudyScene()]).then(async ([avatar, study]) => {
   catAvatar = avatar;
   tabletop = study.surface;
+  world.add(createWindowBackdrop(tabletop));
+  avatar.object.traverse(child => {
+    if (!child.isMesh) return;
+    child.castShadow = true;
+    child.receiveShadow = true;
+  });
   player.add(avatar.object);
   world.add(...study.instances.map(instance => instance.object3D));
   for (const instance of study.instances) scoreAnchors.set(instance.id, instance.object3D);
