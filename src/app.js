@@ -338,8 +338,10 @@ function stepGame(delta) {
   const speed = input.dash ? JOYSTICK_SPEED.dash : JOYSTICK_SPEED.walk;
   const moveX = dx / magnitude * speed * delta;
   const moveZ = dz / magnitude * speed * delta;
-  playerState.x = THREE.MathUtils.clamp(playerState.x + moveX, tabletop.centerXZ[0] - tabletop.halfExtentsXZ[0] + CAT_EDGE_MARGIN, tabletop.centerXZ[0] + tabletop.halfExtentsXZ[0] - CAT_EDGE_MARGIN);
-  playerState.z = THREE.MathUtils.clamp(playerState.z + moveZ, tabletop.centerXZ[1] - tabletop.halfExtentsXZ[1] + CAT_EDGE_MARGIN, tabletop.centerXZ[1] + tabletop.halfExtentsXZ[1] - CAT_EDGE_MARGIN);
+  const nextX = THREE.MathUtils.clamp(playerState.x + moveX, tabletop.centerXZ[0] - tabletop.halfExtentsXZ[0] + CAT_EDGE_MARGIN, tabletop.centerXZ[0] + tabletop.halfExtentsXZ[0] - CAT_EDGE_MARGIN);
+  const nextZ = THREE.MathUtils.clamp(playerState.z + moveZ, tabletop.centerXZ[1] - tabletop.halfExtentsXZ[1] + CAT_EDGE_MARGIN, tabletop.centerXZ[1] + tabletop.halfExtentsXZ[1] - CAT_EDGE_MARGIN);
+  if (!deskPhysics.blocksCat(nextX, tabletop.height, playerState.z)) playerState.x = nextX;
+  if (!deskPhysics.blocksCat(playerState.x, tabletop.height, nextZ)) playerState.z = nextZ;
 
   player.position.x = playerState.x;
   player.position.z = playerState.z;

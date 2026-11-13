@@ -307,50 +307,50 @@
       "visualFront": "+Z"
     },
     {
-      "id": "pencil-holder",
-      "path": "assets/models/pencil-holder.glb",
+      "id": "desk-lamp",
+      "path": "assets/models/desk-lamp.glb",
       "visualScale": [
         1,
         1,
         1
       ],
       "dimensionsMeters": [
-        0.1227116585,
-        0.1900045127,
-        0.1000000015
+        2.4542295751655026,
+        3.2908907093225466,
+        1.5210401183541025
       ],
       "pivot": {
         "type": "base-center",
         "offset": [
-          0,
+          -0.4054773221232151,
           0,
           0
         ]
       },
       "bounds": {
         "center": [
-          0,
-          0.09500225635,
+          -0.4054773221232151,
+          1.6454453546612733,
           0
         ],
         "halfExtents": [
-          0.06135582925,
-          0.09500225635,
-          0.05000000075
+          1.2271147875827513,
+          1.6454453546612733,
+          0.7605200591770512
         ]
       },
       "colliders": [
         {
           "type": "box",
           "center": [
-            -0.011355829,
-            0.04625,
+            -0.4054773221232151,
+            1.6454453546612733,
             0
           ],
           "halfExtents": [
-            0.045,
-            0.04625,
-            0.045
+            1.2271147875827513,
+            1.6454453546612733,
+            0.7605200591770512
           ]
         }
       ],
@@ -360,10 +360,431 @@
       },
       "physics": {
         "bodyType": "dynamic",
-        "suggestedMass": 0.18,
+        "suggestedMass": 0.65,
         "friction": 0.55,
         "restitution": 0.05
-      }
+      },
+      "sourceSha256": "b9454660d954c37a6a955785cfdc20f37f2aedd96b54bf54e2f84af7663c60af"
+    },
+    {
+      "id": "glass-vase",
+      "path": "assets/models/glass-vase.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        2.899999976158142,
+        3.940000057220459,
+        1.8545775413513184
+      ],
+      "pivot": {
+        "type": "base-center",
+        "offset": [
+          -0.030000030994415283,
+          0,
+          0
+        ]
+      },
+      "bounds": {
+        "center": [
+          -0.030000030994415283,
+          1.9700000286102295,
+          0
+        ],
+        "halfExtents": [
+          1.449999988079071,
+          1.9700000286102295,
+          0.9272887706756592
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            -0.030000030994415283,
+            1.9700000286102295,
+            0
+          ],
+          "halfExtents": [
+            1.449999988079071,
+            1.9700000286102295,
+            0.9272887706756592
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.24,
+        "friction": 0.55,
+        "restitution": 0.05
+      },
+      "sourceSha256": "e620a2bf4afc9c07dfb7a5fa1aa607d1d21c3da912d61eabd3274f4169463ea8"
+    },
+    {
+      "id": "notebook",
+      "path": "assets/models/notebook.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        2.325000047683716,
+        0.3699999935925007,
+        3.444999933242798
+      ],
+      "pivot": {
+        "type": "base-center",
+        "offset": [
+          -0.0625,
+          -0.05700000002980232,
+          0.20749998092651367
+        ]
+      },
+      "bounds": {
+        "center": [
+          -0.0625,
+          0.12799999676644802,
+          0.20749998092651367
+        ],
+        "halfExtents": [
+          1.162500023841858,
+          0.18499999679625034,
+          1.722499966621399
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            -0.0625,
+            0.12799999676644802,
+            0.20749998092651367
+          ],
+          "halfExtents": [
+            1.162500023841858,
+            0.18499999679625034,
+            1.722499966621399
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.15,
+        "friction": 0.55,
+        "restitution": 0.05
+      },
+      "sourceSha256": "978dc6b1f4a67a73a1fa5576411d9c7c91d612f251d21f656604dcc9fc7eb11f"
+    },
+    {
+      "id": "notebook-stack",
+      "path": "assets/models/notebook-stack.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        2.5199999809265137,
+        1.378499984741211,
+        3.1600000858306885
+      ],
+      "pivot": {
+        "type": "base-center",
+        "offset": [
+          -0.010000050067901611,
+          0,
+          0
+        ]
+      },
+      "bounds": {
+        "center": [
+          -0.010000050067901611,
+          0.6892499923706055,
+          0
+        ],
+        "halfExtents": [
+          1.2599999904632568,
+          0.6892499923706055,
+          1.5800000429153442
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            -0.010000050067901611,
+            0.6892499923706055,
+            0
+          ],
+          "halfExtents": [
+            1.2599999904632568,
+            0.6892499923706055,
+            1.5800000429153442
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.28,
+        "friction": 0.55,
+        "restitution": 0.05
+      },
+      "sourceSha256": "ea94e32c8839ca27bd6cd0c12856ed04f7f7701f349853961d4cf6ab08924f8a"
+    },
+    {
+      "id": "eraser",
+      "path": "assets/models/eraser.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        0.9145499765872955,
+        0.27509999729227275,
+        0.33810001611709595
+      ],
+      "pivot": {
+        "type": "base-center",
+        "offset": [
+          0.0022750049829483032,
+          -0.0010499999625608325,
+          0
+        ]
+      },
+      "bounds": {
+        "center": [
+          0.0022750049829483032,
+          0.13649999868357554,
+          0
+        ],
+        "halfExtents": [
+          0.45727498829364777,
+          0.13754999864613637,
+          0.16905000805854797
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0.0022750049829483032,
+            0.13649999868357554,
+            0
+          ],
+          "halfExtents": [
+            0.45727498829364777,
+            0.13754999864613637,
+            0.16905000805854797
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.04,
+        "friction": 0.55,
+        "restitution": 0.05
+      },
+      "sourceSha256": "f68fa9ff9f653cb8ead44b340b8bcbab0a568fb847882aadf316840f89180955"
+    },
+    {
+      "id": "ink-bottle",
+      "path": "assets/models/ink-bottle.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        1.899999976158142,
+        2.180000066757202,
+        1.9179999828338623
+      ],
+      "pivot": {
+        "type": "base-center",
+        "offset": [
+          0,
+          0,
+          0.009000003337860107
+        ]
+      },
+      "bounds": {
+        "center": [
+          0,
+          1.090000033378601,
+          0.009000003337860107
+        ],
+        "halfExtents": [
+          0.949999988079071,
+          1.090000033378601,
+          0.9589999914169312
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0,
+            1.090000033378601,
+            0.009000003337860107
+          ],
+          "halfExtents": [
+            0.949999988079071,
+            1.090000033378601,
+            0.9589999914169312
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.14,
+        "friction": 0.55,
+        "restitution": 0.05
+      },
+      "sourceSha256": "c1a9b3b2f47880ff76078a0efd3b52dfc70aa0a0128d6c392cea16c59bf78407"
+    },
+    {
+      "id": "tissue-box",
+      "path": "assets/models/tissue-box.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        3.4000000953674316,
+        2.2005245685577393,
+        1.6040000319480896
+      ],
+      "pivot": {
+        "type": "base-center",
+        "offset": [
+          0,
+          0,
+          0.0020000040531158447
+        ]
+      },
+      "bounds": {
+        "center": [
+          0,
+          1.1002622842788696,
+          0.0020000040531158447
+        ],
+        "halfExtents": [
+          1.7000000476837158,
+          1.1002622842788696,
+          0.8020000159740448
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0,
+            1.1002622842788696,
+            0.0020000040531158447
+          ],
+          "halfExtents": [
+            1.7000000476837158,
+            1.1002622842788696,
+            0.8020000159740448
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.14,
+        "friction": 0.55,
+        "restitution": 0.05
+      },
+      "sourceSha256": "5f5bb705cd82cbd305f57a8cc320c6c59d61a32876ba0e32004615934a754f23"
+    },
+    {
+      "id": "headphones",
+      "path": "assets/models/headphones.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        2.803729772567749,
+        2.6927295327186584,
+        0.9669883847236633
+      ],
+      "pivot": {
+        "type": "base-center",
+        "offset": [
+          0,
+          0.10227054357528687,
+          0
+        ]
+      },
+      "bounds": {
+        "center": [
+          0,
+          1.448635309934616,
+          0
+        ],
+        "halfExtents": [
+          1.4018648862838745,
+          1.3463647663593292,
+          0.48349419236183167
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0,
+            1.448635309934616,
+            0
+          ],
+          "halfExtents": [
+            1.4018648862838745,
+            1.3463647663593292,
+            0.48349419236183167
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.16,
+        "friction": 0.55,
+        "restitution": 0.05
+      },
+      "sourceSha256": "6855b86981d838b88dd69856155c2028ea910181c7bb8a83890e9969b9d08c01"
     }
   ]
 }

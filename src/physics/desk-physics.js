@@ -2,7 +2,6 @@ import { createPhysicsWorld } from './physics-world.js';
 import { createPhysicsBody, syncPhysicsBody } from './physics-body.js';
 import { physicsEvents } from './physics-events.js';
 import { SWAT } from '../swat.js';
-import { createPencilSpill } from './pencil-holder.js';
 
 export async function createDeskPhysics(study, player, { events = physicsEvents } = {}) {
   const physics = await createPhysicsWorld();
@@ -18,14 +17,20 @@ export async function createDeskPhysics(study, player, { events = physicsEvents 
       colliders: [{ type: 'box', center: [0, 0.28, 0], halfExtents: [0.25, 0.28, 0.25] }] },
   });
   const dynamic = bodies.filter(entry => entry.instance.physics.bodyType === 'dynamic');
-  const spills = dynamic.filter(({ instance }) => instance.assetId === 'pencil-holder')
-    .map(({ body }) => createPencilSpill(physics, body));
+  const fixedObstacles = bodies.filter(({ instance }) => instance.isObstacle && instance.physics.bodyType === 'static')
+    .flatMap(({ body }) => body.colliders);
+  const catShape = cat.colliders[0].shape;
+  const upright = { x: 0, y: 0, z: 0, w: 1 };
   dynamic.forEach(({ body }) => {
     body.rigidBody.enableCcd(true);
   });
   const tracked = [...bodies.map(entry => entry.body), cat];
   tracked.forEach(body => events.registerBody(body));
   return {
+    blocksCat(x, y, z) {
+      const center = { x, y: y + 0.28, z };
+      return fixedObstacles.some(collider => collider.intersectsShape(catShape, center, upright));
+    },
     swat(position, yaw) {
       const forward = { x: Math.sin(yaw), z: Math.cos(yaw) };
       const center = { x: position.x + forward.x * SWAT.forwardOffset,
@@ -37,12 +42,11 @@ export async function createDeskPhysics(study, player, { events = physicsEvents 
         if (!body.colliders.some(collider => collider.intersectsShape(shape, center, rotation))) continue;
         const mass = body.rigidBody.mass();
         const point = body.rigidBody.worldCom();
-        const contactHeight = instance.assetId === 'pencil-holder' ? 0.16 : 0.1;
         // A slightly left-of-centre contact adds a rightward yaw to the paw strike.
         body.rigidBody.applyImpulseAtPoint({ x: forward.x * SWAT.forwardSpeed * mass,
           y: SWAT.upwardSpeed * mass, z: forward.z * SWAT.forwardSpeed * mass },
         { x: point.x - Math.cos(yaw) * SWAT.leftContactOffset,
-          y: point.y + contactHeight, z: point.z + Math.sin(yaw) * SWAT.leftContactOffset }, true);
+          y: point.y + 0.1, z: point.z + Math.sin(yaw) * SWAT.leftContactOffset }, true);
         hits.push(instance.id);
       }
       return hits;
@@ -51,13 +55,11 @@ export async function createDeskPhysics(study, player, { events = physicsEvents 
       cat.rigidBody.setNextKinematicTranslation({ x: player.position.x, y: player.position.y, z: player.position.z });
       const steps = physics.step(delta, (world, timestep) => events.processImpacts?.(world, timestep)) || 0;
       for (const { body } of dynamic) syncPhysicsBody(body);
-      for (const spill of spills) spill.update();
       events.processCollisionEvents(physics.drainCollisionEvents());
       if (steps) events.updateBodyStates(steps * physics.timestep);
     },
     reset() {
       events.resetImpacts?.();
-      for (const spill of spills) spill.reset();
       for (const { instance, body } of bodies) {
         const [x, y, z] = instance.initialTransform.position;
         const [qx, qy, qz, qw] = instance.initialTransform.rotation;

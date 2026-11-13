@@ -9,9 +9,18 @@ import { createPhysicsEventManager } from '../src/physics/physics-events.js';
 import { connectPhysicsScoring } from '../src/physics-score-bridge.js';
 import { createScoring } from '../src/scoring.js';
 
-async function fixture() {
+async function fixture({ legacy = false } = {}) {
+  const layout = JSON.parse(await readFile('src/scenes/study-desk-gameplay.scene.json', 'utf8'));
+  if (legacy) {
+    const [desk] = layout.instances;
+    layout.instances = [desk,
+      { id: 'preview-mug-on-desk', assetId: 'mug', audioMaterial: 'ceramic',
+        transform: { position: [.891, .75, -1.276], rotation: [0, 0, 0, 1], scale: [3.6, 3.6, 3.6] },
+        physics: { bodyType: 'dynamic', colliderSet: 'default' }, scoring: { size: 'small' } },
+    ];
+  }
   return loadStudyScene({
-    fetchImpl: async path => ({ ok: true, json: async () => JSON.parse(await readFile(`src/${path.slice(2)}`, 'utf8')) }),
+    fetchImpl: async path => ({ ok: true, json: async () => path.includes('scenes/') ? layout : JSON.parse(await readFile(`src/${path.slice(2)}`, 'utf8')) }),
     loadModel: async path => {
       const bytes = await readFile(`src/${path}`);
       return parseGlb(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
@@ -20,7 +29,7 @@ async function fixture() {
 }
 
 test('real cat contact pushes the mug off the desk, scores and resets physics', async () => {
-  const study = await fixture();
+  const study = await fixture({ legacy: true });
   const player = new Group();
   player.position.y = study.surface.height;
   const endings = [];
@@ -53,40 +62,8 @@ test('real cat contact pushes the mug off the desk, scores and resets physics', 
   } finally { disconnect(); simulation.dispose(); }
 });
 
-test('swatting the pencil holder spills separate pieces and restarting puts them back', async () => {
-  const study = await fixture();
-  const world = new Group();
-  world.add(...study.instances.map(instance => instance.object3D));
-  const holder = study.instances.find(instance => instance.id === 'pencil-holder').object3D;
-  const model = holder.children[0];
-  const player = new Group();
-  player.position.y = study.surface.height;
-  const simulation = await createDeskPhysics(study, player, { events: createPhysicsEventManager() });
-  const pieces = ['long-pencil', 'short-pencil', 'scissors'].map(name => model.getObjectByName(name));
-  const advance = frames => {
-    for (let frame = 0; frame < frames; frame++) simulation.step(1 / 60);
-  };
-  try {
-    advance(45);
-    assert.ok(pieces.every(piece => piece.parent === model));
-    assert.ok(simulation.swat(player.position, Math.PI).includes('pencil-holder'));
-    advance(80);
-    assert.ok(pieces.every(piece => piece.parent === world && piece.position.y >= study.surface.height));
-    assert.ok(pieces[0].position.distanceTo(pieces[1].position) > 0.12);
-    study.reset();
-    simulation.reset();
-    advance(15);
-    assert.ok(pieces.every(piece => piece.parent === model));
-    assert.ok(simulation.swat(player.position, Math.PI).includes('pencil-holder'));
-    advance(80);
-    assert.ok(pieces.every(piece => piece.parent === world));
-  } finally {
-    simulation.dispose();
-  }
-});
-
-test('five real cup bodies settle independently and restart without stale events', async () => {
-  const study = await fixture();
+test('the cup settles and restarts without stale events', async () => {
+  const study = await fixture({ legacy: true });
   const player = new Group();
   player.position.y = study.surface.height;
   const endings = [];
@@ -97,8 +74,7 @@ test('five real cup bodies settle independently and restart without stale events
   const simulation = await createDeskPhysics(study, player, { events });
   try {
     const mugs = simulation.bodies.filter(entry => entry.instance.assetId === 'mug');
-    assert.equal(mugs.length, 5);
-    // Visuals and physical bounds must grow together; mass stays fixed for comparison.
+    assert.equal(mugs.length, 1);
     for (const { instance, body } of mugs) {
       const scale = instance.initialTransform.scale;
       const expected = instance.physics.colliders[0].halfExtents.map((value, axis) => value * scale[axis]);
@@ -114,10 +90,7 @@ test('five real cup bodies settle independently and restart without stale events
     mugs[0].body.rigidBody.setTranslation({ x: 0, y: -2, z: 0 }, true);
     simulation.step(1 / 60);
     assert.equal(score.snapshot().total, 20);
-    assert.equal(score.snapshot().state, 'playing');
-    for (const { body } of mugs.slice(1)) body.rigidBody.setTranslation({ x: 0, y: -2, z: 0 }, true);
-    simulation.step(1 / 60);
-    assert.equal(score.snapshot().total, 100);
+    assert.equal(score.snapshot().state, 'ended');
     assert.equal(endings.length, 1);
     study.reset();
     simulation.reset();
@@ -133,8 +106,12 @@ test('five real cup bodies settle independently and restart without stale events
 });
 
 test('swat hits all colliders in the fixed forward box, excludes side/back/far bodies and never scores directly', async () => {
-  const study = await fixture();
-  study.instances = study.instances.filter(instance => instance.assetId !== 'pencil-holder');
+  const study = await fixture({ legacy: true });
+  const desk = study.instances.find(instance => instance.assetId === 'desk');
+  const mug = study.instances.find(instance => instance.assetId === 'mug');
+  study.instances = [desk, mug, ...Array.from({ length: 4 }, (_, index) => ({
+    ...mug, id: `swat-fixture-${index}`, object3D: mug.object3D.clone(),
+  }))];
   const player = new Group();
   player.position.y = study.surface.height;
   const events = createPhysicsEventManager();
@@ -165,7 +142,7 @@ test('swat hits all colliders in the fixed forward box, excludes side/back/far b
 });
 
 test('real Rapier impulse reports ceramic on wood, then goes quiet while resting', async () => {
-  const study = await fixture();
+  const study = await fixture({ legacy: true });
   const player = new Group();
   player.position.set(0, study.surface.height, 0);
   const events = createPhysicsEventManager();
@@ -186,4 +163,35 @@ test('real Rapier impulse reports ceramic on wood, then goes quiet while resting
     assert.equal(impacts.length, count, 'resting contacts stay silent');
     simulation.reset();
   } finally { simulation.dispose(); }
+});
+
+test('the new ink bottle can be swatted and scores when it falls', async () => {
+  const study = await fixture();
+  const player = new Group();
+  player.position.y = study.surface.height;
+  const events = createPhysicsEventManager();
+  const score = createScoring();
+  score.startRound(study.targets);
+  const disconnect = connectPhysicsScoring(events, score);
+  const simulation = await createDeskPhysics(study, player, { events });
+  try {
+    const lamp = simulation.bodies.find(entry => entry.instance.id === 'desk-lamp');
+    const [x, y, z] = lamp.instance.initialTransform.position;
+    assert.ok(lamp.body.rigidBody.isDynamic());
+    assert.ok(!simulation.blocksCat(x, y, z));
+    assert.ok(!simulation.blocksCat(0, study.surface.height, 0));
+    for (let frame = 0; frame < 30; frame++) simulation.step(1 / 60);
+    assert.ok(simulation.swat(player.position, Math.PI).includes('ink-bottle'));
+    const { body, instance } = simulation.bodies.find(entry => entry.instance.id === 'ink-bottle');
+    for (let frame = 0; frame < 45; frame++) simulation.step(1 / 60);
+    assert.ok(instance.object3D.position.z < instance.initialTransform.position[2] - 0.1);
+    body.rigidBody.setTranslation({ x: 0, y: -2, z: -2.2 }, true);
+    simulation.step(1 / 60);
+    assert.equal(score.snapshot().fallenCount, 1);
+    assert.ok(simulation.swat({ x, y, z: z + 0.5 }, Math.PI).includes('desk-lamp'));
+    for (let frame = 0; frame < 30; frame++) simulation.step(1 / 60);
+    assert.ok(lamp.instance.object3D.position.distanceTo(new Vector3(x, y, z)) > 0.1);
+    simulation.reset();
+    assert.ok(lamp.instance.object3D.position.distanceTo(new Vector3(x, y, z)) < 1e-6);
+  } finally { disconnect(); simulation.dispose(); }
 });
