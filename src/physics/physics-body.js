@@ -189,6 +189,9 @@ export function createPhysicsBody(physicsWorld, instance) {
   return {
     id: id ?? assetId ?? object3D.name,
     assetId,
+    audioMaterial: instance.audioMaterial,
+    surfaceMaterial: instance.surfaceMaterial,
+    isObstacle: Boolean(instance.isObstacle),
     rigidBody,
     colliders,
     object3D,

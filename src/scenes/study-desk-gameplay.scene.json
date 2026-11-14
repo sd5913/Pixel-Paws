@@ -5,6 +5,7 @@
     {
       "id": "preview-study-desk",
       "assetId": "desk",
+      "surfaceMaterial": "wood",
       "transform": {
         "position": [
           0,
@@ -29,100 +30,13 @@
       }
     },
     {
-      "id": "preview-mug-on-desk",
-      "assetId": "mug",
-      "transform": {
-        "position": [
-          0.891,
-          0.75,
-          -1.276
-        ],
-        "rotation": [
-          0,
-          0,
-          0,
-          1
-        ],
-        "scale": [
-          3.6,
-          3.6,
-          3.6
-        ]
-      },
-      "physics": {
-        "bodyType": "dynamic",
-        "colliderSet": "default"
-      },
-      "scoring": {
-        "size": "small"
-      }
-    },
-    {
-      "id": "mug-2",
-      "assetId": "mug",
-      "transform": {
-        "position": [
-          -0.8,
-          0.75,
-          -0.9
-        ],
-        "rotation": [
-          0,
-          0,
-          0,
-          1
-        ],
-        "scale": [
-          4.2,
-          4.2,
-          4.2
-        ]
-      },
-      "physics": {
-        "bodyType": "dynamic",
-        "colliderSet": "default"
-      },
-      "scoring": {
-        "size": "small"
-      }
-    },
-    {
-      "id": "mug-3",
-      "assetId": "mug",
-      "transform": {
-        "position": [
-          0.65,
-          0.75,
-          0.65
-        ],
-        "rotation": [
-          0,
-          0,
-          0,
-          1
-        ],
-        "scale": [
-          4.8,
-          4.8,
-          4.8
-        ]
-      },
-      "physics": {
-        "bodyType": "dynamic",
-        "colliderSet": "default"
-      },
-      "scoring": {
-        "size": "small"
-      }
-    },
-    {
-      "id": "mug-4",
-      "assetId": "mug",
+      "id": "desk-lamp",
+      "assetId": "desk-lamp",
       "transform": {
         "position": [
           -0.75,
           0.75,
-          1.1
+          -1.39
         ],
         "rotation": [
           0,
@@ -131,9 +45,9 @@
           1
         ],
         "scale": [
-          5.4,
-          5.4,
-          5.4
+          0.4,
+          0.4,
+          0.4
         ]
       },
       "physics": {
@@ -141,17 +55,21 @@
         "colliderSet": "default"
       },
       "scoring": {
-        "size": "small"
+        "size": "large"
       }
     },
     {
-      "id": "mug-5",
-      "assetId": "mug",
+      "id": "glass-vase",
+      "assetId": "glass-vase",
+      "scoring": {
+        "size": "medium"
+      },
+      "audioMaterial": "glass",
       "transform": {
         "position": [
-          0.05,
+          0.89,
           0.75,
-          -1.35
+          -1.32
         ],
         "rotation": [
           0,
@@ -160,17 +78,188 @@
           1
         ],
         "scale": [
-          6,
-          6,
-          6
+          0.17,
+          0.17,
+          0.17
         ]
       },
       "physics": {
         "bodyType": "dynamic",
         "colliderSet": "default"
-      },
+      }
+    },
+    {
+      "id": "notebook",
+      "assetId": "notebook",
       "scoring": {
         "size": "small"
+      },
+      "transform": {
+        "position": [
+          -0.95,
+          0.7596900000050664,
+          0.04
+        ],
+        "rotation": [
+          0,
+          -0.059964006479444595,
+          0,
+          0.9982005399352042
+        ],
+        "scale": [
+          0.17,
+          0.17,
+          0.17
+        ]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
+      }
+    },
+    {
+      "id": "notebook-stack",
+      "assetId": "notebook-stack",
+      "scoring": {
+        "size": "medium"
+      },
+      "transform": {
+        "position": [
+          0.91,
+          0.75,
+          0.97
+        ],
+        "rotation": [
+          0,
+          0.04997916927067833,
+          0,
+          0.9987502603949663
+        ],
+        "scale": [
+          0.19,
+          0.19,
+          0.19
+        ]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
+      }
+    },
+    {
+      "id": "eraser",
+      "assetId": "eraser",
+      "scoring": {
+        "size": "small"
+      },
+      "transform": {
+        "position": [
+          -0.6,
+          0.7501259999955073,
+          0.48
+        ],
+        "rotation": [
+          0,
+          0.11474668839366382,
+          0,
+          0.9933947843142158
+        ],
+        "scale": [
+          0.12,
+          0.12,
+          0.12
+        ]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
+      }
+    },
+    {
+      "id": "ink-bottle",
+      "assetId": "ink-bottle",
+      "scoring": {
+        "size": "small"
+      },
+      "transform": {
+        "position": [
+          0,
+          0.75,
+          -0.62
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "scale": [
+          0.1,
+          0.1,
+          0.1
+        ]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
+      }
+    },
+    {
+      "id": "tissue-box",
+      "assetId": "tissue-box",
+      "scoring": {
+        "size": "small"
+      },
+      "transform": {
+        "position": [
+          -0.91,
+          0.75,
+          1.15
+        ],
+        "rotation": [
+          0,
+          -0.03998933418663416,
+          0,
+          0.9992001066609779
+        ],
+        "scale": [
+          0.18,
+          0.18,
+          0.18
+        ]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
+      }
+    },
+    {
+      "id": "headphones",
+      "assetId": "headphones",
+      "scoring": {
+        "size": "small"
+      },
+      "transform": {
+        "position": [
+          0.93,
+          0.7336367130279541,
+          -0.22
+        ],
+        "rotation": [
+          0,
+          -0.10977830083717481,
+          0,
+          0.9939560979566968
+        ],
+        "scale": [
+          0.16,
+          0.16,
+          0.16
+        ]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
       }
     }
   ]

@@ -3,7 +3,7 @@ import { createPhysicsBody, syncPhysicsBody } from './physics-body.js';
 import { physicsEvents } from './physics-events.js';
 import { SWAT } from '../swat.js';
 
-export async function createDeskPhysics(study, player, { events = physicsEvents } = {}) {
+export async function createDeskPhysics(study, player, { events = physicsEvents, windowWall = true } = {}) {
   const physics = await createPhysicsWorld();
   const bodies = study.instances.map(instance => ({ instance, body: createPhysicsBody(physics, {
     ...instance, events: instance.physics.bodyType === 'dynamic'
@@ -17,12 +17,35 @@ export async function createDeskPhysics(study, player, { events = physicsEvents 
       colliders: [{ type: 'box', center: [0, 0.28, 0], halfExtents: [0.25, 0.28, 0.25] }] },
   });
   const dynamic = bodies.filter(entry => entry.instance.physics.bodyType === 'dynamic');
+  const fixedObstacles = bodies.filter(({ instance }) => instance.isObstacle && instance.physics.bodyType === 'static')
+    .flatMap(({ body }) => body.colliders);
+  if (windowWall) {
+    const { height, centerXZ: [x, z], halfExtentsXZ: [halfWidth, halfDepth] } = study.surface;
+    const halfThickness = 0.32;
+    const halfHeight = (height + 2.4) / 2;
+    // The inner face meets the tabletop edge, leaving no gap below the window.
+    const wall = physics.rapier.ColliderDesc.cuboid(halfWidth + 0.35, halfHeight, halfThickness)
+      .setTranslation(x, halfHeight, z - halfDepth - halfThickness)
+      .setFriction(0.75)
+      .setRestitution(0);
+    const wallBody = physics.world.createRigidBody(physics.rapier.RigidBodyDesc.fixed());
+    fixedObstacles.push(physics.world.createCollider(wall, wallBody));
+    // A ricochet can hit the wall again within the same physics tick.
+    physics.world.maxCcdSubsteps = 4;
+  }
+  const catShape = cat.colliders[0].shape;
+  const upright = { x: 0, y: 0, z: 0, w: 1 };
   dynamic.forEach(({ body }) => {
     body.rigidBody.enableCcd(true);
+    if (windowWall) body.rigidBody.setSoftCcdPrediction(0.32);
   });
   const tracked = [...bodies.map(entry => entry.body), cat];
   tracked.forEach(body => events.registerBody(body));
   return {
+    blocksCat(x, y, z) {
+      const center = { x, y: y + 0.28, z };
+      return fixedObstacles.some(collider => collider.intersectsShape(catShape, center, upright));
+    },
     swat(position, yaw) {
       const forward = { x: Math.sin(yaw), z: Math.cos(yaw) };
       const center = { x: position.x + forward.x * SWAT.forwardOffset,
@@ -45,12 +68,13 @@ export async function createDeskPhysics(study, player, { events = physicsEvents 
     },
     step(delta) {
       cat.rigidBody.setNextKinematicTranslation({ x: player.position.x, y: player.position.y, z: player.position.z });
-      const steps = physics.step(delta) || 0;
+      const steps = physics.step(delta, (world, timestep) => events.processImpacts?.(world, timestep)) || 0;
       for (const { body } of dynamic) syncPhysicsBody(body);
       events.processCollisionEvents(physics.drainCollisionEvents());
       if (steps) events.updateBodyStates(steps * physics.timestep);
     },
     reset() {
+      events.resetImpacts?.();
       for (const { instance, body } of bodies) {
         const [x, y, z] = instance.initialTransform.position;
         const [qx, qy, qz, qw] = instance.initialTransform.rotation;
@@ -72,7 +96,7 @@ export async function createDeskPhysics(study, player, { events = physicsEvents 
       }
       physics.world.propagateModifiedBodyPositionsToColliders();
     },
-    dispose() { tracked.forEach(body => events.unregisterBody(body)); physics.dispose(); },
+    dispose() { events.resetImpacts?.(); tracked.forEach(body => events.unregisterBody(body)); physics.dispose(); },
     // Integration tests can inspect real body poses without synthesizing score events.
     bodies, physics,
   };

@@ -33,7 +33,7 @@ export async function createPhysicsWorld({
   // Fixed timestep accumulator.
   let accumulator = 0;
 
-  function step(delta) {
+  function step(delta, afterStep = () => {}) {
     if (!Number.isFinite(delta) || delta <= 0) {
       return 0;
     }
@@ -45,6 +45,7 @@ export async function createPhysicsWorld({
     while (accumulator >= timestep && subSteps < maxSubSteps) {
       // Step physics and collect collision events.
       world.step(eventQueue);
+      afterStep(world, timestep);
 
       // Preserve events from this physics substep.
       eventQueue.drainCollisionEvents(

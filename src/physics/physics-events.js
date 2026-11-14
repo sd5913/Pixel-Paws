@@ -1,3 +1,6 @@
+import { createEventBus } from '../feedback/events.js';
+import { createRapierImpactReporter } from '../feedback/rapier-impacts.js';
+
 
 /**
  * 通用物理事件管理器
@@ -10,7 +13,8 @@
  * 不负责计算分数，也不负责 UI。
  */
 
-export function createPhysicsEventManager() {
+export function createPhysicsEventManager({ bus = createEventBus() } = {}) {
+  const impacts = createRapierImpactReporter(bus);
   const bodiesByColliderHandle = new Map();
   const listeners = new Map();
   const registeredBodies = new Set();
@@ -146,6 +150,7 @@ bodyStates.set(physicsBody, {
 
       emit({
         type: 'tipped-over',
+        isObstacle: Boolean(body.isObstacle),
         objectId: body.id,
         otherObjectId: null,
       });
@@ -161,6 +166,7 @@ if (
 
   emit({
     type: 'fallen',
+    isObstacle: Boolean(body.isObstacle),
     objectId: body.id,
     otherObjectId: null,
   });
@@ -198,6 +204,9 @@ if (
 }
 
   return {
+    bus,
+    processImpacts: (world, delta) => impacts.step(world, bodiesByColliderHandle, delta),
+    resetImpacts: () => impacts.reset(),
     registerBody,
     unregisterBody,
     on,

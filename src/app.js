@@ -1,3 +1,6 @@
+import { AudioManager } from './feedback/audio-manager.js';
+import { ImpactVFXManager } from './feedback/impact-vfx-manager.js';
+import { createObstacleFeedback } from './feedback/obstacle-feedback.js';
 import { createCatAvatar, CAT_EDGE_MARGIN } from './assets/cat-avatar.js';
 import { createJoystick, JOYSTICK_SPEED } from './joystick.js';
 import { createScoring } from './scoring.js';
@@ -9,6 +12,7 @@ import { createSwat } from './swat.js';
 import * as THREE from 'three';
 
 import { loadStudyScene } from './assets/study-scene.js';
+import { createWindowBackdrop } from './assets/window-backdrop.js';
 
 const ui = {
   score: document.querySelector('#score'),
@@ -23,26 +27,42 @@ const ui = {
 
 const gameRoot = document.querySelector('#game-root');
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#EEE5E9');
+scene.background = new THREE.Color('#f1e8e3');
 
 const camera = new THREE.OrthographicCamera(-1.8, 1.8, 3, -3, 0.01, 100);
 camera.position.set(0, 4.5, 12);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(gameRoot.clientWidth, gameRoot.clientHeight);
 gameRoot.appendChild(renderer.domElement);
 
-const ambient = new THREE.HemisphereLight('#dff7ff', '#11252e', 1.4);
+const ambient = new THREE.HemisphereLight('#f2f6ff', '#c6a494', 1.65);
 scene.add(ambient);
 
-const sun = new THREE.DirectionalLight('#ffe1a8', 1.4);
-sun.position.set(6, 10, 4);
+// Window light enters from the back left and casts shadows across the desk.
+const sun = new THREE.DirectionalLight('#ffe2bf', 2.25);
+sun.position.set(-3.6, 6, -4.8);
+sun.target.position.y = 0.75;
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { left: -3.4, right: 3.4, top: 3.4, bottom: -3.4, near: 0.5, far: 15 });
+sun.shadow.camera.updateProjectionMatrix();
+sun.shadow.normalBias = 0.008;
+sun.shadow.bias = -0.00015;
+sun.shadow.radius = 4;
+sun.shadow.intensity = 0.76;
 scene.add(sun);
+scene.add(sun.target);
 
 const world = new THREE.Group();
 scene.add(world);
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: '#EEE5E9', roughness: 1 }));
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: '#e6d9d1', roughness: 1 }));
+floor.receiveShadow = true;
 floor.rotation.x = -Math.PI / 2;
 floor.position.y = -0.01;
 world.add(floor);
@@ -57,6 +77,12 @@ let catLoadError = false;
 let movementX = 0;
 let movementZ = 0;
 const scoreAnchors = new Map();
+const audio = new AudioManager();
+audio.init(camera, scene);
+void audio.preload();
+const disconnectAudio = physicsEvents.bus.on('physics:impact', event => audio.playImpact(event));
+const impactVFX = new ImpactVFXManager(physicsEvents.bus);
+const obstacleFeedback = createObstacleFeedback(physicsEvents.bus, scene, id => scoreAnchors.get(id));
 let lastScoringId = null;
 let lastDisplayedScore = 0;
 let resultRevealTimer;
@@ -65,6 +91,12 @@ ui.status.textContent = 'Loading desk and cat...';
 void Promise.all([createCatAvatar(), loadStudyScene()]).then(async ([avatar, study]) => {
   catAvatar = avatar;
   tabletop = study.surface;
+  world.add(createWindowBackdrop(tabletop));
+  avatar.object.traverse(child => {
+    if (!child.isMesh) return;
+    child.castShadow = true;
+    child.receiveShadow = true;
+  });
   player.add(avatar.object);
   world.add(...study.instances.map(instance => instance.object3D));
   for (const instance of study.instances) scoreAnchors.set(instance.id, instance.object3D);
@@ -129,7 +161,7 @@ function notifyFallen(id) {
   lastScoringId = id;
   return scoring.notifyFallen(id);
 }
-connectPhysicsScoring(physicsEvents, { notifyToppled, notifyFallen });
+const disconnectScoring = connectPhysicsScoring(physicsEvents, { notifyToppled, notifyFallen });
 window.pixelPawsScoring = {
   configureRound({ targets, resetScene }) {
     if (scoring.snapshot().state === 'playing') throw new Error('End current round first');
@@ -231,6 +263,7 @@ window.addEventListener('blur', resetInput);
 document.addEventListener('visibilitychange', () => { if (document.hidden) resetInput(); });
 
 function resetPrototypeScene() {
+  obstacleFeedback.reset();
   for (const popup of gameRoot.querySelectorAll('.score-popup')) popup.remove();
   player.position.set(0, tabletop.height, 0);
   catAvatar?.reset();
@@ -247,6 +280,7 @@ function resetPrototypeScene() {
 
 async function startRound() {
   if (ui.start.disabled) return;
+  void audio.unlock().then(unlocked => { if (unlocked) audio.playUISound('start'); });
   ui.start.disabled = true;
   paused = false;
   if (pauseMenu.open) pauseMenu.close();
@@ -327,8 +361,10 @@ function stepGame(delta) {
   const speed = input.dash ? JOYSTICK_SPEED.dash : JOYSTICK_SPEED.walk;
   const moveX = dx / magnitude * speed * delta;
   const moveZ = dz / magnitude * speed * delta;
-  playerState.x = THREE.MathUtils.clamp(playerState.x + moveX, tabletop.centerXZ[0] - tabletop.halfExtentsXZ[0] + CAT_EDGE_MARGIN, tabletop.centerXZ[0] + tabletop.halfExtentsXZ[0] - CAT_EDGE_MARGIN);
-  playerState.z = THREE.MathUtils.clamp(playerState.z + moveZ, tabletop.centerXZ[1] - tabletop.halfExtentsXZ[1] + CAT_EDGE_MARGIN, tabletop.centerXZ[1] + tabletop.halfExtentsXZ[1] - CAT_EDGE_MARGIN);
+  const nextX = THREE.MathUtils.clamp(playerState.x + moveX, tabletop.centerXZ[0] - tabletop.halfExtentsXZ[0] + CAT_EDGE_MARGIN, tabletop.centerXZ[0] + tabletop.halfExtentsXZ[0] - CAT_EDGE_MARGIN);
+  const nextZ = THREE.MathUtils.clamp(playerState.z + moveZ, tabletop.centerXZ[1] - tabletop.halfExtentsXZ[1] + CAT_EDGE_MARGIN, tabletop.centerXZ[1] + tabletop.halfExtentsXZ[1] - CAT_EDGE_MARGIN);
+  if (!deskPhysics.blocksCat(nextX, tabletop.height, playerState.z)) playerState.x = nextX;
+  if (!deskPhysics.blocksCat(playerState.x, tabletop.height, nextZ)) playerState.z = nextZ;
 
   player.position.x = playerState.x;
   player.position.z = playerState.z;
@@ -350,6 +386,7 @@ function animate(timestamp) {
   if (started) deskPhysics?.step(delta);
   if (!paused) catAvatar?.update(delta, movementX, movementZ);
   updateFollowCamera(delta);
+  obstacleFeedback.update(delta);
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
 }
@@ -372,3 +409,13 @@ window.addEventListener('resize', resizeRenderer);
 resizeRenderer();
 renderScore(scoring.snapshot());
 requestAnimationFrame(animate);
+
+window.addEventListener('pagehide', event => {
+  if (event.persisted) return;
+  disconnectAudio();
+  disconnectScoring();
+  impactVFX.dispose();
+  obstacleFeedback.dispose();
+  audio.dispose();
+  deskPhysics?.dispose();
+});
