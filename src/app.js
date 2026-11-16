@@ -101,7 +101,7 @@ void Promise.all([createCatAvatar(), loadStudyScene()]).then(async ([avatar, stu
   world.add(...study.instances.map(instance => instance.object3D));
   for (const instance of study.instances) scoreAnchors.set(instance.id, instance.object3D);
   deskPhysics = await createDeskPhysics(study, player);
-  resetTargets = () => { study.reset(); deskPhysics.reset(); };
+  resetTargets = () => { study.reset({ randomize: true }); deskPhysics.reset(); };
   if (!debugScoring) roundTargets = study.targets;
   resetPrototypeScene();
   ui.start.disabled = false;

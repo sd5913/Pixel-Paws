@@ -1,5 +1,6 @@
 import { instantiateAssetLayout } from './load-assets.js';
 import { Box3, Vector3 } from 'three';
+import { randomizeLayout } from '../randomize-layout.js';
 
 export async function loadStudyScene({ fetchImpl = fetch, loadModel } = {}) {
   const [manifest, layout] = await Promise.all([
@@ -37,7 +38,8 @@ export async function loadStudyScene({ fetchImpl = fetch, loadModel } = {}) {
     // Scoring size is explicit gameplay configuration, independent of model size/mass.
     targets: layout.instances.filter(instance => instance.scoring)
       .map(instance => ({ id: instance.id, size: instance.scoring.size })),
-    reset() {
+    reset({ randomize = false, random = Math.random } = {}) {
+      if (randomize) randomizeLayout(instances, surface, random);
       for (const { object3D, initialTransform } of instances) {
         object3D.position.fromArray(initialTransform.position);
         object3D.quaternion.fromArray(initialTransform.rotation);

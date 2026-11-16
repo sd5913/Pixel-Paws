@@ -318,3 +318,66 @@ test('eraser is heavier but still lighter than the lamp, and resists swat accord
     assert.ok(Math.abs(eraser.linvel().z + .525 / .18) < 1e-5);
   } finally { simulation.dispose(); }
 });
+
+test('new rounds randomize every prop within the desk, clear of spawn and each other', async () => {
+  const study = await fixture();
+  let seed = 123456789;
+  const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+  const desk = study.instances.find(({ assetId }) => assetId === 'desk');
+  const originalDesk = structuredClone(desk.initialTransform);
+  const { Box3 } = await import('three');
+  for (let round = 0; round < 100; round++) {
+    const previous = new Map(study.instances.map(instance => [instance.id, [...instance.initialTransform.position]]));
+    study.reset({ randomize: true, random });
+    const boxes = [];
+    for (const instance of study.instances.filter(item => item.physics.bodyType === 'dynamic')) {
+      const position = instance.initialTransform.position;
+      const before = previous.get(instance.id);
+      assert.ok(Math.hypot(position[0] - before[0], position[2] - before[2]) >= .12);
+      assert.equal(position[1], before[1], 'preserve the authored tabletop height');
+      instance.object3D.updateMatrixWorld(true);
+      const box = new Box3().setFromObject(instance.object3D);
+      const [cx, cz] = study.surface.centerXZ;
+      const [hx, hz] = study.surface.halfExtentsXZ;
+      assert.ok(box.min.x >= cx - hx + .119 && box.max.x <= cx + hx - .119, instance.id);
+      assert.ok(box.min.z >= cz - hz + .119 && box.max.z <= cz + hz - .119, instance.id);
+      const intersectsXZ = other => box.min.x < other.max.x && box.max.x > other.min.x
+        && box.min.z < other.max.z && box.max.z > other.min.z;
+      assert.ok(!intersectsXZ({ min: { x: -.42, z: -.42 }, max: { x: .42, z: .42 } }), 'spawn stays clear');
+      for (const other of boxes) assert.ok(!intersectsXZ(other), `overlap on round ${round}: ${instance.id}`);
+      boxes.push(box);
+    }
+    assert.deepEqual(desk.initialTransform, originalDesk);
+    const snapshot = study.instances.map(instance => instance.object3D.position.toArray());
+    study.reset();
+    assert.deepEqual(study.instances.map(instance => instance.object3D.position.toArray()), snapshot,
+      'ordinary reset preserves the current layout');
+  }
+});
+
+test('randomized rounds reset real bodies and do not score during initial settling', async () => {
+  const study = await fixture();
+  const player = new Group();
+  player.position.set(0, study.surface.height, 0);
+  const events = createPhysicsEventManager();
+  const score = createScoring();
+  const disconnect = connectPhysicsScoring(events, score);
+  const simulation = await createDeskPhysics(study, player, { events });
+  let seed = 42;
+  const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+  try {
+    for (let round = 0; round < 20; round++) {
+      study.reset({ randomize: true, random });
+      simulation.reset();
+      score.startRound(study.targets);
+      for (const { instance, body } of simulation.bodies) {
+        const expected = instance.initialTransform.position;
+        const actual = body.rigidBody.translation();
+        assert.ok(new Vector3(actual.x, actual.y, actual.z).distanceTo(new Vector3(...expected)) < 1e-5);
+        assert.deepEqual(Object.values(body.rigidBody.linvel()), [0, 0, 0]);
+      }
+      for (let frame = 0; frame < 120; frame++) simulation.step(1 / 60, { x: 0, z: 0 });
+      assert.equal(score.snapshot().total, 0, `round ${round} should start stable`);
+    }
+  } finally { disconnect(); simulation.dispose(); }
+});
