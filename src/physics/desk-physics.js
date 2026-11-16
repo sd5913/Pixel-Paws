@@ -3,19 +3,34 @@ import { createPhysicsBody, syncPhysicsBody } from './physics-body.js';
 import { physicsEvents } from './physics-events.js';
 import { SWAT } from '../swat.js';
 
+// Gameplay weight tuning leaves the shared asset definitions unchanged.
+const OBJECT_MASS_MULTIPLIER = 1.6;
+const GAMEPLAY_MASS = Object.freeze({ eraser: 0.18, 'desk-lamp': 0.32 });
+
 export async function createDeskPhysics(study, player, { events = physicsEvents, windowWall = true } = {}) {
   const physics = await createPhysicsWorld();
   const bodies = study.instances.map(instance => ({ instance, body: createPhysicsBody(physics, {
-    ...instance, events: instance.physics.bodyType === 'dynamic'
+    ...instance,
+    physics: instance.physics.bodyType === 'dynamic'
+      ? { ...instance.physics, suggestedMass: GAMEPLAY_MASS[instance.assetId]
+          ?? instance.physics.suggestedMass * OBJECT_MASS_MULTIPLIER }
+      : instance.physics,
+    events: instance.physics.bodyType === 'dynamic'
       ? { collision: true, tippedOver: true, fallen: true, settled: true } : { collision: true },
   }) }));
   const cat = createPhysicsBody(physics, {
     object3D: player,
     id: 'player-cat', events: { collision: true },
     initialTransform: { position: player.position.toArray(), rotation: [0, 0, 0, 1], scale: [1, 1, 1] },
-    physics: { bodyType: 'kinematic', friction: 0.5, restitution: 0,
+    physics: { bodyType: 'dynamic', suggestedMass: 0.4, friction: 0, restitution: 0,
       colliders: [{ type: 'box', center: [0, 0.28, 0], halfExtents: [0.25, 0.28, 0.25] }] },
   });
+  // A finite-mass movement motor lets heavy props resist a dash. Keep the cat
+  // upright on the tabletop, while horizontal collisions remain physical.
+  cat.rigidBody.setEnabledTranslations(true, false, true, true);
+  cat.rigidBody.lockRotations(true, true);
+  cat.rigidBody.setGravityScale(0, true);
+  cat.rigidBody.enableCcd(true);
   const dynamic = bodies.filter(entry => entry.instance.physics.bodyType === 'dynamic');
   const fixedObstacles = bodies.filter(({ instance }) => instance.isObstacle && instance.physics.bodyType === 'static')
     .flatMap(({ body }) => body.colliders);
@@ -55,20 +70,28 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
       const hits = [];
       for (const { instance, body } of dynamic) {
         if (!body.colliders.some(collider => collider.intersectsShape(shape, center, rotation))) continue;
-        const mass = body.rigidBody.mass();
         const point = body.rigidBody.worldCom();
+        // Strike the tall lamp near its shade so the paw tips it rather than
+        // only sliding its broad base along the desk.
+        const contactHeight = instance.assetId === 'desk-lamp' ? 0.55 : 0.1;
         // A slightly left-of-centre contact adds a rightward yaw to the paw strike.
-        body.rigidBody.applyImpulseAtPoint({ x: forward.x * SWAT.forwardSpeed * mass,
-          y: SWAT.upwardSpeed * mass, z: forward.z * SWAT.forwardSpeed * mass },
+        body.rigidBody.applyImpulseAtPoint({ x: forward.x * SWAT.forwardImpulse,
+          y: SWAT.upwardImpulse, z: forward.z * SWAT.forwardImpulse },
         { x: point.x - Math.cos(yaw) * SWAT.leftContactOffset,
-          y: point.y + 0.1, z: point.z + Math.sin(yaw) * SWAT.leftContactOffset }, true);
+          y: point.y + contactHeight, z: point.z + Math.sin(yaw) * SWAT.leftContactOffset }, true);
         hits.push(instance.id);
       }
       return hits;
     },
-    step(delta) {
-      cat.rigidBody.setNextKinematicTranslation({ x: player.position.x, y: player.position.y, z: player.position.z });
-      const steps = physics.step(delta, (world, timestep) => events.processImpacts?.(world, timestep)) || 0;
+    step(delta, movement = null) {
+      if (!Number.isFinite(delta) || delta <= 0) return;
+      const current = cat.rigidBody.translation();
+      const velocity = movement ?? { x: (player.position.x - current.x) / delta,
+        z: (player.position.z - current.z) / delta };
+      const steps = physics.step(delta,
+        (world, timestep) => events.processImpacts?.(world, timestep),
+        () => cat.rigidBody.setLinvel({ x: velocity.x, y: 0, z: velocity.z }, true)) || 0;
+      player.position.copy(cat.rigidBody.translation());
       for (const { body } of dynamic) syncPhysicsBody(body);
       events.processCollisionEvents(physics.drainCollisionEvents());
       if (steps) events.updateBodyStates(steps * physics.timestep);
@@ -88,7 +111,8 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
       }
       const position = { x: player.position.x, y: player.position.y, z: player.position.z };
       cat.rigidBody.setTranslation(position, true);
-      cat.rigidBody.setNextKinematicTranslation(position);
+      cat.rigidBody.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      cat.rigidBody.setAngvel({ x: 0, y: 0, z: 0 }, true);
       physics.drainCollisionEvents();
       for (const body of tracked) {
         events.unregisterBody(body);

@@ -366,11 +366,11 @@ function stepGame(delta) {
   if (!deskPhysics.blocksCat(nextX, tabletop.height, playerState.z)) playerState.x = nextX;
   if (!deskPhysics.blocksCat(playerState.x, tabletop.height, nextZ)) playerState.z = nextZ;
 
+  movementX = playerState.x - player.position.x;
+  movementZ = playerState.z - player.position.z;
   player.position.x = playerState.x;
   player.position.z = playerState.z;
   player.position.y = tabletop.height;
-  movementX = moveX;
-  movementZ = moveZ;
 
 }
 
@@ -383,7 +383,12 @@ function animate(timestamp) {
   stepGame(delta);
   if (started) swat.update(delta);
   swatButton.disabled = !started || swat.active;
-  if (started) deskPhysics?.step(delta);
+  if (started) {
+    deskPhysics?.step(delta, { x: delta > 0 ? movementX / delta : 0,
+      z: delta > 0 ? movementZ / delta : 0 });
+    playerState.x = player.position.x;
+    playerState.z = player.position.z;
+  }
   if (!paused) catAvatar?.update(delta, movementX, movementZ);
   updateFollowCamera(delta);
   obstacleFeedback.update(delta);
