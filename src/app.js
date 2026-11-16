@@ -2,13 +2,17 @@ import { AudioManager } from './feedback/audio-manager.js';
 import { ImpactVFXManager } from './feedback/impact-vfx-manager.js';
 import { createObstacleFeedback } from './feedback/obstacle-feedback.js';
 import { createCatAvatar, CAT_EDGE_MARGIN } from './assets/cat-avatar.js';
-import { createJoystick, JOYSTICK_SPEED } from './joystick.js';
-import { createScoring } from './scoring.js';
-import { createRoundTimer, formatRoundTime } from './round-timer.js';
+import { createJoystick, JOYSTICK_SPEED } from './ui-gameplay/joystick.js';
+import { createGameLogic } from './ui-gameplay/game-logic.js';
+import { COMBO_WINDOW_MS, roundRating } from './ui-gameplay/scoring.js';
+import { formatRoundTime } from './ui-gameplay/round-timer.js';
+import { ACHIEVEMENTS, createAchievements } from './achievements.js';
+import digitArt from './assets/ui/ui-nishiki-digits.svg';
+import startArt from './assets/ui/ui-button-start-pixel.svg';
+import { presets } from '../experiments/illustrated-rendering/presets.js';
 import { createDeskPhysics } from './physics/desk-physics.js';
 import { physicsEvents } from './physics/physics-events.js';
 import { connectPhysicsScoring } from './physics-score-bridge.js';
-import { createSwat } from './swat.js';
 import * as THREE from 'three';
 
 import { loadStudyScene } from './assets/study-scene.js';
@@ -18,12 +22,28 @@ const ui = {
   score: document.querySelector('#score'),
   status: document.querySelector('#status'),
   start: document.querySelector('#start'),
-  startArt: document.querySelector('#start-art'),
   result: document.querySelector('#result'),
   finalScore: document.querySelector('#final-score'),
+  bestScore: document.querySelector('#best-score'),
+  newRecord: document.querySelector('#new-record'),
+  resultArt: document.querySelector('.result-art'),
   replay: document.querySelector('#replay'),
   timer: document.querySelector('#timer'),
+  finalCountdown: document.querySelector('#final-countdown'),
+  comboClock: document.querySelector('#combo-clock'),
+  comboFill: document.querySelector('#combo-clock span'),
+  roundRating: document.querySelector('#round-rating'),
 };
+
+// Bundle the artwork so controls and counters survive interrupted asset requests.
+const artworkParser = new DOMParser();
+const digitLibrary = artworkParser.parseFromString(digitArt, 'image/svg+xml').documentElement;
+digitLibrary.classList.add('digit-library');
+digitLibrary.setAttribute('aria-hidden', 'true');
+document.body.prepend(digitLibrary);
+const startGraphic = artworkParser.parseFromString(startArt, 'image/svg+xml').documentElement;
+startGraphic.setAttribute('aria-hidden', 'true');
+ui.start.replaceChildren(startGraphic);
 
 const gameRoot = document.querySelector('#game-root');
 const scene = new THREE.Scene();
@@ -31,6 +51,9 @@ scene.background = new THREE.Color('#f1e8e3');
 
 const camera = new THREE.OrthographicCamera(-1.8, 1.8, 3, -3, 0.01, 100);
 camera.position.set(0, 4.5, 12);
+const homeCamera = new THREE.PerspectiveCamera(43, 1, 0.01, 100);
+const homeRay = new THREE.Raycaster();
+const homePointer = new THREE.Vector2();
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -38,7 +61,7 @@ renderer.toneMappingExposure = 1.12;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(gameRoot.clientWidth, gameRoot.clientHeight);
+renderer.setSize(gameRoot.clientWidth, gameRoot.clientHeight, false);
 gameRoot.appendChild(renderer.domElement);
 
 const ambient = new THREE.HemisphereLight('#f2f6ff', '#c6a494', 1.65);
@@ -66,6 +89,28 @@ floor.receiveShadow = true;
 floor.rotation.x = -Math.PI / 2;
 floor.position.y = -0.01;
 world.add(floor);
+
+const appearance = document.querySelector('#appearance');
+const settings = document.querySelector('#settings');
+document.querySelector('#settings-button').addEventListener('click', () => settings.showModal());
+for (const [id, preset] of Object.entries(presets)) appearance.add(new Option(preset.name, id));
+const originalAppearance = {
+  background: '#EEE5E9', floor: '#EEE5E9', sky: '#dff7ff', bounce: '#11252e',
+  sun: '#ffe1a8', ambient: 1.4, key: 1.4, exposure: 1,
+};
+appearance.addEventListener('change', () => {
+  const preset = Object.hasOwn(presets, appearance.value) ? presets[appearance.value] : null;
+  const style = preset ?? originalAppearance;
+  scene.background.set(style.background);
+  floor.material.color.set(style.floor);
+  ambient.color.set(style.sky);
+  ambient.groundColor.set(style.bounce);
+  ambient.intensity = style.ambient;
+  sun.color.set(style.sun);
+  sun.intensity = style.key;
+  renderer.toneMapping = preset ? THREE.NeutralToneMapping : THREE.NoToneMapping;
+  renderer.toneMappingExposure = style.exposure;
+});
 let tabletop = { height: 0.75, centerXZ: [0, 0], halfExtentsXZ: [0.9, 0.45] };
 
 const player = new THREE.Group();
@@ -77,7 +122,7 @@ let catLoadError = false;
 let movementX = 0;
 let movementZ = 0;
 const scoreAnchors = new Map();
-const audio = new AudioManager();
+const audio = new AudioManager({ fetchImpl: (...args) => globalThis.fetch(...args) });
 audio.init(camera, scene);
 void audio.preload();
 const disconnectAudio = physicsEvents.bus.on('physics:impact', event => audio.playImpact(event));
@@ -85,6 +130,7 @@ const impactVFX = new ImpactVFXManager(physicsEvents.bus);
 const obstacleFeedback = createObstacleFeedback(physicsEvents.bus, scene, id => scoreAnchors.get(id));
 let lastScoringId = null;
 let lastDisplayedScore = 0;
+let lastDisplayedComboBonus = 0;
 let resultRevealTimer;
 ui.start.disabled = true;
 ui.status.textContent = 'Loading desk and cat...';
@@ -105,7 +151,7 @@ void Promise.all([createCatAvatar(), loadStudyScene()]).then(async ([avatar, stu
   if (!debugScoring) roundTargets = study.targets;
   resetPrototypeScene();
   ui.start.disabled = false;
-  renderScore(scoring.snapshot());
+  renderScore(game.snapshot());
 }).catch(error => {
   catLoadError = true;
   document.querySelector('#retry').hidden = false;
@@ -130,6 +176,33 @@ function updateFollowCamera(delta, immediate = false) {
   cameraFocus.copy(followPosition).add(cameraFocusOffset).add(cameraFrameOffset);
   camera.lookAt(cameraFocus);
 }
+function updateHomeCamera() {
+  const { x, y, z } = player.position;
+  const distance = 0.30 + 1.58 * Math.max(1, 0.46 / homeCamera.aspect);
+  homeCamera.position.set(x, y + 0.49, z + distance);
+  homeCamera.lookAt(x, y + 0.40, z + 0.17);
+}
+
+function pointsAtHomeCat(event) {
+  if (document.body.dataset.gameState !== 'ready' || !catAvatar || ui.start.disabled) return false;
+  const bounds = renderer.domElement.getBoundingClientRect();
+  homePointer.set(
+    (event.clientX - bounds.left) / bounds.width * 2 - 1,
+    1 - (event.clientY - bounds.top) / bounds.height * 2,
+  );
+  homeRay.setFromCamera(homePointer, homeCamera);
+  return homeRay.intersectObject(catAvatar.object, true).length > 0;
+}
+
+renderer.domElement.addEventListener('click', event => {
+  if (pointsAtHomeCat(event)) catAvatar.swat();
+});
+renderer.domElement.addEventListener('pointermove', event => {
+  renderer.domElement.style.cursor = pointsAtHomeCat(event) ? 'pointer' : '';
+});
+renderer.domElement.addEventListener('pointerleave', () => {
+  renderer.domElement.style.cursor = '';
+});
 updateFollowCamera(0, true);
 
 const playerState = {
@@ -142,62 +215,216 @@ const playerState = {
 };
 
 const joystick = createJoystick(document.querySelector('#joystick'));
-const timer = createRoundTimer({ onExpire: () => scoring.endRound('timeout') });
 
 const debugScoring = new URLSearchParams(location.search).get('debugScoring') === '1';
+const BEST_SCORE_KEY = 'pixel-paws.best-score';
+let bestScore = 0;
+try {
+  const storedScore = Number(localStorage.getItem(BEST_SCORE_KEY));
+  if (Number.isSafeInteger(storedScore) && storedScore >= 0) bestScore = storedScore;
+} catch {
+  // A blocked save still allows the session to keep a best score.
+}
 const debugTargets = ['small', 'medium', 'large'].map(size => ({ id: 'debug-' + size, size }));
 let roundTargets = debugScoring ? debugTargets : [];
 let resetTargets = null;
-const scoring = createScoring({ onChange: renderScore, onEnd: () => { started = false; timer.stop(); resetInput(); } });
+let customRound = false;
+const achievements = createAchievements();
+const game = createGameLogic({
+  async resetScene() {
+    resetPrototypeScene();
+    await resetTargets?.();
+    await showRoundIntro('Knock them off!');
+  },
+  onChange: renderScore,
+  onEnd(result, elapsedMs) {
+    resetMovement();
+    renderUnlocks(achievements.settle(result, elapsedMs));
+  },
+  canSwat: () => Boolean(deskPhysics && catAvatar),
+  onSwat(phase) {
+    if (phase === 'start') catAvatar.swat();
+    if (phase === 'impact') achievements.recordSwat(deskPhysics.swat(player.position, catAvatar.object.rotation.y));
+    if (phase === 'cancel') catAvatar?.cancelSwat();
+  },
+});
 function notifyToppled(id) {
-  if (paused) return false;
-  timer.tick(performance.now());
   lastScoringId = id;
-  return scoring.notifyToppled(id);
+  return game.notifyToppled(id);
 }
 function notifyFallen(id) {
-  if (paused) return false;
-  timer.tick(performance.now());
   lastScoringId = id;
-  return scoring.notifyFallen(id);
+  return game.notifyFallen(id);
 }
 const disconnectScoring = connectPhysicsScoring(physicsEvents, { notifyToppled, notifyFallen });
 window.pixelPawsScoring = {
   configureRound({ targets, resetScene }) {
-    if (scoring.snapshot().state === 'playing') throw new Error('End current round first');
+    if (game.snapshot().state === 'playing' || game.snapshot().resetting) throw new Error('End current round first');
     if (typeof resetScene !== 'function') throw new TypeError('resetScene callback required');
+    customRound = true;
     roundTargets = targets.map(target => ({ ...target }));
     resetTargets = resetScene;
   },
-  startRound, notifyToppled, notifyFallen,
-  endRound: scoring.endRound, snapshot: scoring.snapshot,
+  startRound,
+  notifyToppled(id) { achievements.discard(); return notifyToppled(id); },
+  notifyFallen(id) { achievements.discard(); return notifyFallen(id); },
+  endRound(reason) { achievements.discard(); return game.endRound(reason); },
+  snapshot: game.snapshot,
 };
-let started = false;
-let paused = false;
 const pauseMenu = document.querySelector("#pause-menu");
+const roundIntro = document.querySelector('#round-intro');
+const roundIntroMessage = roundIntro.querySelector('p');
+roundIntro.addEventListener('cancel', event => event.preventDefault());
 let lastTimestamp = 0;
 const swatButton = document.querySelector('#swat');
-const swat = createSwat({
-  canStart: () => started && Boolean(deskPhysics && catAvatar),
-  onStart: () => catAvatar.swat(),
-  onHit: () => { if (started) deskPhysics.swat(player.position, catAvatar.object.rotation.y); },
-  onReset: () => catAvatar?.cancelSwat(),
-});
-function requestSwat() {
-  timer.tick(performance.now());
-  swat.request();
+swatButton.addEventListener('click', game.requestSwat);
+
+const achievementBook = document.querySelector('#achievement-book');
+const achievementPages = document.querySelector('#achievement-pages');
+const achievementTrack = document.querySelector('#achievement-track');
+const achievementTemplate = document.querySelector('#achievement-page-template');
+const achievementAnnouncement = document.querySelector('#achievement-announcement');
+const achievementPageNumber = document.querySelector('#achievement-page-number');
+const previousAchievement = document.querySelector('#achievement-previous');
+const nextAchievement = document.querySelector('#achievement-next');
+const storageNote = document.querySelector('#achievement-storage-note');
+const newAchievements = document.querySelector('#new-achievements');
+const newAchievementList = newAchievements.querySelector('ul');
+const achievementResetStatus = document.querySelector('#achievement-reset-status');
+let achievementIndex = 0;
+let achievementSwipe = null;
+
+function renderUnlocks(unlocked) {
+  newAchievementList.replaceChildren(...unlocked.map(({ name }) => {
+    const item = document.createElement('li');
+    item.textContent = name;
+    return item;
+  }));
+  newAchievements.hidden = unlocked.length === 0;
 }
-swatButton.addEventListener('click', requestSwat);
+
+document.querySelector('#reset-achievements').addEventListener('click', () => {
+  if (!window.confirm('Reset achievements? This clears all badges and your total targets knocked off the desk.')) return;
+  if (achievements.reset()) {
+    renderUnlocks([]);
+    achievementResetStatus.textContent = 'Achievement progress reset.';
+  } else {
+    achievementResetStatus.textContent = 'Could not reset achievement progress on this device.';
+  }
+});
+
+function positionAchievementTrack(offset = 0) {
+  achievementTrack.style.transform = `translateX(calc(${-100 * achievementIndex}% + ${offset}px))`;
+}
+
+function showAchievementPage() {
+  const total = ACHIEVEMENTS.length;
+  for (const [index, page] of Array.from(achievementTrack.children).entries()) {
+    page.setAttribute('aria-hidden', String(index !== achievementIndex));
+  }
+  achievementPageNumber.textContent = `${achievementIndex + 1} / ${total}`;
+  achievementAnnouncement.textContent = `${ACHIEVEMENTS[achievementIndex].name}, page ${achievementIndex + 1} of ${total}`;
+  previousAchievement.setAttribute('aria-disabled', String(achievementIndex === 0));
+  nextAchievement.setAttribute('aria-disabled', String(achievementIndex === total - 1));
+  positionAchievementTrack();
+}
+
+function turnAchievementPage(step) {
+  const nextIndex = achievementIndex + step;
+  if (achievementSwipe || nextIndex < 0 || nextIndex >= ACHIEVEMENTS.length) return;
+  achievementIndex = nextIndex;
+  showAchievementPage();
+}
+
+function openAchievementBook() {
+  const progress = achievements.snapshot();
+  achievementTrack.replaceChildren(...ACHIEVEMENTS.map(({ id, name, description, fallGoal }) => {
+    const page = achievementTemplate.content.firstElementChild.cloneNode(true);
+    const unlocked = Boolean(progress.unlocked[id]);
+    const badgeUrl = `assets/ui/achievement-badges/${id}.png`;
+    page.querySelector('.achievement-badge').src = badgeUrl;
+    const lock = page.querySelector('.achievement-lock');
+    lock.hidden = unlocked;
+    if (!unlocked) lock.style.setProperty('--badge-mask', `url("${badgeUrl}")`);
+    page.querySelector('.achievement-name').textContent = name;
+    page.querySelector('.achievement-condition').textContent = description;
+    if (fallGoal && !unlocked) {
+      const counter = page.querySelector('.achievement-progress');
+      counter.textContent = `${Math.min(fallGoal, progress.totalFalls)} / ${fallGoal}`;
+      counter.hidden = false;
+    }
+    return page;
+  }));
+  achievementSwipe = null;
+  achievementTrack.classList.remove('is-dragging');
+  achievementIndex = 0;
+  storageNote.hidden = !progress.persistenceFailed;
+  showAchievementPage();
+  achievementBook.showModal();
+}
+
+for (const button of document.querySelectorAll('.achievement-button')) button.addEventListener('click', openAchievementBook);
+previousAchievement.addEventListener('click', () => turnAchievementPage(-1));
+nextAchievement.addEventListener('click', () => turnAchievementPage(1));
+
+achievementPages.addEventListener('pointerdown', event => {
+  if (!event.isPrimary || event.button !== 0) return;
+  const viewport = achievementPages.getBoundingClientRect();
+  const offset = achievementTrack.getBoundingClientRect().left - viewport.left + achievementIndex * viewport.width;
+  achievementSwipe = { id: event.pointerId, x: event.clientX, y: event.clientY, width: viewport.width, offset, dragging: false };
+  achievementTrack.classList.add('is-dragging');
+  positionAchievementTrack(offset);
+  achievementPages.setPointerCapture(event.pointerId);
+});
+achievementPages.addEventListener('pointermove', event => {
+  const swipe = achievementSwipe;
+  if (swipe?.id !== event.pointerId) return;
+  const dx = event.clientX - swipe.x;
+  const dy = event.clientY - swipe.y;
+  if (!swipe.dragging && (Math.abs(dx) < 6 || Math.abs(dx) < 1.5 * Math.abs(dy))) return;
+  swipe.dragging = true;
+  let offset = Math.max(-swipe.width, Math.min(swipe.width, swipe.offset + dx));
+  if ((achievementIndex === 0 && offset > 0) || (achievementIndex === ACHIEVEMENTS.length - 1 && offset < 0)) {
+    offset *= 0.22;
+  }
+  positionAchievementTrack(offset);
+});
+
+function finishAchievementSwipe(event) {
+  const swipe = achievementSwipe;
+  if (swipe?.id !== event.pointerId) return;
+  achievementSwipe = null;
+  achievementTrack.classList.remove('is-dragging');
+  const dx = event.clientX - swipe.x;
+  const dy = event.clientY - swipe.y;
+  if (event.type === 'pointerup' && swipe.dragging && Math.abs(dx) >= 44 && Math.abs(dx) >= 1.5 * Math.abs(dy)) {
+    turnAchievementPage(dx < 0 ? 1 : -1);
+  }
+  positionAchievementTrack();
+}
+
+achievementPages.addEventListener('pointerup', finishAchievementSwipe);
+achievementPages.addEventListener('pointercancel', finishAchievementSwipe);
+achievementPages.addEventListener('lostpointercapture', finishAchievementSwipe);
+achievementBook.addEventListener('keydown', event => {
+  if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+  event.preventDefault();
+  event.stopPropagation();
+  turnAchievementPage(event.key === 'ArrowLeft' ? -1 : 1);
+});
 
 const keys = { left: false, right: false, forward: false, back: false };
 function resetInput() {
-  swat.reset();
+  game.cancelSwat();
+  resetMovement();
+}
+function resetMovement() {
   for (const key of Object.keys(keys)) keys[key] = false;
   joystick.reset();
   movementX = movementZ = 0;
 }
 
-function showScoreGain(amount) {
+function showScoreGain(amount, comboCount, bonus) {
   const source = scoreAnchors.get(lastScoringId);
   const point = source ? source.position.clone() : player.position.clone();
   point.y = tabletop.height + 0.4;
@@ -206,30 +433,81 @@ function showScoreGain(amount) {
   const popup = document.createElement('span');
   popup.className = 'score-popup';
   popup.textContent = `+${amount}`;
+  if (bonus > 0) {
+    const detail = document.createElement('small');
+    detail.textContent = `${comboCount}× COMBO · +${bonus} BONUS`;
+    popup.append(detail);
+  }
   popup.setAttribute('aria-hidden', 'true');
-  popup.style.left = `${Math.max(45, Math.min(bounds.width - 45, (point.x + 1) / 2 * bounds.width))}px`;
+  const margin = bonus > 0 ? 84 : 45;
+  popup.style.left = `${Math.max(margin, Math.min(bounds.width - margin, (point.x + 1) / 2 * bounds.width))}px`;
   popup.style.top = `${Math.max(110, Math.min(bounds.height - 160, (1 - point.y) / 2 * bounds.height))}px`;
   gameRoot.append(popup);
   popup.addEventListener('animationend', () => popup.remove(), { once: true });
   setTimeout(() => popup.remove(), 1200);
 }
 
+function renderDigits(element, value) {
+  const text = String(value);
+  if (element.dataset.digits === text) return;
+  element.dataset.digits = text;
+  const label = document.createElement('span');
+  label.className = 'sr-only';
+  label.textContent = text;
+  const svgNamespace = 'http://www.w3.org/2000/svg';
+  const artwork = document.createElementNS(svgNamespace, 'svg');
+  artwork.classList.add('display-digits');
+  artwork.setAttribute('aria-hidden', 'true');
+  let x = 0;
+  for (const character of text) {
+    const colon = character === ':';
+    const width = colon ? 25 : 61;
+    const glyph = document.createElementNS(svgNamespace, 'use');
+    glyph.setAttribute('href', `#${colon ? 'colon' : 'digit-' + character}`);
+    glyph.setAttribute('x', x);
+    glyph.setAttribute('width', width);
+    glyph.setAttribute('height', 95);
+    artwork.append(glyph);
+    x += width;
+  }
+  artwork.setAttribute('viewBox', `0 0 ${x} 95`);
+  artwork.setAttribute('width', x);
+  artwork.setAttribute('height', 95);
+  element.replaceChildren(label, artwork);
+}
+
 function renderScore(snapshot) {
   if (catLoadError) return;
   const gained = snapshot.total - lastDisplayedScore;
-  if (gained > 0) showScoreGain(gained);
+  if (gained > 0) showScoreGain(gained, snapshot.comboCount, snapshot.comboBonus - lastDisplayedComboBonus);
   lastDisplayedScore = snapshot.total;
+  lastDisplayedComboBonus = snapshot.comboBonus;
   clearTimeout(resultRevealTimer);
   document.body.dataset.gameState = snapshot.state;
-  ui.score.textContent = snapshot.total;
+  if (snapshot.state !== 'ready') renderer.domElement.style.cursor = '';
+  renderDigits(ui.score, snapshot.total);
   ui.score.setAttribute('aria-label', `Score ${snapshot.total}`);
-  const label = snapshot.state === 'ready' ? 'Start' : 'Restart';
-  ui.start.setAttribute('aria-label', label);
-  ui.startArt.src = `assets/ui/ui-button-${label.toLowerCase()}.png`;
   if (snapshot.state === 'ended' && snapshot.reason !== 'restart' && snapshot.reason !== 'home') {
-    document.querySelector('.result-art').src = 'assets/ui/ui-result-panel-' + (snapshot.reason === 'cleared' ? 'cleared' : 'timeout') + '.png';
-    ui.finalScore.textContent = snapshot.total;
+    const { stars } = roundRating(snapshot);
+    const cleared = snapshot.reason === 'cleared';
+    ui.resultArt.src = `assets/ui/ui-results-${cleared ? 'cleared' : 'time-up'}.png`;
+    ui.roundRating.querySelector('img').src = ui.resultArt.src;
+    ui.result.setAttribute('aria-label', cleared ? 'Table cleared' : 'Time’s up');
+    const newRecord = !debugScoring && !customRound && (cleared || snapshot.reason === 'timeout') && snapshot.total > bestScore;
+    if (newRecord) {
+      bestScore = snapshot.total;
+      try {
+        localStorage.setItem(BEST_SCORE_KEY, String(bestScore));
+      } catch {
+        // Keep the in-memory record for the current session.
+      }
+    }
+    ui.newRecord.hidden = !newRecord;
+    ui.bestScore.textContent = `Best score: ${bestScore}`;
+    renderDigits(ui.finalScore, snapshot.total);
     ui.finalScore.setAttribute('aria-label', `Final score ${snapshot.total}`);
+    ui.roundRating.setAttribute('aria-label', `${stars} out of 3 stars`);
+    ui.roundRating.dataset.stars = stars;
     const reveal = () => { if (!ui.result.open) ui.result.showModal(); };
     // Stop the round immediately, but let the final points remain visible first.
     if (gained > 0) resultRevealTimer = setTimeout(reveal, 700);
@@ -242,11 +520,12 @@ function renderScore(snapshot) {
 }
 
 function onKey(event, pressed) {
+  if (roundIntro.open) return;
   const target = event.target instanceof HTMLElement ? event.target : null;
   if (pressed && target?.closest('input, textarea, select, [contenteditable]')) return;
   // Start/Restart keeps keyboard focus; K and the touch button share one action.
   if ((event.code === 'KeyK' || event.key?.toLowerCase() === 'k') && pressed && !event.repeat) {
-    requestSwat();
+    game.requestSwat();
     event.preventDefault();
     return;
   }
@@ -278,50 +557,70 @@ function resetPrototypeScene() {
 }
 
 
+async function showRoundIntro(firstMessage) {
+  document.body.dataset.gameState = 'countdown';
+  roundIntroMessage.textContent = '';
+  roundIntro.showModal();
+  try {
+    for (const message of [firstMessage, 'Ready?', 'Go!']) {
+      roundIntroMessage.textContent = message;
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  } finally {
+    roundIntro.close();
+  }
+}
+
 async function startRound() {
   if (ui.start.disabled) return;
   void audio.unlock().then(unlocked => { if (unlocked) audio.playUISound('start'); });
   ui.start.disabled = true;
-  paused = false;
   if (pauseMenu.open) pauseMenu.close();
+  if (ui.result.open) ui.result.close();
   ui.status.parentElement.hidden = true;
-  started = false;
-  scoring.endRound('restart');
   try {
-    resetPrototypeScene();
-    if (resetTargets) await resetTargets();
-    scoring.startRound(roundTargets);
-    timer.start(performance.now());
-    started = true;
+    if (await game.start(roundTargets)) {
+      renderUnlocks([]);
+      if (!debugScoring && !customRound) achievements.start(roundTargets);
+    }
   } catch (error) {
+    renderScore(game.snapshot());
     ui.status.textContent = 'Could not start. Check target configuration or scene reset.';
     ui.status.parentElement.hidden = false;
     console.error(error);
   } finally { ui.start.disabled = false; }
 }
 function pauseRound() {
-  if (!started) return;
-  timer.tick(performance.now());
-  if (!started) return;
-  timer.stop(); started = false; paused = true; resetInput();
+  if (!game.pause()) return;
+  resetMovement();
   document.body.dataset.gameState = 'paused';
   pauseMenu.showModal();
 }
-function resumeRound() {
-  if (!paused) return;
-  paused = false; started = true;
-  timer.resume(performance.now());
-  pauseMenu.close(); document.body.dataset.gameState = 'playing';
+async function resumeRound() {
+  if (!game.paused || ui.start.disabled) return;
+  ui.start.disabled = true;
+  pauseMenu.close();
+  try {
+    await showRoundIntro('Back to it!');
+    if (game.resume()) document.body.dataset.gameState = 'playing';
+  } finally {
+    ui.start.disabled = false;
+  }
 }
 async function goHome() {
-  started = false; paused = false; timer.stop(); resetInput();
+  if (ui.start.disabled) return;
+  ui.start.disabled = true;
+  achievements.discard();
   clearTimeout(resultRevealTimer);
   if (pauseMenu.open) pauseMenu.close();
   if (ui.result.open) ui.result.close();
-  scoring.endRound('home');
-  resetPrototypeScene();
-  if (resetTargets) await resetTargets();
-  scoring.reset();
+  game.home();
+  try {
+    resetPrototypeScene();
+    await resetTargets?.();
+  } finally {
+    ui.start.disabled = false;
+  }
 }
 document.querySelector('#pause-button').addEventListener('click', pauseRound);
 document.querySelector('#resume').addEventListener('click', resumeRound);
@@ -353,7 +652,7 @@ if (debugScoring) {
 
 function stepGame(delta) {
   movementX = movementZ = 0;
-  if (!started || swat.active) return;
+  if (!game.playing || game.swatting) return;
   const input = joystick.read();
   const dx = input.x + Number(keys.right) - Number(keys.left);
   const dz = input.z + Number(keys.back) - Number(keys.forward);
@@ -377,25 +676,36 @@ function stepGame(delta) {
 function animate(timestamp) {
   const delta = Math.min((timestamp - (lastTimestamp || timestamp)) / 1000, 0.05);
   lastTimestamp = timestamp;
-  const remaining = timer.tick(timestamp);
-  ui.timer.textContent = formatRoundTime(remaining);
+  const remaining = game.remainingSeconds();
+  renderDigits(ui.timer, formatRoundTime(remaining));
   ui.timer.parentElement.setAttribute('aria-label', `Time remaining ${remaining} seconds`);
+  const showCountdown = game.playing && remaining > 0 && remaining <= 10;
+  ui.finalCountdown.hidden = !showCountdown;
+  if (showCountdown) renderDigits(ui.finalCountdown, remaining);
   stepGame(delta);
-  if (started) swat.update(delta);
-  swatButton.disabled = !started || swat.active;
-  if (started) deskPhysics?.step(delta);
-  if (!paused) catAvatar?.update(delta, movementX, movementZ);
-  updateFollowCamera(delta);
+  game.tick(delta);
+  swatButton.disabled = !game.playing || game.swatting;
+  if (game.playing) deskPhysics?.step(delta);
+  const comboRemaining = game.comboRemainingMs;
+  ui.comboClock.hidden = comboRemaining <= 0;
+  if (comboRemaining > 0) ui.comboFill.style.width = `${100 * comboRemaining / COMBO_WINDOW_MS}%`;
+  const homeView = document.body.dataset.gameState === 'ready';
+  if (homeView && catAvatar) catAvatar.object.rotation.y = 0;
+  if (!game.paused) catAvatar?.update(delta, movementX, movementZ);
+  if (homeView) updateHomeCamera();
+  else updateFollowCamera(delta);
   obstacleFeedback.update(delta);
-  renderer.render(scene, camera);
+  renderer.render(scene, homeView ? homeCamera : camera);
   requestAnimationFrame(animate);
 }
 
 function resizeRenderer() {
   const width = gameRoot.clientWidth;
   const height = gameRoot.clientHeight;
-  renderer.setSize(width, height);
+  renderer.setSize(width, height, false);
   const aspect = width / height;
+  homeCamera.aspect = aspect;
+  homeCamera.updateProjectionMatrix();
   // Frame the area around the cat instead of shrinking the whole desk to fit.
   const halfHeight = Math.max(0.8, 1.15 / aspect);
   camera.left = -halfHeight * aspect;
@@ -407,7 +717,7 @@ function resizeRenderer() {
 
 window.addEventListener('resize', resizeRenderer);
 resizeRenderer();
-renderScore(scoring.snapshot());
+renderScore(game.snapshot());
 requestAnimationFrame(animate);
 
 window.addEventListener('pagehide', event => {

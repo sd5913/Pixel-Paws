@@ -28,10 +28,17 @@ For GLB placement, validation, and the physics handoff contract, see
 
 For the first tabletop scoring system, test instructions and the
 physics integration API, see [`docs/scoring.md`](docs/scoring.md). The current
-scene connects five mugs to shared physical topple/fall events: toppling earns
-10 points and falling completes each target to 20 points. Rounds end when all targets fall or after 60 seconds. See
+scene connects eight desktop props to shared physical topple/fall events: toppling earns
+10 points and falling completes each target to 20 points. Rounds end when all targets fall or after 45 seconds. See
 [`docs/physics-integration.md`](docs/physics-integration.md) for detector limits.
 Use `?debugScoring=1` to explicitly enable simulated scoring controls.
+
+Choose **Look** on the title screen to try the three illustrated lighting
+presets. **Achievements** opens the seven-badge collection. New badges appear on
+the results screen and are saved on the current device. See
+[`docs/achievements.md`](docs/achievements.md) for rules and verification.
+The collision feedback pipeline loads local samples when available. See
+[`docs/collision-feedback.md`](docs/collision-feedback.md) for the sample paths.
 
 For mobile UI artwork filenames, export sizes and layout handoff requirements,
 see [`docs/ui-assets.md`](docs/ui-assets.md).
