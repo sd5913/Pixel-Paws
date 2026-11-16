@@ -13,6 +13,9 @@ import * as THREE from 'three';
 
 import { loadStudyScene } from './assets/study-scene.js';
 import { createWindowBackdrop } from './assets/window-backdrop.js';
+import { createAfternoonRoom, styleStudyMaterials } from './visuals/afternoon-room.js';
+import { createContactShadows } from './visuals/contact-shadows.js';
+import { createImpactFeedback } from './visuals/impact-feedback.js';
 
 const ui = {
   score: document.querySelector('#score'),
@@ -27,41 +30,46 @@ const ui = {
 
 const gameRoot = document.querySelector('#game-root');
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#f1e8e3');
+scene.background = new THREE.Color('#d6cbbd');
+scene.fog = new THREE.Fog('#d6cbbd', 8, 22);
 
 const camera = new THREE.OrthographicCamera(-1.8, 1.8, 3, -3, 0.01, 100);
 camera.position.set(0, 4.5, 12);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.12;
+renderer.toneMappingExposure = 1.05;
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(gameRoot.clientWidth, gameRoot.clientHeight);
 gameRoot.appendChild(renderer.domElement);
 
-const ambient = new THREE.HemisphereLight('#f2f6ff', '#c6a494', 1.65);
+const ambient = new THREE.HemisphereLight('#c4d9f1', '#aa8874', .85);
 scene.add(ambient);
+const coolFill = new THREE.DirectionalLight('#c2d7f1', .38);
+coolFill.position.set(4, 3, 2);
+scene.add(coolFill);
 
 // Window light enters from the back left and casts shadows across the desk.
-const sun = new THREE.DirectionalLight('#ffe2bf', 2.25);
-sun.position.set(-3.6, 6, -4.8);
+const sun = new THREE.DirectionalLight('#ffdda4', 3.4);
+sun.position.set(-3.2, 4.8, -5.4);
 sun.target.position.y = 0.75;
 sun.castShadow = true;
-sun.shadow.mapSize.set(1024, 1024);
+const shadowSize = window.innerWidth < 600 ? 1024 : 2048;
+sun.shadow.mapSize.set(shadowSize, shadowSize);
 Object.assign(sun.shadow.camera, { left: -3.4, right: 3.4, top: 3.4, bottom: -3.4, near: 0.5, far: 15 });
 sun.shadow.camera.updateProjectionMatrix();
-sun.shadow.normalBias = 0.008;
+sun.shadow.normalBias = 0.003;
 sun.shadow.bias = -0.00015;
 sun.shadow.radius = 4;
-sun.shadow.intensity = 0.76;
+sun.shadow.intensity = .88;
 scene.add(sun);
 scene.add(sun.target);
 
 const world = new THREE.Group();
 scene.add(world);
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: '#e6d9d1', roughness: 1 }));
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: '#cdbba3', roughness: 1 }));
 floor.receiveShadow = true;
 floor.rotation.x = -Math.PI / 2;
 floor.position.y = -0.01;
@@ -81,7 +89,14 @@ const audio = new AudioManager();
 audio.init(camera, scene);
 void audio.preload();
 const disconnectAudio = physicsEvents.bus.on('physics:impact', event => audio.playImpact(event));
-const impactVFX = new ImpactVFXManager(physicsEvents.bus);
+const visualFeedback = createImpactFeedback(scene, { reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches });
+const impactVFX = new ImpactVFXManager(physicsEvents.bus, { onImpact(event) {
+  if (!started || event.impactStrength < .08) return;
+  visualFeedback.burst(event.position, event.impactStrength, scoreAnchors.get(event.objectId));
+} });
+let contactShadows = null;
+let studyMaterials = null;
+let roomEnvironment = null;
 const obstacleFeedback = createObstacleFeedback(physicsEvents.bus, scene, id => scoreAnchors.get(id));
 let lastScoringId = null;
 let lastDisplayedScore = 0;
@@ -92,6 +107,10 @@ void Promise.all([createCatAvatar(), loadStudyScene()]).then(async ([avatar, stu
   catAvatar = avatar;
   tabletop = study.surface;
   world.add(createWindowBackdrop(tabletop));
+  roomEnvironment = createAfternoonRoom(tabletop);
+  world.add(roomEnvironment);
+  studyMaterials = styleStudyMaterials(study.instances);
+  contactShadows = createContactShadows(scene, study.instances, player, tabletop);
   avatar.object.traverse(child => {
     if (!child.isMesh) return;
     child.castShadow = true;
@@ -180,7 +199,14 @@ const swatButton = document.querySelector('#swat');
 const swat = createSwat({
   canStart: () => started && Boolean(deskPhysics && catAvatar),
   onStart: () => catAvatar.swat(),
-  onHit: () => { if (started) deskPhysics.swat(player.position, catAvatar.object.rotation.y); },
+  onHit: () => {
+    if (!started) return;
+    const hits = deskPhysics.swat(player.position, catAvatar.object.rotation.y);
+    for (const id of hits) {
+      const object = scoreAnchors.get(id);
+      if (object) visualFeedback.burst(object.position, .525, object, true);
+    }
+  },
   onReset: () => catAvatar?.cancelSwat(),
 });
 function requestSwat() {
@@ -263,6 +289,7 @@ window.addEventListener('blur', resetInput);
 document.addEventListener('visibilitychange', () => { if (document.hidden) resetInput(); });
 
 function resetPrototypeScene() {
+  visualFeedback.reset();
   obstacleFeedback.reset();
   for (const popup of gameRoot.querySelectorAll('.score-popup')) popup.remove();
   player.position.set(0, tabletop.height, 0);
@@ -392,6 +419,8 @@ function animate(timestamp) {
   if (!paused) catAvatar?.update(delta, movementX, movementZ);
   updateFollowCamera(delta);
   obstacleFeedback.update(delta);
+  contactShadows?.update();
+  visualFeedback.update(paused ? 0 : delta, camera);
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
 }
@@ -420,6 +449,10 @@ window.addEventListener('pagehide', event => {
   disconnectAudio();
   disconnectScoring();
   impactVFX.dispose();
+  visualFeedback.dispose();
+  contactShadows?.dispose();
+  studyMaterials?.dispose();
+  roomEnvironment?.userData.dispose();
   obstacleFeedback.dispose();
   audio.dispose();
   deskPhysics?.dispose();

@@ -107,3 +107,13 @@ body[data-game-state="ready"] #start { width: 170px; }
 .pause-actions { left: 32%; right: 32%; top: 28%; bottom: 8%; display: flex; flex-direction: column; justify-content: space-evenly; gap: 0; }
 .pause-actions .art-button { flex: 0 0 auto; }
 .pause-actions .art-button img { width: 80%; }
+
+/* A light edge falloff keeps the playable center readable. */
+#game-root::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 48% 40%, transparent 48%, rgba(66, 45, 42, .1) 100%);
+}
