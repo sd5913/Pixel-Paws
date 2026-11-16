@@ -33,6 +33,7 @@ const ui = {
   comboClock: document.querySelector('#combo-clock'),
   comboFill: document.querySelector('#combo-clock span'),
   roundRating: document.querySelector('#round-rating'),
+  resultConfetti: document.querySelector('#result-confetti'),
 };
 
 // Bundle the artwork so controls and counters survive interrupted asset requests.
@@ -93,13 +94,37 @@ world.add(floor);
 const appearance = document.querySelector('#appearance');
 const settings = document.querySelector('#settings');
 document.querySelector('#settings-button').addEventListener('click', () => settings.showModal());
-for (const [id, preset] of Object.entries(presets)) appearance.add(new Option(preset.name, id));
 const originalAppearance = {
   background: '#EEE5E9', floor: '#EEE5E9', sky: '#dff7ff', bounce: '#11252e',
   sun: '#ffe1a8', ambient: 1.4, key: 1.4, exposure: 1,
 };
-appearance.addEventListener('change', () => {
-  const preset = Object.hasOwn(presets, appearance.value) ? presets[appearance.value] : null;
+const appearanceOptions = document.querySelector('#appearance-options');
+const originalLook = { name: 'Original', palette: [originalAppearance.background, originalAppearance.sky, originalAppearance.sun] };
+for (const [id, look] of [['', originalLook], ...Object.entries(presets)]) {
+  const option = document.createElement('label');
+  option.className = 'look-option';
+  const radio = document.createElement('input');
+  radio.className = 'sr-only';
+  radio.type = 'radio';
+  radio.name = 'look';
+  radio.value = id;
+  radio.checked = id === '';
+  const palette = document.createElement('span');
+  palette.className = 'look-palette';
+  palette.setAttribute('aria-hidden', 'true');
+  for (const color of look.palette.slice(0, 3)) {
+    const swatch = document.createElement('span');
+    swatch.style.backgroundColor = color;
+    palette.append(swatch);
+  }
+  const label = document.createElement('span');
+  label.textContent = look.name;
+  option.append(radio, palette, label);
+  appearanceOptions.append(option);
+}
+appearance.addEventListener('change', event => {
+  const id = event.target.value;
+  const preset = Object.hasOwn(presets, id) ? presets[id] : null;
   const style = preset ?? originalAppearance;
   scene.background.set(style.background);
   floor.material.color.set(style.floor);
@@ -476,6 +501,21 @@ function renderDigits(element, value) {
   element.replaceChildren(label, artwork);
 }
 
+function showResultConfetti() {
+  const colors = ['#ffd05c', '#f78962', '#5bbbd2', '#ef9aab', '#fff2b1'];
+  const paths = [[-37, -15], [-32, -27], [-25, -34], [-19, -14], [-14, -29], [-8, -39], [0, -23],
+    [8, -36], [14, -19], [20, -31], [27, -22], [33, -30], [37, -16]];
+  ui.resultConfetti.replaceChildren(...paths.map(([spread, rise], index) => {
+    const piece = document.createElement('span');
+    piece.style.setProperty('--paper', colors[index % colors.length]);
+    piece.style.setProperty('--spread', `${spread}cqw`);
+    piece.style.setProperty('--rise', `${rise}cqw`);
+    piece.style.setProperty('--spin', `${(spread < 0 ? -1 : 1) * (120 + index * 19)}deg`);
+    piece.style.setProperty('--delay', `${(index % 4) * 28}ms`);
+    return piece;
+  }));
+}
+
 function renderScore(snapshot) {
   if (catLoadError) return;
   const gained = snapshot.total - lastDisplayedScore;
@@ -508,7 +548,12 @@ function renderScore(snapshot) {
     ui.finalScore.setAttribute('aria-label', `Final score ${snapshot.total}`);
     ui.roundRating.setAttribute('aria-label', `${stars} out of 3 stars`);
     ui.roundRating.dataset.stars = stars;
-    const reveal = () => { if (!ui.result.open) ui.result.showModal(); };
+    const reveal = () => {
+      if (ui.result.open) return;
+      if (stars === 3) showResultConfetti();
+      else ui.resultConfetti.replaceChildren();
+      ui.result.showModal();
+    };
     // Stop the round immediately, but let the final points remain visible first.
     if (gained > 0) resultRevealTimer = setTimeout(reveal, 700);
     else reveal();

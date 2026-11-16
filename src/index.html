@@ -63,15 +63,24 @@
         </div>
       </dialog>
       <dialog id="settings" aria-labelledby="settings-title">
-        <div class="achievement-heading">
+        <header class="settings-heading">
+          <form method="dialog">
+            <button class="achievement-control" type="submit" aria-label="Back" autofocus>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg>
+            </button>
+          </form>
           <h2 id="settings-title">Settings</h2>
-          <form method="dialog"><button type="submit">Close</button></form>
-        </div>
-        <label for="appearance">Look</label>
-        <select id="appearance"><option value="">Original</option></select>
-        <div class="achievement-reset">
-          <button id="reset-achievements" type="button">Reset achievements</button>
-          <p id="achievement-reset-status" role="status"></p>
+        </header>
+        <div class="settings-content">
+          <fieldset id="appearance">
+            <legend>Look</legend>
+            <div id="appearance-options"></div>
+          </fieldset>
+          <section class="achievement-reset" aria-labelledby="achievement-settings-title">
+            <h3 id="achievement-settings-title">Achievements</h3>
+            <button id="reset-achievements" type="button">Reset achievements</button>
+            <p id="achievement-reset-status" role="status"></p>
+          </section>
         </div>
       </dialog>
       <dialog id="achievement-book" aria-labelledby="achievement-title">
@@ -130,11 +139,11 @@
           <div id="round-rating" data-stars="0" role="img" aria-label="0 out of 3 stars">
             <img src="assets/ui/ui-results-time-up.png" alt="">
           </div>
+          <div id="result-confetti" aria-hidden="true"></div>
           <button class="home-button result-action" type="button" aria-label="Home"></button>
           <button id="replay" class="result-action" type="button" aria-label="Restart"></button>
         </div>
-        <section id="new-achievements" aria-live="polite" hidden>
-          <h3><img src="assets/ui/ui-new-achievement.png" alt="New achievement!"></h3>
+        <section id="new-achievements" aria-label="New achievements" aria-live="polite" hidden>
           <ul></ul>
         </section>
       </dialog>
