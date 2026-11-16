@@ -5,7 +5,7 @@ export function joystickVector(dx, dy, radius) {
   return length < radius * 0.12 ? { x: 0, z: 0 } : { x: dx / scale, z: dy / scale };
 }
 
-export const JOYSTICK_SPEED = Object.freeze({ walk: 0.7, dash: 1.9 });
+export const JOYSTICK_SPEED = Object.freeze({ walk: 1.4, dash: 3.8 });
 export function joystickInput(dx, dy, baseRadius, knobRadius) {
   return { ...joystickVector(dx, dy, baseRadius - knobRadius),
     dash: Math.hypot(dx, dy) > baseRadius };
