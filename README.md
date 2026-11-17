@@ -1,9 +1,11 @@
 # Team Pixel Paws
 
-A small interactive web app wrapped with Capacitor for Android. Use **Use this
-template** to create your team's own repository; change the app ID in
-`capacitor.config.json` and Android project before releasing your own app. A
-button and counter are deliberately small enough to trace and change.
+An interactive game placing the player in the mind of a cat, irritated by their owner and seeking revenge, it is their job to knock 
+everything off of every counter. Each item swatted away correlates to a certain number of points. The more items the player can destory, the 
+higher their score. Allowing users to release their inner rage through a deceptively cute game while on commute, sitting at home, or just in 
+desperate need to relieve stress. 
+
+The game is based on three.js for ease on mobile and desktop website. 
 
 ## Run and change
 
