@@ -5,6 +5,12 @@ everything off of every counter. Each item swatted away correlates to a certain 
 higher their score. Allowing users to release their inner rage through a deceptively cute game while on commute, sitting at home, or just in 
 desperate need to relieve stress. 
 
+To manipulate the cat, the player must use the digital joystick to guide the cat to the desired item, the "SMACK!" it off of the level's 
+surface to crash it onto the ground. Points are then recieved upon item destruction, which can then be applied to internal leaderboard along 
+with the time it took to complete the level. In-Game Currency, Cat Treats, can also be gained through the levels. Allowing the player to 
+spend their rewards on customization options for their cat character. At the end of level, achievments will also be accounted for and placed 
+along your account description so the player can share their accomplishments with others. 
+
 The game is based on three.js for ease on mobile and desktop website. 
 
 ## Run and change
