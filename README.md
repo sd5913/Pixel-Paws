@@ -1,4 +1,4 @@
-# Team Signal: Capacitor app starter
+# Team Pixel Paws
 
 A small interactive web app wrapped with Capacitor for Android. Use **Use this
 template** to create your team's own repository; change the app ID in
