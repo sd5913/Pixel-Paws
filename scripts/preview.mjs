@@ -27,11 +27,12 @@ const server = http.createServer(async (request, response) => {
     response.writeHead(404).end('Not found. Run npm run build first.');
   }
 });
+const port = Number(process.env.PIXEL_PAWS_PREVIEW_PORT ?? 4173);
 server.on('error', (error) => {
-  console.error(error.code === 'EADDRINUSE' ? 'Port 4173 is already in use. Open http://127.0.0.1:4173/' : error);
+  console.error(error.code === 'EADDRINUSE' ? `Port ${port} is already in use.` : error);
   process.exitCode = 1;
 });
-server.listen(4173, '127.0.0.1', () => {
-  console.log('Preview: http://127.0.0.1:4173/');
-  console.log('Scoring tests: http://127.0.0.1:4173/?debugScoring=1');
+server.listen(port, '127.0.0.1', () => {
+  console.log(`Preview: http://127.0.0.1:${port}/`);
+  console.log(`Scoring tests: http://127.0.0.1:${port}/?debugScoring=1`);
 });

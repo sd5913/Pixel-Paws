@@ -26,6 +26,7 @@ export async function buildSite({ sourceDir = 'src', outputDir = 'www' } = {}) {
     outfile: resolve(outputDir, 'app.js'),
     bundle: true,
     format: 'esm',
+    loader: { '.svg': 'text' },
     platform: 'browser',
     target: ['es2022'],
     nodePaths: [resolve('node_modules')],
