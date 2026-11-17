@@ -41,7 +41,7 @@ test('real cat contact pushes the mug off the desk, scores and resets physics', 
   const simulation = await createDeskPhysics(study, player, { events, windowWall: false });
   try {
     const mug = simulation.bodies.find(entry => entry.instance.assetId === 'mug');
-    assert.ok(Math.abs(mug.body.rigidBody.mass() - 0.25) < 1e-5);
+    assert.ok(Math.abs(mug.body.rigidBody.mass() - 0.4) < 1e-5);
     // Reach the cup using the same walking speed and tabletop limits as gameplay.
     for (let frame = 0; frame < 600 && !endings.length; frame++) {
       if (frame < 100) player.position.x = Math.min(0.891, player.position.x + JOYSTICK_SPEED.walk / 60);
@@ -83,7 +83,7 @@ test('the cup settles and restarts without stale events', async () => {
       for (const [axis, value] of Object.entries(actual)) {
         assert.ok(Math.abs(value - expected['xyz'.indexOf(axis)]) < 1e-6);
       }
-      assert.ok(Math.abs(body.rigidBody.mass() - 0.25) < 1e-5);
+      assert.ok(Math.abs(body.rigidBody.mass() - 0.4) < 1e-5);
     }
     for (let frame = 0; frame < 60; frame++) simulation.step(1 / 60);
     assert.equal(score.snapshot().total, 0);
@@ -112,6 +112,7 @@ test('swat hits all colliders in the fixed forward box, excludes side/back/far b
   const mug = study.instances.find(instance => instance.assetId === 'mug');
   study.instances = [desk, mug, ...Array.from({ length: 4 }, (_, index) => ({
     ...mug, id: `swat-fixture-${index}`, object3D: mug.object3D.clone(),
+    physics: { ...mug.physics, suggestedMass: index === 0 ? 0.5 : 0.25 },
   }))];
   const player = new Group();
   player.position.y = study.surface.height;
@@ -130,11 +131,13 @@ test('swat hits all colliders in the fixed forward box, excludes side/back/far b
     assert.deepEqual(hits, mugs.slice(0, 2).map(entry => entry.instance.id));
     assert.equal(score.snapshot().total, 0);
     for (const { body } of mugs.slice(0, 2)) {
-      assert.ok(Math.abs(body.rigidBody.linvel().z + 2.1) < 1e-5);
-      assert.ok(Math.abs(body.rigidBody.linvel().y - .35) < 1e-5);
+      assert.ok(Math.abs(body.rigidBody.linvel().z * body.rigidBody.mass() + .525) < 1e-5);
+      assert.ok(Math.abs(body.rigidBody.linvel().y * body.rigidBody.mass() - .06) < 1e-5);
       assert.ok(body.rigidBody.angvel().y > 0, 'left-side contact adds rightward yaw');
       assert.ok(Math.hypot(...Object.values(body.rigidBody.angvel())) > 0);
     }
+    assert.ok(Math.abs(mugs[0].body.rigidBody.linvel().z / mugs[1].body.rigidBody.linvel().z - 2) < 1e-5,
+      'twice the mass receives half the launch speed from the same paw strike');
     for (const { body } of mugs.slice(2)) assert.equal(Math.hypot(...Object.values(body.rigidBody.linvel())), 0);
     assert.deepEqual(simulation.swat({ x: 20, y: .75, z: 20 }, 0), []);
     simulation.step(1 / 60);
@@ -190,8 +193,10 @@ test('the new ink bottle can be swatted and scores when it falls', async () => {
     simulation.step(1 / 60);
     assert.equal(score.snapshot().fallenCount, 1);
     assert.ok(simulation.swat({ x: x + 0.5, y, z }, -Math.PI / 2).includes('desk-lamp'));
+    assert.ok(lamp.body.rigidBody.linvel().x < 0, 'heavy lamp still responds to the paw');
     for (let frame = 0; frame < 30; frame++) simulation.step(1 / 60);
-    assert.ok(lamp.instance.object3D.position.distanceTo(new Vector3(x, y, z)) > 0.1);
+    const lampTravel = lamp.instance.object3D.position.distanceTo(new Vector3(x, y, z));
+    assert.ok(lampTravel > 0.1, `lamp responds visibly to a single swat: ${lampTravel}`);
     simulation.reset();
     assert.ok(lamp.instance.object3D.position.distanceTo(new Vector3(x, y, z)) < 1e-6);
   } finally { disconnect(); simulation.dispose(); }
@@ -232,4 +237,147 @@ test('the window wall stops a fast prop while the side edge still allows falls',
     step(90);
     assert.ok(bottle.translation().y < height - 0.5);
   } finally { simulation.dispose(); }
+});
+
+test('one swat topples the lamp without requiring a second strike', async () => {
+  const study = await fixture();
+  study.instances = study.instances.filter(({ assetId }) => ['desk', 'desk-lamp'].includes(assetId));
+  const player = new Group();
+  const lampInstance = study.instances.find(({ assetId }) => assetId === 'desk-lamp');
+  const [x, y, z] = lampInstance.initialTransform.position;
+  player.position.set(x + .5, y, z);
+  const simulation = await createDeskPhysics(study, player, { events: createPhysicsEventManager() });
+  try {
+    for (let i = 0; i < 60; i++) simulation.step(1 / 60);
+    assert.ok(simulation.swat(player.position, -Math.PI / 2).includes('desk-lamp'));
+    let minUpright = 1;
+    const lamp = simulation.bodies.find(({ instance }) => instance.assetId === 'desk-lamp').body;
+    for (let i = 0; i < 120; i++) {
+      simulation.step(1 / 60);
+      const q = lamp.rigidBody.rotation();
+      minUpright = Math.min(minUpright, 1 - 2 * (q.x ** 2 + q.z ** 2));
+    }
+    assert.ok(minUpright < .5, `lamp must tip beyond 60 degrees: upright=${minUpright}`);
+  } finally { simulation.dispose(); }
+});
+
+test('a dash transfers less motion to a heavier version of the same prop', async () => {
+  async function dash(mass) {
+    const study = await fixture({ legacy: true });
+    const mug = study.instances.find(({ assetId }) => assetId === 'mug');
+    mug.physics = { ...mug.physics, suggestedMass: mass };
+    mug.initialTransform.position = [0, study.surface.height, -.6];
+    const player = new Group();
+    player.position.set(0, study.surface.height, 0);
+    const simulation = await createDeskPhysics(study, player, { events: createPhysicsEventManager(), windowWall: false });
+    try {
+      simulation.reset();
+      for (let i = 0; i < 30; i++) simulation.step(1 / 60);
+      const prop = simulation.bodies.find(({ instance }) => instance.assetId === 'mug').body;
+      const before = prop.rigidBody.translation().z;
+      for (let i = 0; i < 12; i++) {
+        player.position.z -= JOYSTICK_SPEED.dash / 60;
+        simulation.step(1 / 60);
+      }
+      return { travel: before - prop.rigidBody.translation().z, catTravel: -player.position.z };
+    } finally { simulation.dispose(); }
+  }
+  const light = await dash(.15);
+  const heavy = await dash(.6);
+  assert.ok(light.travel > .01, JSON.stringify({ light, heavy }));
+  assert.ok(heavy.travel < light.travel * .85, JSON.stringify({ light, heavy }));
+  assert.ok(heavy.catTravel < light.catTravel, 'a heavier prop also slows the cat more');
+});
+
+test('movement motor covers the same distance at 30, 60 and 120 render frames per second', async () => {
+  for (const fps of [30, 60, 120]) {
+    const study = await fixture();
+    study.instances = study.instances.filter(({ assetId }) => assetId === 'desk');
+    const player = new Group();
+    player.position.set(0, study.surface.height, 0);
+    const simulation = await createDeskPhysics(study, player, { events: createPhysicsEventManager(), windowWall: false });
+    try {
+      for (let i = 0; i < fps; i++) simulation.step(1 / fps, { x: JOYSTICK_SPEED.walk, z: 0 });
+      assert.ok(Math.abs(player.position.x - JOYSTICK_SPEED.walk) < .001, `fps=${fps}, x=${player.position.x}`);
+    } finally { simulation.dispose(); }
+  }
+});
+
+test('eraser is heavier but still lighter than the lamp, and resists swat accordingly', async () => {
+  const study = await fixture();
+  study.instances = study.instances.filter(({ assetId }) => ['desk', 'eraser'].includes(assetId));
+  const player = new Group();
+  player.position.set(0, study.surface.height, 0);
+  const simulation = await createDeskPhysics(study, player, { events: createPhysicsEventManager(), windowWall: false });
+  try {
+    const eraser = simulation.bodies.find(({ instance }) => instance.assetId === 'eraser').body.rigidBody;
+    assert.ok(Math.abs(eraser.mass() - .18) < 1e-5);
+    eraser.setTranslation({ x: 0, y: study.surface.height, z: -.4 }, true);
+    simulation.physics.world.propagateModifiedBodyPositionsToColliders();
+    assert.deepEqual(simulation.swat(player.position, Math.PI), ['eraser']);
+    assert.ok(Math.abs(eraser.linvel().z + .525 / .18) < 1e-5);
+  } finally { simulation.dispose(); }
+});
+
+test('new rounds randomize every prop within the desk, clear of spawn and each other', async () => {
+  const study = await fixture();
+  let seed = 123456789;
+  const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+  const desk = study.instances.find(({ assetId }) => assetId === 'desk');
+  const originalDesk = structuredClone(desk.initialTransform);
+  const { Box3 } = await import('three');
+  for (let round = 0; round < 100; round++) {
+    const previous = new Map(study.instances.map(instance => [instance.id, [...instance.initialTransform.position]]));
+    study.reset({ randomize: true, random });
+    const boxes = [];
+    for (const instance of study.instances.filter(item => item.physics.bodyType === 'dynamic')) {
+      const position = instance.initialTransform.position;
+      const before = previous.get(instance.id);
+      assert.ok(Math.hypot(position[0] - before[0], position[2] - before[2]) >= .12);
+      assert.equal(position[1], before[1], 'preserve the authored tabletop height');
+      instance.object3D.updateMatrixWorld(true);
+      const box = new Box3().setFromObject(instance.object3D);
+      const [cx, cz] = study.surface.centerXZ;
+      const [hx, hz] = study.surface.halfExtentsXZ;
+      assert.ok(box.min.x >= cx - hx + .119 && box.max.x <= cx + hx - .119, instance.id);
+      assert.ok(box.min.z >= cz - hz + .119 && box.max.z <= cz + hz - .119, instance.id);
+      const intersectsXZ = other => box.min.x < other.max.x && box.max.x > other.min.x
+        && box.min.z < other.max.z && box.max.z > other.min.z;
+      assert.ok(!intersectsXZ({ min: { x: -.42, z: -.42 }, max: { x: .42, z: .42 } }), 'spawn stays clear');
+      for (const other of boxes) assert.ok(!intersectsXZ(other), `overlap on round ${round}: ${instance.id}`);
+      boxes.push(box);
+    }
+    assert.deepEqual(desk.initialTransform, originalDesk);
+    const snapshot = study.instances.map(instance => instance.object3D.position.toArray());
+    study.reset();
+    assert.deepEqual(study.instances.map(instance => instance.object3D.position.toArray()), snapshot,
+      'ordinary reset preserves the current layout');
+  }
+});
+
+test('randomized rounds reset real bodies and do not score during initial settling', async () => {
+  const study = await fixture();
+  const player = new Group();
+  player.position.set(0, study.surface.height, 0);
+  const events = createPhysicsEventManager();
+  const score = createScoring();
+  const disconnect = connectPhysicsScoring(events, score);
+  const simulation = await createDeskPhysics(study, player, { events });
+  let seed = 42;
+  const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+  try {
+    for (let round = 0; round < 20; round++) {
+      study.reset({ randomize: true, random });
+      simulation.reset();
+      score.startRound(study.targets);
+      for (const { instance, body } of simulation.bodies) {
+        const expected = instance.initialTransform.position;
+        const actual = body.rigidBody.translation();
+        assert.ok(new Vector3(actual.x, actual.y, actual.z).distanceTo(new Vector3(...expected)) < 1e-5);
+        assert.deepEqual(Object.values(body.rigidBody.linvel()), [0, 0, 0]);
+      }
+      for (let frame = 0; frame < 120; frame++) simulation.step(1 / 60, { x: 0, z: 0 });
+      assert.equal(score.snapshot().total, 0, `round ${round} should start stable`);
+    }
+  } finally { disconnect(); simulation.dispose(); }
 });
