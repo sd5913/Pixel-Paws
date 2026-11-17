@@ -1,5 +1,11 @@
 # UI and game-logic handoff
 
+The main game now consumes the shared round, joystick, scoring and swat logic
+from `src/ui-gameplay/`. Its existing HTML renders the 3D game and achievements.
+The independent Shadow DOM UI remains available for simulation and review.
+
+## Original standalone handoff
+
 This branch only ADDS files. Existing game entry, build/package files, 3D assets, scenes, asset loader, manifest and physics modules are unchanged from main. The complete playable prototype remains in the original D:/GitHub/Pixel-Paws checkout and backup/full-local-playable-20261105 at 7b00c1d.
 
 ## Included
@@ -37,5 +43,3 @@ Only registered IDs count. Topple earns 10 once; fall completes that object's to
 ## Validation
 
 54 tests and the existing repository build passed. Includes original main tests plus UI rule/input/timer/action/lifecycle tests. Physical execution and device touch feel remain integration tasks. No dependency or build system changes, and no modifications to teammate-owned files.
-
-The old feature/ui-gameplay PR contains the full prototype and should not be merged as this scoped delivery. Open a separate PR from feature/ui-game-logic to main and use this document as the review description. Keep the old PR unmerged or close it manually after the team agrees; do not merge both.
