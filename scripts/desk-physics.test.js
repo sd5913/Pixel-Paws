@@ -381,3 +381,30 @@ test('randomized rounds reset real bodies and do not score during initial settli
     }
   } finally { disconnect(); simulation.dispose(); }
 });
+
+test('cat motor reverses immediately after a blocked dash and respects the desk edge', async () => {
+  const study = await fixture();
+  study.instances = study.instances.filter(({ assetId }) => assetId === 'desk');
+  const player = new Group();
+  player.position.y = study.surface.height;
+  const edgeMargin = 0.352;
+  const simulation = await createDeskPhysics(study, player, {
+    events: createPhysicsEventManager(), windowWall: false, edgeMargin,
+  });
+  try {
+    const { world, rapier } = simulation.physics;
+    world.createCollider(rapier.ColliderDesc.cuboid(0.8, 0.5, 0.025)
+      .setTranslation(0, study.surface.height + 0.3, -0.65));
+    const dash = JOYSTICK_SPEED.dash;
+    for (let frame = 0; frame < 45; frame++) simulation.step(1 / 30, { x: 0, z: -dash });
+    assert.ok(player.position.z < -0.25 && player.position.z > -0.40, 'cat stops at the obstacle');
+    const blocked = player.position.z;
+    simulation.step(1 / 30, { x: 0, z: JOYSTICK_SPEED.walk });
+    assert.ok(player.position.z > blocked + 0.03, 'reverses on the next frame');
+    for (let frame = 0; frame < 45; frame++) simulation.step(1 / 30, { x: 0, z: dash });
+    const edge = study.surface.centerXZ[1] + study.surface.halfExtentsXZ[1] - edgeMargin;
+    assert.ok(Math.abs(player.position.z - edge) < 0.001, 'stays on the desk at full dash speed');
+  } finally {
+    simulation.dispose();
+  }
+});

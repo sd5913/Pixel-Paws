@@ -1,3 +1,4 @@
+import { PLAY_CAMERA, resizePlayCamera } from './play-camera.js';
 import { AudioManager } from './feedback/audio-manager.js';
 import { ImpactVFXManager } from './feedback/impact-vfx-manager.js';
 import { createObstacleFeedback } from './feedback/obstacle-feedback.js';
@@ -30,7 +31,7 @@ const ui = {
   bestScore: document.querySelector('#best-score'),
   newRecord: document.querySelector('#new-record'),
   resultArt: document.querySelector('.result-art'),
-  replay: document.querySelector('#replay'),
+  nextLevel: document.querySelector('#next-level'),
   timer: document.querySelector('#timer'),
   finalCountdown: document.querySelector('#final-countdown'),
   comboClock: document.querySelector('#combo-clock'),
@@ -62,7 +63,8 @@ const homePointer = new THREE.Vector2();
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+let gameplayExposure = 1.05;
+renderer.toneMappingExposure = gameplayExposure;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -74,6 +76,22 @@ scene.add(ambient);
 const coolFill = new THREE.DirectionalLight('#c2d7f1', .38);
 coolFill.position.set(4, 3, 2);
 scene.add(coolFill);
+
+// Light the title character from the side so the face and ears retain depth.
+const coverKey = new THREE.DirectionalLight('#ffd6a1', 1.8);
+coverKey.position.set(-1.25, 2.4, 1.6);
+coverKey.target.position.set(0, 0.98, 0);
+coverKey.castShadow = true;
+coverKey.shadow.mapSize.set(1024, 1024);
+Object.assign(coverKey.shadow.camera, {
+  left: -1.2, right: 1.2, top: 1.2, bottom: -1.2, near: 0.1, far: 5,
+});
+coverKey.shadow.camera.updateProjectionMatrix();
+coverKey.shadow.bias = -0.00015;
+coverKey.shadow.normalBias = 0.008;
+coverKey.shadow.intensity = 0.75;
+coverKey.visible = false;
+scene.add(coverKey, coverKey.target);
 
 // Window light enters from the back left and casts shadows across the desk.
 const sun = new THREE.DirectionalLight('#ffdda4', 3.4);
@@ -142,7 +160,7 @@ appearance.addEventListener('change', event => {
   sun.color.set(style.sun);
   sun.intensity = style.key;
   renderer.toneMapping = preset ? THREE.NeutralToneMapping : THREE.NoToneMapping;
-  renderer.toneMappingExposure = style.exposure;
+  gameplayExposure = style.exposure;
 });
 let tabletop = { height: 0.75, centerXZ: [0, 0], halfExtentsXZ: [0.9, 0.45] };
 
@@ -161,7 +179,7 @@ void audio.preload();
 const disconnectAudio = physicsEvents.bus.on('physics:impact', event => audio.playImpact(event));
 const visualFeedback = createImpactFeedback(scene, { reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches });
 const impactVFX = new ImpactVFXManager(physicsEvents.bus, { onImpact(event) {
-  if (!started || event.impactStrength < .08) return;
+  if (!game.playing || event.impactStrength < .08) return;
   visualFeedback.burst(event.position, event.impactStrength, scoreAnchors.get(event.objectId));
 } });
 let contactShadows = null;
@@ -190,7 +208,7 @@ void Promise.all([createCatAvatar(), loadStudyScene()]).then(async ([avatar, stu
   player.add(avatar.object);
   world.add(...study.instances.map(instance => instance.object3D));
   for (const instance of study.instances) scoreAnchors.set(instance.id, instance.object3D);
-  deskPhysics = await createDeskPhysics(study, player);
+  deskPhysics = await createDeskPhysics(study, player, { edgeMargin: CAT_EDGE_MARGIN });
   resetTargets = () => { study.reset({ randomize: true }); deskPhysics.reset(); };
   if (!debugScoring) roundTargets = study.targets;
   resetPrototypeScene();
@@ -206,13 +224,13 @@ void Promise.all([createCatAvatar(), loadStudyScene()]).then(async ([avatar, stu
 
 // Keep the same viewing angle while following movement on every world axis.
 const followPosition = player.position.clone();
-const cameraFocusOffset = new THREE.Vector3(0, 0.05, 0);
-const cameraElevation = THREE.MathUtils.degToRad(50);
+const cameraFocusOffset = new THREE.Vector3(0, PLAY_CAMERA.focusHeight, 0);
+const cameraElevation = PLAY_CAMERA.elevation;
 const cameraOffset = new THREE.Vector3(0,
-  3 * Math.sin(cameraElevation) + cameraFocusOffset.y,
-  3 * Math.cos(cameraElevation));
+  PLAY_CAMERA.distance * Math.sin(cameraElevation) + cameraFocusOffset.y,
+  PLAY_CAMERA.distance * Math.cos(cameraElevation));
 const cameraFocus = new THREE.Vector3();
-const cameraFrameOffset = new THREE.Vector3(0, 0, -0.35);
+const cameraFrameOffset = new THREE.Vector3(0, 0, PLAY_CAMERA.frameZ);
 function updateFollowCamera(delta, immediate = false) {
   if (immediate) followPosition.copy(player.position);
   else followPosition.lerp(player.position, 1 - Math.exp(-10 * delta));
@@ -248,15 +266,6 @@ renderer.domElement.addEventListener('pointerleave', () => {
   renderer.domElement.style.cursor = '';
 });
 updateFollowCamera(0, true);
-
-const playerState = {
-  x: 0,
-  z: 0,
-  y: 0,
-  vy: 0,
-  grounded: true,
-  speed: 0,
-};
 
 const joystick = createJoystick(document.querySelector('#joystick'));
 
@@ -612,12 +621,6 @@ function resetPrototypeScene() {
   player.position.set(0, tabletop.height, 0);
   catAvatar?.reset();
   updateFollowCamera(0, true);
-  playerState.x = 0;
-  playerState.z = 0;
-  playerState.y = 0;
-  playerState.vy = 0;
-  playerState.grounded = true;
-  playerState.speed = 0;
   resetInput();
 }
 
@@ -694,7 +697,7 @@ for (const button of document.querySelectorAll('.home-button')) button.addEventL
 pauseMenu.addEventListener('cancel', event => { event.preventDefault(); resumeRound(); });
 document.querySelector('#retry').addEventListener('click', () => location.reload());
 ui.start.addEventListener('click', startRound);
-ui.replay.addEventListener('click', startRound);
+ui.nextLevel.addEventListener('click', () => window.location.assign('./level-2.html'));
 ui.result.addEventListener('cancel', event => event.preventDefault());
 if (debugScoring) {
   const panel = document.querySelector('#scoring-debug');
@@ -717,27 +720,18 @@ if (debugScoring) {
 
 function stepGame(delta) {
   movementX = movementZ = 0;
-  if (!game.playing || game.swatting) return;
+  if (!game.playing || !deskPhysics) return;
+
   const input = joystick.read();
   const dx = input.x + Number(keys.right) - Number(keys.left);
   const dz = input.z + Number(keys.back) - Number(keys.forward);
-  const magnitude = Math.max(1, Math.hypot(dx, dz));
-  const speed = input.dash ? JOYSTICK_SPEED.dash : JOYSTICK_SPEED.walk;
-  const moveX = dx / magnitude * speed * delta;
-  const moveZ = dz / magnitude * speed * delta;
-  const nextX = THREE.MathUtils.clamp(playerState.x + moveX, tabletop.centerXZ[0] - tabletop.halfExtentsXZ[0] + CAT_EDGE_MARGIN, tabletop.centerXZ[0] + tabletop.halfExtentsXZ[0] - CAT_EDGE_MARGIN);
-  const nextZ = THREE.MathUtils.clamp(playerState.z + moveZ, tabletop.centerXZ[1] - tabletop.halfExtentsXZ[1] + CAT_EDGE_MARGIN, tabletop.centerXZ[1] + tabletop.halfExtentsXZ[1] - CAT_EDGE_MARGIN);
-  if (!deskPhysics.blocksCat(nextX, tabletop.height, playerState.z)) playerState.x = nextX;
-  if (!deskPhysics.blocksCat(playerState.x, tabletop.height, nextZ)) playerState.z = nextZ;
-
-  movementX = playerState.x - player.position.x;
-  movementZ = playerState.z - player.position.z;
-  player.position.x = playerState.x;
-  player.position.z = playerState.z;
-  player.position.y = tabletop.height;
-
+  const speed = game.swatting ? 0 : input.dash ? JOYSTICK_SPEED.dash : JOYSTICK_SPEED.walk;
+  const scale = speed / Math.max(1, Math.hypot(dx, dz));
+  const { x, z } = player.position;
+  if (!deskPhysics.step(delta, { x: dx * scale, z: dz * scale })) return;
+  movementX = player.position.x - x;
+  movementZ = player.position.z - z;
 }
-
 function animate(timestamp) {
   const delta = Math.min((timestamp - (lastTimestamp || timestamp)) / 1000, 0.05);
   lastTimestamp = timestamp;
@@ -747,10 +741,9 @@ function animate(timestamp) {
   const showCountdown = game.playing && remaining > 0 && remaining <= 10;
   ui.finalCountdown.hidden = !showCountdown;
   if (showCountdown) renderDigits(ui.finalCountdown, remaining);
-  stepGame(delta);
   game.tick(delta);
+  stepGame(delta);
   swatButton.disabled = !game.playing || game.swatting;
-  if (game.playing) deskPhysics?.step(delta);
   const comboRemaining = game.comboRemainingMs;
   ui.comboClock.hidden = comboRemaining <= 0;
   if (comboRemaining > 0) ui.comboFill.style.width = `${100 * comboRemaining / COMBO_WINDOW_MS}%`;
@@ -760,6 +753,8 @@ function animate(timestamp) {
   if (homeView) updateHomeCamera();
   else updateFollowCamera(delta);
   obstacleFeedback.update(delta);
+  coverKey.visible = homeView;
+  renderer.toneMappingExposure = gameplayExposure * (homeView ? 1.06 : 1);
   renderer.render(scene, homeView ? homeCamera : camera);
   requestAnimationFrame(animate);
 }
@@ -771,13 +766,7 @@ function resizeRenderer() {
   const aspect = width / height;
   homeCamera.aspect = aspect;
   homeCamera.updateProjectionMatrix();
-  // Frame the area around the cat instead of shrinking the whole desk to fit.
-  const halfHeight = Math.max(0.8, 1.15 / aspect);
-  camera.left = -halfHeight * aspect;
-  camera.right = halfHeight * aspect;
-  camera.top = halfHeight;
-  camera.bottom = -halfHeight;
-  camera.updateProjectionMatrix();
+  resizePlayCamera(camera, aspect);
 }
 
 window.addEventListener('resize', resizeRenderer);

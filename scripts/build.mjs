@@ -12,6 +12,7 @@ export async function buildSite({ sourceDir = 'src', outputDir = 'www' } = {}) {
 
   await Promise.all([
     cp(resolve(sourceDir, 'index.html'), resolve(outputDir, 'index.html')),
+    cp(resolve(sourceDir, 'level-2.html'), resolve(outputDir, 'level-2.html')),
     cp(resolve(sourceDir, 'style.css'), resolve(outputDir, 'style.css')),
     cp(resolve(sourceDir, 'assets', 'asset-manifest.json'), resolve(outputDir, 'assets', 'asset-manifest.json')),
     cp(resolve(sourceDir, 'assets', 'models'), resolve(outputDir, 'assets', 'models'), { recursive: true }),
@@ -22,8 +23,8 @@ export async function buildSite({ sourceDir = 'src', outputDir = 'www' } = {}) {
   await buildAudioAssets(resolve(sourceDir, 'assets/audio'), resolve(outputDir, 'assets/audio'));
 
   await build({
-    entryPoints: [resolve(sourceDir, 'app.js')],
-    outfile: resolve(outputDir, 'app.js'),
+    entryPoints: [resolve(sourceDir, 'app.js'), resolve(sourceDir, 'level-2.js')],
+    outdir: resolve(outputDir),
     bundle: true,
     format: 'esm',
     loader: { '.svg': 'text' },

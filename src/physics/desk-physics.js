@@ -7,7 +7,7 @@ import { SWAT } from '../swat.js';
 const OBJECT_MASS_MULTIPLIER = 1.6;
 const GAMEPLAY_MASS = Object.freeze({ eraser: 0.18, 'desk-lamp': 0.32 });
 
-export async function createDeskPhysics(study, player, { events = physicsEvents, windowWall = true } = {}) {
+export async function createDeskPhysics(study, player, { events = physicsEvents, windowWall = true, edgeMargin = 0 } = {}) {
   const physics = await createPhysicsWorld();
   const bodies = study.instances.map(instance => ({ instance, body: createPhysicsBody(physics, {
     ...instance,
@@ -50,6 +50,11 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
   }
   const catShape = cat.colliders[0].shape;
   const upright = { x: 0, y: 0, z: 0, w: 1 };
+  const { centerXZ: [centerX, centerZ], halfExtentsXZ: [halfX, halfZ] } = study.surface;
+  const extentX = Math.max(0, halfX - edgeMargin);
+  const extentZ = Math.max(0, halfZ - edgeMargin);
+  const clampX = x => Math.max(centerX - extentX, Math.min(centerX + extentX, x));
+  const clampZ = z => Math.max(centerZ - extentZ, Math.min(centerZ + extentZ, z));
   dynamic.forEach(({ body }) => {
     body.rigidBody.enableCcd(true);
     if (windowWall) body.rigidBody.setSoftCcdPrediction(0.32);
@@ -90,11 +95,19 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
         z: (player.position.z - current.z) / delta };
       const steps = physics.step(delta,
         (world, timestep) => events.processImpacts?.(world, timestep),
-        () => cat.rigidBody.setLinvel({ x: velocity.x, y: 0, z: velocity.z }, true)) || 0;
+        (_world, timestep) => {
+          const { x, z } = cat.rigidBody.translation();
+          cat.rigidBody.setLinvel({
+            x: edgeMargin ? (clampX(x + velocity.x * timestep) - x) / timestep : velocity.x,
+            y: 0,
+            z: edgeMargin ? (clampZ(z + velocity.z * timestep) - z) / timestep : velocity.z,
+          }, true);
+        }) || 0;
       player.position.copy(cat.rigidBody.translation());
       for (const { body } of dynamic) syncPhysicsBody(body);
       events.processCollisionEvents(physics.drainCollisionEvents());
       if (steps) events.updateBodyStates(steps * physics.timestep);
+      return steps;
     },
     reset() {
       events.resetImpacts?.();

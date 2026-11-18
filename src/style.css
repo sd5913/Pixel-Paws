@@ -171,7 +171,7 @@ body:not([data-game-state="playing"]) #swat { display: none; }
 .result-action { position: absolute; top: 81.55%; width: 31%; height: 10%; min-height: 0; padding: 0; border-radius: 999px; background: transparent; }
 .result-action:active { background: #35100d36; }
 .result-action.home-button { left: 14.6%; }
-#replay { left: 52.7%; }
+#next-level { left: 52.7%; background: #34768d; color: #fff5e6; border: 2px solid #f7e0c7; font-weight: 900; text-transform: uppercase; }
 #new-achievements { width: 82%; margin: 6px auto 0; color: #565556; container-type: inline-size; }
 #new-achievements ul { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
 #new-achievements li {
