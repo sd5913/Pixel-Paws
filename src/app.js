@@ -208,7 +208,7 @@ void Promise.all([createCatAvatar(), loadStudyScene()]).then(async ([avatar, stu
   player.add(avatar.object);
   world.add(...study.instances.map(instance => instance.object3D));
   for (const instance of study.instances) scoreAnchors.set(instance.id, instance.object3D);
-  deskPhysics = await createDeskPhysics(study, player);
+  deskPhysics = await createDeskPhysics(study, player, { edgeMargin: CAT_EDGE_MARGIN });
   resetTargets = () => { study.reset({ randomize: true }); deskPhysics.reset(); };
   if (!debugScoring) roundTargets = study.targets;
   resetPrototypeScene();
@@ -266,15 +266,6 @@ renderer.domElement.addEventListener('pointerleave', () => {
   renderer.domElement.style.cursor = '';
 });
 updateFollowCamera(0, true);
-
-const playerState = {
-  x: 0,
-  z: 0,
-  y: 0,
-  vy: 0,
-  grounded: true,
-  speed: 0,
-};
 
 const joystick = createJoystick(document.querySelector('#joystick'));
 
@@ -630,12 +621,6 @@ function resetPrototypeScene() {
   player.position.set(0, tabletop.height, 0);
   catAvatar?.reset();
   updateFollowCamera(0, true);
-  playerState.x = 0;
-  playerState.z = 0;
-  playerState.y = 0;
-  playerState.vy = 0;
-  playerState.grounded = true;
-  playerState.speed = 0;
   resetInput();
 }
 
@@ -735,27 +720,18 @@ if (debugScoring) {
 
 function stepGame(delta) {
   movementX = movementZ = 0;
-  if (!game.playing || game.swatting) return;
+  if (!game.playing || !deskPhysics) return;
+
   const input = joystick.read();
   const dx = input.x + Number(keys.right) - Number(keys.left);
   const dz = input.z + Number(keys.back) - Number(keys.forward);
-  const magnitude = Math.max(1, Math.hypot(dx, dz));
-  const speed = input.dash ? JOYSTICK_SPEED.dash : JOYSTICK_SPEED.walk;
-  const moveX = dx / magnitude * speed * delta;
-  const moveZ = dz / magnitude * speed * delta;
-  const nextX = THREE.MathUtils.clamp(playerState.x + moveX, tabletop.centerXZ[0] - tabletop.halfExtentsXZ[0] + CAT_EDGE_MARGIN, tabletop.centerXZ[0] + tabletop.halfExtentsXZ[0] - CAT_EDGE_MARGIN);
-  const nextZ = THREE.MathUtils.clamp(playerState.z + moveZ, tabletop.centerXZ[1] - tabletop.halfExtentsXZ[1] + CAT_EDGE_MARGIN, tabletop.centerXZ[1] + tabletop.halfExtentsXZ[1] - CAT_EDGE_MARGIN);
-  if (!deskPhysics.blocksCat(nextX, tabletop.height, playerState.z)) playerState.x = nextX;
-  if (!deskPhysics.blocksCat(playerState.x, tabletop.height, nextZ)) playerState.z = nextZ;
-
-  movementX = playerState.x - player.position.x;
-  movementZ = playerState.z - player.position.z;
-  player.position.x = playerState.x;
-  player.position.z = playerState.z;
-  player.position.y = tabletop.height;
-
+  const speed = game.swatting ? 0 : input.dash ? JOYSTICK_SPEED.dash : JOYSTICK_SPEED.walk;
+  const scale = speed / Math.max(1, Math.hypot(dx, dz));
+  const { x, z } = player.position;
+  if (!deskPhysics.step(delta, { x: dx * scale, z: dz * scale })) return;
+  movementX = player.position.x - x;
+  movementZ = player.position.z - z;
 }
-
 function animate(timestamp) {
   const delta = Math.min((timestamp - (lastTimestamp || timestamp)) / 1000, 0.05);
   lastTimestamp = timestamp;
@@ -765,10 +741,9 @@ function animate(timestamp) {
   const showCountdown = game.playing && remaining > 0 && remaining <= 10;
   ui.finalCountdown.hidden = !showCountdown;
   if (showCountdown) renderDigits(ui.finalCountdown, remaining);
-  stepGame(delta);
   game.tick(delta);
+  stepGame(delta);
   swatButton.disabled = !game.playing || game.swatting;
-  if (game.playing) deskPhysics?.step(delta);
   const comboRemaining = game.comboRemainingMs;
   ui.comboClock.hidden = comboRemaining <= 0;
   if (comboRemaining > 0) ui.comboFill.style.width = `${100 * comboRemaining / COMBO_WINDOW_MS}%`;
