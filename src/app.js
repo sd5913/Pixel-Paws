@@ -1,3 +1,4 @@
+import { PLAY_CAMERA, resizePlayCamera } from './play-camera.js';
 import { AudioManager } from './feedback/audio-manager.js';
 import { ImpactVFXManager } from './feedback/impact-vfx-manager.js';
 import { createObstacleFeedback } from './feedback/obstacle-feedback.js';
@@ -62,7 +63,8 @@ const homePointer = new THREE.Vector2();
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+let gameplayExposure = 1.05;
+renderer.toneMappingExposure = gameplayExposure;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -74,6 +76,12 @@ scene.add(ambient);
 const coolFill = new THREE.DirectionalLight('#c2d7f1', .38);
 coolFill.position.set(4, 3, 2);
 scene.add(coolFill);
+
+// Front fill lifts the shaded side of the cat and props in the title shot.
+const coverFill = new THREE.DirectionalLight('#ffe2bc', 1.25);
+coverFill.position.set(0.9, 2.8, 3.6);
+coverFill.visible = false;
+scene.add(coverFill);
 
 // Window light enters from the back left and casts shadows across the desk.
 const sun = new THREE.DirectionalLight('#ffdda4', 3.4);
@@ -142,7 +150,7 @@ appearance.addEventListener('change', event => {
   sun.color.set(style.sun);
   sun.intensity = style.key;
   renderer.toneMapping = preset ? THREE.NeutralToneMapping : THREE.NoToneMapping;
-  renderer.toneMappingExposure = style.exposure;
+  gameplayExposure = style.exposure;
 });
 let tabletop = { height: 0.75, centerXZ: [0, 0], halfExtentsXZ: [0.9, 0.45] };
 
@@ -206,13 +214,13 @@ void Promise.all([createCatAvatar(), loadStudyScene()]).then(async ([avatar, stu
 
 // Keep the same viewing angle while following movement on every world axis.
 const followPosition = player.position.clone();
-const cameraFocusOffset = new THREE.Vector3(0, 0.05, 0);
-const cameraElevation = THREE.MathUtils.degToRad(50);
+const cameraFocusOffset = new THREE.Vector3(0, PLAY_CAMERA.focusHeight, 0);
+const cameraElevation = PLAY_CAMERA.elevation;
 const cameraOffset = new THREE.Vector3(0,
-  3 * Math.sin(cameraElevation) + cameraFocusOffset.y,
-  3 * Math.cos(cameraElevation));
+  PLAY_CAMERA.distance * Math.sin(cameraElevation) + cameraFocusOffset.y,
+  PLAY_CAMERA.distance * Math.cos(cameraElevation));
 const cameraFocus = new THREE.Vector3();
-const cameraFrameOffset = new THREE.Vector3(0, 0, -0.35);
+const cameraFrameOffset = new THREE.Vector3(0, 0, PLAY_CAMERA.frameZ);
 function updateFollowCamera(delta, immediate = false) {
   if (immediate) followPosition.copy(player.position);
   else followPosition.lerp(player.position, 1 - Math.exp(-10 * delta));
@@ -760,6 +768,8 @@ function animate(timestamp) {
   if (homeView) updateHomeCamera();
   else updateFollowCamera(delta);
   obstacleFeedback.update(delta);
+  coverFill.visible = homeView;
+  renderer.toneMappingExposure = gameplayExposure * (homeView ? 1.12 : 1);
   renderer.render(scene, homeView ? homeCamera : camera);
   requestAnimationFrame(animate);
 }
@@ -771,13 +781,7 @@ function resizeRenderer() {
   const aspect = width / height;
   homeCamera.aspect = aspect;
   homeCamera.updateProjectionMatrix();
-  // Frame the area around the cat instead of shrinking the whole desk to fit.
-  const halfHeight = Math.max(0.8, 1.15 / aspect);
-  camera.left = -halfHeight * aspect;
-  camera.right = halfHeight * aspect;
-  camera.top = halfHeight;
-  camera.bottom = -halfHeight;
-  camera.updateProjectionMatrix();
+  resizePlayCamera(camera, aspect);
 }
 
 window.addEventListener('resize', resizeRenderer);
