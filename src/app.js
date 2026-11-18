@@ -77,11 +77,21 @@ const coolFill = new THREE.DirectionalLight('#c2d7f1', .38);
 coolFill.position.set(4, 3, 2);
 scene.add(coolFill);
 
-// Front fill lifts the shaded side of the cat and props in the title shot.
-const coverFill = new THREE.DirectionalLight('#ffe2bc', 1.25);
-coverFill.position.set(0.9, 2.8, 3.6);
-coverFill.visible = false;
-scene.add(coverFill);
+// Light the title character from the side so the face and ears retain depth.
+const coverKey = new THREE.DirectionalLight('#ffd6a1', 1.8);
+coverKey.position.set(-1.25, 2.4, 1.6);
+coverKey.target.position.set(0, 0.98, 0);
+coverKey.castShadow = true;
+coverKey.shadow.mapSize.set(1024, 1024);
+Object.assign(coverKey.shadow.camera, {
+  left: -1.2, right: 1.2, top: 1.2, bottom: -1.2, near: 0.1, far: 5,
+});
+coverKey.shadow.camera.updateProjectionMatrix();
+coverKey.shadow.bias = -0.00015;
+coverKey.shadow.normalBias = 0.008;
+coverKey.shadow.intensity = 0.75;
+coverKey.visible = false;
+scene.add(coverKey, coverKey.target);
 
 // Window light enters from the back left and casts shadows across the desk.
 const sun = new THREE.DirectionalLight('#ffdda4', 3.4);
@@ -768,8 +778,8 @@ function animate(timestamp) {
   if (homeView) updateHomeCamera();
   else updateFollowCamera(delta);
   obstacleFeedback.update(delta);
-  coverFill.visible = homeView;
-  renderer.toneMappingExposure = gameplayExposure * (homeView ? 1.12 : 1);
+  coverKey.visible = homeView;
+  renderer.toneMappingExposure = gameplayExposure * (homeView ? 1.06 : 1);
   renderer.render(scene, homeView ? homeCamera : camera);
   requestAnimationFrame(animate);
 }
