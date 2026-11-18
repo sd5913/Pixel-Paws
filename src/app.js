@@ -30,7 +30,7 @@ const ui = {
   bestScore: document.querySelector('#best-score'),
   newRecord: document.querySelector('#new-record'),
   resultArt: document.querySelector('.result-art'),
-  replay: document.querySelector('#replay'),
+  nextLevel: document.querySelector('#next-level'),
   timer: document.querySelector('#timer'),
   finalCountdown: document.querySelector('#final-countdown'),
   comboClock: document.querySelector('#combo-clock'),
@@ -161,7 +161,7 @@ void audio.preload();
 const disconnectAudio = physicsEvents.bus.on('physics:impact', event => audio.playImpact(event));
 const visualFeedback = createImpactFeedback(scene, { reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches });
 const impactVFX = new ImpactVFXManager(physicsEvents.bus, { onImpact(event) {
-  if (!started || event.impactStrength < .08) return;
+  if (!game.playing || event.impactStrength < .08) return;
   visualFeedback.burst(event.position, event.impactStrength, scoreAnchors.get(event.objectId));
 } });
 let contactShadows = null;
@@ -694,7 +694,7 @@ for (const button of document.querySelectorAll('.home-button')) button.addEventL
 pauseMenu.addEventListener('cancel', event => { event.preventDefault(); resumeRound(); });
 document.querySelector('#retry').addEventListener('click', () => location.reload());
 ui.start.addEventListener('click', startRound);
-ui.replay.addEventListener('click', startRound);
+ui.nextLevel.addEventListener('click', () => window.location.assign('./level-2.html'));
 ui.result.addEventListener('cancel', event => event.preventDefault());
 if (debugScoring) {
   const panel = document.querySelector('#scoring-debug');

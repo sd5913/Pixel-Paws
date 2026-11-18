@@ -26,7 +26,13 @@ test('buildSite bundles local Three.js and copies packaged assets', async () => 
   await writeFile(join(sourceDir, 'assets', 'models', 'placeholder.glb'), Buffer.from('glTF'));
   await writeFile(join(sourceDir, 'scenes', 'preview.scene.json'), '{"schemaVersion":1}');
 
+  await writeFile(join(sourceDir, 'level-2.html'), '<script type="module" src="level-2.js"></script>');
+  await writeFile(join(sourceDir, 'level-2.js'), 'console.log("Level two");');
+
   await buildSite({ sourceDir, outputDir });
+
+  assert.match(await readFile(join(outputDir, 'level-2.html'), 'utf8'), /level-2\.js/);
+  assert.match(await readFile(join(outputDir, 'level-2.js'), 'utf8'), /Level two/);
 
   const bundle = await readFile(join(outputDir, 'app.js'), 'utf8');
   assert.doesNotMatch(bundle, /cdn\.jsdelivr\.net/);
