@@ -107,15 +107,18 @@ developer account for distribution and a separately added iOS platform; see
 Electron desktop packaging is a separate wrapper; see
 [Tetrilaunch's desktop workflow](https://github.com/venetanji/tetrilaunch/blob/main/.github/workflows/desktop.yml).
 
-## Optional: deploy the web build
+## Deploy with GitHub Pages
 
-Create a Cloudflare account and a scoped Workers deployment API token. Under
-GitHub **Settings → Secrets and variables → Actions**, add repository secrets
-`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`, and a repository variable
-`CLOUDFLARE_WORKER_NAME` with your unique Worker name. Create a GitHub
-`production` environment if using environment protection. Run **Deploy web
-(manual)** in Actions, then open the Worker URL in the log. No deployment runs
-on pull requests. The Cloudflare account may have usage limits or costs.
-Do not put real secrets in source, screenshots, prompts, or the browser bundle:
-anything shipped to the client is visible to users. Other providers have their
-own destination, tokens and commands.
+The repository is configured to publish `www/` from the `main` branch through
+the **Deploy web to GitHub Pages** Actions workflow. It also supports a manual
+**Run workflow** deployment.
+
+On GitHub, open **Settings → Pages** and choose **GitHub Actions** as the source.
+Then push to `main` or run **Deploy web to GitHub Pages** manually. Open the
+deployment URL printed in the `github-pages` environment or from the workflow's
+deployment step:
+
+`https://<owner>.github.io/<repository>/`
+
+The build uses relative asset paths, so it works at that project subpath. Pull
+requests do not deploy to Pages.
