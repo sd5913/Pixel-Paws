@@ -1,3 +1,8 @@
+import { createBakingPhysics } from './physics/baking-physics.js';
+import { createKitchenProps } from './kitchen-props.js';
+import { loadGlb } from './assets/load-assets.js';
+import { createMilkJug } from './milk-jug.js';
+import { createMixingBowl } from './mixing-bowl.js';
 import { PLAY_CAMERA, resizePlayCamera } from './play-camera.js';
 import * as THREE from 'three';
 import { CAT_EDGE_MARGIN, createCatAvatar } from './assets/cat-avatar.js';
@@ -210,6 +215,18 @@ cat.object.traverse(child => {
   if (child.isMesh) child.castShadow = child.receiveShadow = true;
 });
 scene.add(cat.object);
+const bakingPhysics = await createBakingPhysics(tableHeight, tableRadius);
+const mixingBowl = await createMixingBowl(scene, renderer, tableHeight, tableRadius, loadGlb, bakingPhysics);
+const milkJug = await createMilkJug(scene, renderer, tableHeight, tableRadius, loadGlb, bakingPhysics);
+const kitchenProps = await createKitchenProps(scene, bakingPhysics, tableHeight);
+const swatButton = document.querySelector('#swat');
+const swat = () => { cat.swat(); mixingBowl.swat(cat.object.position, cat.object.rotation.y); milkJug.swat(cat.object.position, cat.object.rotation.y); kitchenProps.swat(cat.object.position, cat.object.rotation.y); };
+swatButton.addEventListener('click', swat);
+document.querySelector('#restart').addEventListener('click', () => {
+  kitchenProps.reset();
+  milkJug.reset();
+  mixingBowl.reset(); cat.object.position.set(0, tableHeight + .007, 0); resetInput();
+});
 const directions = new Map([
   ['ArrowLeft', [-1, 0]], ['KeyA', [-1, 0]], ['ArrowRight', [1, 0]], ['KeyD', [1, 0]],
   ['ArrowUp', [0, -1]], ['KeyW', [0, -1]], ['ArrowDown', [0, 1]], ['KeyS', [0, 1]],
@@ -225,7 +242,7 @@ window.addEventListener('keydown', event => {
     event.preventDefault();
     pressed.add(event.code);
   }
-  if (event.code === 'KeyK' && !event.repeat) cat.swat();
+  if (event.code === 'KeyK' && !event.repeat) swat();
 });
 window.addEventListener('keyup', event => pressed.delete(event.code));
 canvas.style.touchAction = 'none';
@@ -270,5 +287,10 @@ renderer.setAnimationLoop(timestamp => {
   focus.z += (position.z + frameZ - focus.z) * follow;
   camera.position.copy(focus).add(cameraOffset);
   camera.lookAt(focus);
+  bakingPhysics.catBody.setNextKinematicTranslation({x:position.x,y:tableHeight+.2,z:position.z});
+  bakingPhysics.physics.step(delta);
+  kitchenProps.update();
+  mixingBowl.update(delta, position);
+  milkJug.update(delta, position);
   renderer.render(scene, camera);
 });

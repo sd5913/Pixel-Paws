@@ -36,9 +36,9 @@ test('portrait desk scene preserves reference assets and fits the sixteen tablet
     }
   }
   assert.deepEqual(footprints.map(({ id }) => id).sort(), [
-    'candy', 'chocolate', 'desk-lamp', 'eraser', 'game-controller', 'glass-vase', 'headphones', 'ink-bottle', 'mouse', 'notebook', 'phone-charger', 'potato-chips', 'speaker', 'tissue-box', 'water-bottle',
+    'candy', 'chocolate', 'desk-lamp', 'eraser', 'game-controller', 'glass-vase', 'headphones', 'ink-bottle', 'mouse', 'notebook', 'pencil-holder', 'phone-charger', 'potato-chips', 'speaker', 'tissue-box', 'water-bottle',
   ]);
-  assert.equal(study.targets.length, 18);
+  assert.equal(study.targets.length, 19);
   assert.equal(study.instances.find(item => item.assetId === 'ink-bottle').object3D.scale.x, 0.1);
   assert.equal(study.instances.find(item => item.assetId === 'desk-lamp').object3D.scale.x, 0.4);
   const { object3D, initialTransform } = study.instances.find(item => item.assetId === 'headphones');

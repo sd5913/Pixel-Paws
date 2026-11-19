@@ -1,6 +1,8 @@
+import { createVaseBreakage } from './vase-breakage.js';
 import { createPhysicsWorld } from './physics-world.js';
 import { createPhysicsBody, syncPhysicsBody } from './physics-body.js';
 import { physicsEvents } from './physics-events.js';
+import { createPencilSpill } from './pencil-holder.js';
 import { SWAT } from '../swat.js';
 
 // Gameplay weight tuning leaves the shared asset definitions unchanged.
@@ -9,6 +11,10 @@ const GAMEPLAY_MASS = Object.freeze({ eraser: 0.18, 'desk-lamp': 0.32 });
 
 export async function createDeskPhysics(study, player, { events = physicsEvents, windowWall = true, edgeMargin = 0 } = {}) {
   const physics = await createPhysicsWorld();
+  // Match the visible floor at Y=-0.01 so fallen props remain in the room.
+  const floor = physics.world.createRigidBody(physics.rapier.RigidBodyDesc.fixed());
+  const floorCollider = physics.world.createCollider(physics.rapier.ColliderDesc.cuboid(100, .1, 100)
+    .setTranslation(0, -.11, 0).setFriction(.8).setRestitution(.02), floor);
   const bodies = study.instances.map(instance => ({ instance, body: createPhysicsBody(physics, {
     ...instance,
     physics: instance.physics.bodyType === 'dynamic'
@@ -32,6 +38,8 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
   cat.rigidBody.setGravityScale(0, true);
   cat.rigidBody.enableCcd(true);
   const dynamic = bodies.filter(entry => entry.instance.physics.bodyType === 'dynamic');
+  const spills = dynamic.filter(({ instance }) => instance.assetId === 'pencil-holder')
+    .map(({ body }) => createPencilSpill(physics, body));
   const fixedObstacles = bodies.filter(({ instance }) => instance.isObstacle && instance.physics.bodyType === 'static')
     .flatMap(({ body }) => body.colliders);
   if (windowWall) {
@@ -48,6 +56,8 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
     // A ricochet can hit the wall again within the same physics tick.
     physics.world.maxCcdSubsteps = 4;
   }
+  const breakages = dynamic.filter(({instance})=>instance.assetId === 'glass-vase')
+    .map(({instance,body})=>createVaseBreakage(physics,instance,body,floorCollider));
   const catShape = cat.colliders[0].shape;
   const upright = { x: 0, y: 0, z: 0, w: 1 };
   const { centerXZ: [centerX, centerZ], halfExtentsXZ: [halfX, halfZ] } = study.surface;
@@ -94,7 +104,10 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
       const velocity = movement ?? { x: (player.position.x - current.x) / delta,
         z: (player.position.z - current.z) / delta };
       const steps = physics.step(delta,
-        (world, timestep) => events.processImpacts?.(world, timestep),
+        (world, timestep) => {
+          events.processImpacts?.(world, timestep);
+          for (const breakage of breakages) breakage.update();
+        },
         (_world, timestep) => {
           const { x, z } = cat.rigidBody.translation();
           cat.rigidBody.setLinvel({
@@ -105,12 +118,16 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
         }) || 0;
       player.position.copy(cat.rigidBody.translation());
       for (const { body } of dynamic) syncPhysicsBody(body);
+      for (const spill of spills) spill.update();
+      for (const breakage of breakages) breakage.update();
       events.processCollisionEvents(physics.drainCollisionEvents());
       if (steps) events.updateBodyStates(steps * physics.timestep);
       return steps;
     },
     reset() {
       events.resetImpacts?.();
+      for (const spill of spills) spill.reset();
+      for (const breakage of breakages) breakage.reset();
       for (const { instance, body } of bodies) {
         const [x, y, z] = instance.initialTransform.position;
         const [qx, qy, qz, qw] = instance.initialTransform.rotation;
@@ -133,7 +150,7 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
       }
       physics.world.propagateModifiedBodyPositionsToColliders();
     },
-    dispose() { events.resetImpacts?.(); tracked.forEach(body => events.unregisterBody(body)); physics.dispose(); },
+    dispose() { breakages.forEach(breakage=>breakage.dispose()); events.resetImpacts?.(); tracked.forEach(body => events.unregisterBody(body)); physics.dispose(); },
     // Integration tests can inspect real body poses without synthesizing score events.
     bodies, physics,
   };
