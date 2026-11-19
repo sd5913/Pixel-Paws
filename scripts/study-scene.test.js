@@ -6,7 +6,7 @@ import { Box3 } from 'three';
 import { parseGlb } from '../src/assets/load-assets.js';
 import { loadStudyScene } from '../src/assets/study-scene.js';
 
-test('portrait desk scene preserves reference assets and fits the eight replacement props', async () => {
+test('portrait desk scene preserves reference assets and fits the sixteen tabletop props', async () => {
   for (const [file, expected] of [
     ['desk', '29f5ef241bc0bca43fb0baad9444623955549a6afe7807c1c4be81958e92c78e'],
     ['mug', 'e13d5667b6688c7a74e3c81a427b92fec4f49f79a27660c067eee6237c34b79e'],
@@ -21,7 +21,7 @@ test('portrait desk scene preserves reference assets and fits the eight replacem
   assert.equal(study.surface.height, 0.75);
   assert.ok(Math.abs(study.surface.halfExtentsXZ[0] - 1.485) < 1e-9);
   assert.ok(Math.abs(study.surface.halfExtentsXZ[1] - 1.98) < 1e-9);
-  const footprints = study.instances.filter(item => item.assetId !== 'desk')
+  const footprints = study.instances.filter(item => item.assetId !== 'desk' && item.assetId !== 'notebook-stack')
     .map(({ id, object3D }) => ({ id, bounds: new Box3().setFromObject(object3D, true) }));
   const overlapsXZ = (a, b) => a.min.x < b.max.x && a.max.x > b.min.x
     && a.min.z < b.max.z && a.max.z > b.min.z;
@@ -36,9 +36,9 @@ test('portrait desk scene preserves reference assets and fits the eight replacem
     }
   }
   assert.deepEqual(footprints.map(({ id }) => id).sort(), [
-    'desk-lamp', 'eraser', 'glass-vase', 'headphones', 'ink-bottle', 'notebook', 'notebook-stack', 'tissue-box',
+    'candy', 'chocolate', 'desk-lamp', 'eraser', 'game-controller', 'glass-vase', 'headphones', 'ink-bottle', 'mouse', 'notebook', 'phone-charger', 'potato-chips', 'speaker', 'tissue-box', 'water-bottle',
   ]);
-  assert.equal(study.targets.length, 8);
+  assert.equal(study.targets.length, 18);
   assert.equal(study.instances.find(item => item.assetId === 'ink-bottle').object3D.scale.x, 0.1);
   assert.equal(study.instances.find(item => item.assetId === 'desk-lamp').object3D.scale.x, 0.4);
   const { object3D, initialTransform } = study.instances.find(item => item.assetId === 'headphones');

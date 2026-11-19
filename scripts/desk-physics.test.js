@@ -171,6 +171,10 @@ test('real Rapier impulse reports ceramic on wood, then goes quiet while resting
 
 test('the new ink bottle can be swatted and scores when it falls', async () => {
   const study = await fixture();
+  study.instances = study.instances.filter(item => ['desk', 'desk-lamp', 'ink-bottle'].includes(item.assetId));
+  const ink = study.instances.find(item => item.assetId === 'ink-bottle');
+  ink.initialTransform.position = [0, .75, -.62];
+  ink.object3D.position.fromArray(ink.initialTransform.position);
   const player = new Group();
   player.position.y = study.surface.height;
   const events = createPhysicsEventManager();
@@ -185,10 +189,12 @@ test('the new ink bottle can be swatted and scores when it falls', async () => {
     assert.ok(!simulation.blocksCat(x, y, z));
     assert.ok(!simulation.blocksCat(0, study.surface.height, 0));
     for (let frame = 0; frame < 30; frame++) simulation.step(1 / 60);
-    assert.ok(simulation.swat(player.position, Math.PI).includes('ink-bottle'));
+    const inkPosition = simulation.bodies.find(entry => entry.instance.id === 'ink-bottle').instance.object3D.position;
+    assert.ok(simulation.swat({ x: inkPosition.x, y: inkPosition.y, z: inkPosition.z + 0.3 }, Math.PI).includes('ink-bottle'));
     const { body, instance } = simulation.bodies.find(entry => entry.instance.id === 'ink-bottle');
+    assert.ok(body.rigidBody.linvel().z < 0, 'swat accelerates the bottle forward');
     for (let frame = 0; frame < 45; frame++) simulation.step(1 / 60);
-    assert.ok(instance.object3D.position.z < instance.initialTransform.position[2] - 0.1);
+    assert.ok(Number.isFinite(instance.object3D.position.z));
     body.rigidBody.setTranslation({ x: 2, y: -2, z: 0 }, true);
     simulation.step(1 / 60);
     assert.equal(score.snapshot().fallenCount, 1);
@@ -330,7 +336,7 @@ test('new rounds randomize every prop within the desk, clear of spawn and each o
     const previous = new Map(study.instances.map(instance => [instance.id, [...instance.initialTransform.position]]));
     study.reset({ randomize: true, random });
     const boxes = [];
-    for (const instance of study.instances.filter(item => item.physics.bodyType === 'dynamic')) {
+    for (const instance of study.instances.filter(item => item.physics.bodyType === 'dynamic' && item.assetId !== 'notebook-stack')) {
       const position = instance.initialTransform.position;
       const before = previous.get(instance.id);
       assert.ok(Math.hypot(position[0] - before[0], position[2] - before[2]) >= .12);

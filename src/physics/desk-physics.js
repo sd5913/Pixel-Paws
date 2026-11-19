@@ -16,7 +16,7 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
           ?? instance.physics.suggestedMass * OBJECT_MASS_MULTIPLIER }
       : instance.physics,
     events: instance.physics.bodyType === 'dynamic'
-      ? { collision: true, tippedOver: true, fallen: true, settled: true } : { collision: true },
+      ? { collision: true, tippedOver: !['headphones', 'potato-chips'].includes(instance.assetId), fallen: true, settled: true } : { collision: true },
   }) }));
   const cat = createPhysicsBody(physics, {
     object3D: player,
