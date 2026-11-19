@@ -2,16 +2,14 @@
 set -euo pipefail
 umask 077
 
-for setting in APPLE_TEAM_ID DISTRIBUTION_P12 DISTRIBUTION_PASSWORD PROVISIONING_PROFILE ASC_KEY ASC_KEY_ID ASC_ISSUER_ID BUILD_NUMBER; do
+for setting in APPLE_TEAM_ID DISTRIBUTION_P12 DISTRIBUTION_PASSWORD PROVISIONING_PROFILE BUILD_NUMBER IPA_DIR; do
   if [[ -z "${!setting:-}" ]]; then
     echo "::error::Missing TestFlight configuration: $setting"
     exit 1
   fi
 done
 [[ "$APPLE_TEAM_ID" =~ ^[A-Z0-9]{10}$ ]]
-[[ "$ASC_KEY_ID" =~ ^[A-Z0-9]{10}$ ]]
-[[ "$ASC_ISSUER_ID" =~ ^[a-fA-F0-9-]{36}$ ]]
-[[ "$BUILD_NUMBER" =~ ^[1-9][0-9]{0,8}$ ]]
+[[ "$BUILD_NUMBER" =~ ^[1-9][0-9]{0,3}\.[0-9]{1,2}\.[0-9]{1,2}$ ]]
 bundle_id=org.sd5913.pixelpaws
 
 work="$(mktemp -d "$RUNNER_TEMP/pixel-paws-signing.XXXXXX")"
@@ -36,8 +34,7 @@ trap 'exit 143' TERM
 
 printf '%s' "$DISTRIBUTION_P12" | base64 -D > "$work/distribution.p12"
 printf '%s' "$PROVISIONING_PROFILE" | base64 -D > "$work/app.mobileprovision"
-printf '%s' "$ASC_KEY" | base64 -D > "$work/AuthKey_$ASC_KEY_ID.p8"
-unset DISTRIBUTION_P12 PROVISIONING_PROFILE ASC_KEY
+unset DISTRIBUTION_P12 PROVISIONING_PROFILE
 
 security cms -D -i "$work/app.mobileprovision" > "$work/profile.plist"
 profile_uuid="$(python3 - "$work/profile.plist" "$APPLE_TEAM_ID" "$bundle_id" <<'PY'
@@ -77,11 +74,17 @@ security list-keychains -d user -s "$keychain" "${original_keychains[@]}"
 security find-identity -v -p codesigning "$keychain" | grep -q 'Apple Distribution:'
 
 xcodebuild archive -project ios/App/App.xcodeproj -scheme PixelPaws \
+  -clonedSourcePackagesDirPath "$RUNNER_TEMP/pixel-paws-spm" \
+  -disableAutomaticPackageResolution -skipPackageUpdates \
   -configuration Release -destination 'generic/platform=iOS' \
   -archivePath "$work/PixelPaws.xcarchive" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution' \
   DEVELOPMENT_TEAM="$APPLE_TEAM_ID" PROVISIONING_PROFILE_SPECIFIER="$profile_uuid"
-test -s "$work/PixelPaws.xcarchive/Products/Applications/PixelPaws.app/public/index.html"
+app="$work/PixelPaws.xcarchive/Products/Applications/PixelPaws.app"
+test -s "$app/public/index.html"
+test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$app/Info.plist")" = "$bundle_id"
+test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$app/Info.plist")" = "$BUILD_NUMBER"
+codesign --verify --strict --deep "$app"
 
 python3 - "$work/export.plist" "$APPLE_TEAM_ID" "$bundle_id" "$profile_uuid" <<'PY'
 import plistlib
@@ -91,7 +94,7 @@ path, team, bundle_id, profile = sys.argv[1:]
 with open(path, 'wb') as output:
     plistlib.dump({
         "method": "app-store-connect",
-        "destination": "upload",
+        "destination": "export",
         "signingStyle": "manual",
         "signingCertificate": "Apple Distribution",
         "teamID": team,
@@ -101,7 +104,8 @@ with open(path, 'wb') as output:
     }, output)
 PY
 
+test ! -e "$IPA_DIR"
 xcodebuild -exportArchive -archivePath "$work/PixelPaws.xcarchive" \
-  -exportOptionsPlist "$work/export.plist" -allowProvisioningUpdates \
-  -authenticationKeyPath "$work/AuthKey_$ASC_KEY_ID.p8" \
-  -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+  -exportOptionsPlist "$work/export.plist" -exportPath "$IPA_DIR"
+test -s "$IPA_DIR/PixelPaws.ipa"
+/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$app/Info.plist" > "$IPA_DIR/version"

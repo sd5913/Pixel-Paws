@@ -17,13 +17,13 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - run: npm ci
-      - run: npm run build
-      - run: npx --no-install cap sync ios
+      - run: bash .github/scripts/ios-prepare.sh
       - name: Compile for the simulator
         run: |
           xcodebuild -version
           xcodebuild -project ios/App/App.xcodeproj -scheme PixelPaws \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/pixel-paws-spm" \
+            -disableAutomaticPackageResolution -skipPackageUpdates \
             -configuration Debug -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath "$RUNNER_TEMP/pixel-paws-ios" CODE_SIGNING_ALLOWED=NO build
           test -s "$RUNNER_TEMP/pixel-paws-ios/Build/Products/Debug-iphonesimulator/PixelPaws.app/public/index.html"
