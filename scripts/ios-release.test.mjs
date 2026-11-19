@@ -7,7 +7,7 @@ import { buildNumber, individualToken, uploadBuild } from '../.github/scripts/io
 const credentials = () => {
   const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
   return {
-    keyId: 'ABCD123456',
+    keyId: 'ABCD123456XY',
     key: Buffer.from(privateKey.export({ type: 'pkcs8', format: 'pem' })).toString('base64'),
     publicKey,
   };
