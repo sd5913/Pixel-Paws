@@ -1,5 +1,10 @@
 # Asset validation and preview workflow
 
+New geometry production now uses Blender on the user's required execution host;
+see [execution handoff and migration status](BLENDER_MIGRATION.md) and the updated
+project skill. Legacy reproduction commands below verify existing references;
+they are not substitutes for Blender production or its geometry/re-import checks.
+
 Use Node 24 and the committed npm lockfile. From repository root:
 
 ```sh

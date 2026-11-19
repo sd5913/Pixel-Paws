@@ -6,14 +6,16 @@ For asset creation and review, use the repository skill
 [scene/character design](assets/SCENE_GUIDE.md),
 [manifest fields](assets/ASSET_MANIFEST.md), and [validation](assets/VALIDATION.md).
 The approved mug and its generator are organized under `src/assets/`; its original
-export report is `src/assets/asset-spec.json`. It is not added to gameplay.
+export report is `src/assets/asset-spec.json`. Gameplay uses five scaled mug
+instances from `src/scenes/study-desk-gameplay.scene.json`; the asset review
+layout separately displays a native-scale mug.
 
 The app bundles the npm-installed `three` package and `GLTFLoader` with esbuild. GLB files and JSON scene data are copied from `src/` to `www/`, so the Capacitor application does not need a CDN or a network connection to load Three.js assets.
 
 ## Add an asset
 
-1. Export one self-contained `.glb` file into `src/assets/models/`.
-2. Use metres, right-handed Y-up coordinates, and `-Z` forward. Apply transforms before export and keep the GLB root scale at `[1, 1, 1]`.
+1. Author and export new geometry with Blender Python/bpy on the user's required execution host. Preserve `.py` sources in `src/assets/generators/` and editable `.blend` files in `src/assets/blender/`. Export to `work/` first; place an accepted self-contained `.glb` in `src/assets/models/`. See [Blender execution and migration status](assets/BLENDER_MIGRATION.md).
+2. Use metres, right-handed Y-up coordinates, and `-Z` forward in GLB (Blender authors in Z-up and converts on export). Keep root scale `[1, 1, 1]`. Apply transforms only where safe for static geometry; preserve animated/parented part transforms, pivots and hierarchy, and check them after re-import.
 3. Add one entry to `src/assets/asset-manifest.json`. Bounds and collider measurements are local-space metres after `visualScale` is applied.
 4. Add scene instances to a file under `src/scenes/`. Rotations are normalized quaternions in `[x, y, z, w]` order.
 5. Run `npm run assets:validate`, `npm test`, and `npm run build`.
