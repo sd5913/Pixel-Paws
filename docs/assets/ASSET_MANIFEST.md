@@ -15,7 +15,7 @@ No physics engine is imported or invoked by the generator, validator or preview.
 | `visualScale` | Three positive XYZ values; new assets use `[1,1,1]`; approved mug stays unit scale |
 | `dimensionsMeters` | Actual `[width,height,depth]` after visualScale, before scene transforms; never a design target |
 | `pivot.type` | Existing `base-center` (bottom-center) or legacy `center` |
-| `pivot.offset` | Native origin's offset from the declared pivot, meters after visualScale; `[0,0,0]` for current entries; descriptive only, not automatically applied by loader |
+| `pivot.offset` | Declared pivot's position relative to the native origin, meters after visualScale; descriptive only, not automatically applied by loader |
 | `pivot.basis` | Optional explanation of approved exceptions (mug centered on vessel body) |
 | `bounds.center` | Actual AABB center relative to native origin, after visualScale |
 | `bounds.halfExtents` | Positive XYZ half sizes; doubled values equal dimensionsMeters |

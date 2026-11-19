@@ -785,6 +785,486 @@
         "restitution": 0.05
       },
       "sourceSha256": "6855b86981d838b88dd69856155c2028ea910181c7bb8a83890e9969b9d08c01"
+    },
+    {
+      "id": "potato-chips",
+      "path": "assets/models/potato-chips.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        1.7599999904632568,
+        2.3900001142174006,
+        0.810699999332428
+      ],
+      "pivot": {
+        "type": "base-center",
+        "offset": [
+          0,
+          -0.009999999776482582,
+          0.03964999318122864
+        ]
+      },
+      "bounds": {
+        "center": [
+          0,
+          1.1850000573322177,
+          0.03964999318122864
+        ],
+        "halfExtents": [
+          0.8799999952316284,
+          1.1950000571087003,
+          0.405349999666214
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0,
+            1.1850000573322177,
+            0.03964999318122864
+          ],
+          "halfExtents": [
+            0.8799999952316284,
+            1.1950000571087003,
+            0.405349999666214
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.08,
+        "friction": 0.55,
+        "restitution": 0.05
+      },
+      "sourceSha256": "f5e2f12c83d40c9da34e9c91281625cc38af96482b6979e0f9a2a004f7923fef"
+    },
+    {
+      "id": "water-bottle",
+      "path": "assets/models/water-bottle.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        1,
+        2.509999990463257,
+        1.0019999742507935
+      ],
+      "pivot": {
+        "type": "base-center",
+        "offset": [
+          0,
+          0,
+          0.0009999871253967285
+        ]
+      },
+      "bounds": {
+        "center": [
+          0,
+          1.2549999952316284,
+          0.0009999871253967285
+        ],
+        "halfExtents": [
+          0.5,
+          1.2549999952316284,
+          0.5009999871253967
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0,
+            1.2549999952316284,
+            0.0009999871253967285
+          ],
+          "halfExtents": [
+            0.5,
+            1.2549999952316284,
+            0.5009999871253967
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.2,
+        "friction": 0.55,
+        "restitution": 0.05
+      },
+      "sourceSha256": "e631344ec82ec7a05d242a17104093f322f10fd0e2da3e6671f59642c82eb8ed"
+    },
+    {
+      "id": "speaker",
+      "path": "assets/models/speaker.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        1.7999999523162842,
+        2.7850000858306885,
+        1.7369999289512634
+      ],
+      "pivot": {
+        "type": "base-center",
+        "offset": [
+          0,
+          0,
+          0.16849997639656067
+        ]
+      },
+      "bounds": {
+        "center": [
+          0,
+          1.3925000429153442,
+          0.16849997639656067
+        ],
+        "halfExtents": [
+          0.8999999761581421,
+          1.3925000429153442,
+          0.8684999644756317
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0,
+            1.3925000429153442,
+            0.16849997639656067
+          ],
+          "halfExtents": [
+            0.8999999761581421,
+            1.3925000429153442,
+            0.8684999644756317
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.35,
+        "friction": 0.55,
+        "restitution": 0.05
+      },
+      "sourceSha256": "13d933d3a5522c89b3e3904c55f654df966aa6bb9355b73f4b2e12046b1d0fc2"
+    },
+    {
+      "id": "chocolate",
+      "path": "assets/models/chocolate.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        1.899999976158142,
+        0.35499998927116394,
+        3.0350000858306885
+      ],
+      "pivot": {
+        "type": "base-center",
+        "offset": [
+          0,
+          0,
+          0.01750004291534424
+        ]
+      },
+      "bounds": {
+        "center": [
+          0,
+          0.17749999463558197,
+          0.01750004291534424
+        ],
+        "halfExtents": [
+          0.949999988079071,
+          0.17749999463558197,
+          1.5175000429153442
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0,
+            0.17749999463558197,
+            0.01750004291534424
+          ],
+          "halfExtents": [
+            0.949999988079071,
+            0.17749999463558197,
+            1.5175000429153442
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.08,
+        "friction": 0.55,
+        "restitution": 0.05
+      },
+      "sourceSha256": "ea635ebe57494c73b5c984bc5d38cdd563f2ca32a13c628954606e34028d8e2d"
+    },
+    {
+      "id": "phone-charger",
+      "path": "assets/models/phone-charger.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        1.5,
+        1.5,
+        2.740000009536743
+      ],
+      "pivot": {
+        "type": "base-center",
+        "offset": [
+          0,
+          0,
+          -0.3450000286102295
+        ]
+      },
+      "bounds": {
+        "center": [
+          0,
+          0.75,
+          -0.3450000286102295
+        ],
+        "halfExtents": [
+          0.75,
+          0.75,
+          1.3700000047683716
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0,
+            0.75,
+            -0.3450000286102295
+          ],
+          "halfExtents": [
+            0.75,
+            0.75,
+            1.3700000047683716
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.12,
+        "friction": 0.55,
+        "restitution": 0.05
+      },
+      "sourceSha256": "9f0d9ef9c5fda2170cdf7cea361df1354f7089b1b38c8cc36c5711bba6a361ed"
+    },
+    {
+      "id": "mouse",
+      "path": "assets/models/mouse.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        1.2999999523162842,
+        0.8999999761581421,
+        2.200000047683716
+      ],
+      "pivot": {
+        "type": "base-center",
+        "offset": [
+          0,
+          0,
+          0
+        ]
+      },
+      "bounds": {
+        "center": [
+          0,
+          0.44999998807907104,
+          0
+        ],
+        "halfExtents": [
+          0.6499999761581421,
+          0.44999998807907104,
+          1.100000023841858
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0,
+            0.44999998807907104,
+            0
+          ],
+          "halfExtents": [
+            0.6499999761581421,
+            0.44999998807907104,
+            1.100000023841858
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.1,
+        "friction": 0.55,
+        "restitution": 0.05
+      },
+      "sourceSha256": "01627c984c50b662971fd0cb4702efe14af152b521ccf1f6eb880f10645fc751"
+    },
+    {
+      "id": "candy",
+      "path": "assets/models/candy.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        0.7133220853300415,
+        0.2622719732589524,
+        0.2622719708473902
+      ],
+      "pivot": {
+        "type": "base-center",
+        "offset": [
+          0,
+          -0.0014410546892428683,
+          0
+        ]
+      },
+      "bounds": {
+        "center": [
+          0,
+          0.12969493194023332,
+          0
+        ],
+        "halfExtents": [
+          0.35666104266502074,
+          0.1311359866294762,
+          0.1311359854236951
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0,
+            0.12969493194023332,
+            0
+          ],
+          "halfExtents": [
+            0.35666104266502074,
+            0.1311359866294762,
+            0.1311359854236951
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.02,
+        "friction": 0.55,
+        "restitution": 0.05
+      },
+      "sourceSha256": "6b016b84a0f2982a5db38d5ef5adc9510b481921ab0269de405ccea9576d91af"
+    },
+    {
+      "id": "game-controller",
+      "path": "assets/models/game-controller.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        3.959999747521749,
+        1.148789308918472,
+        2.439999929936107
+      ],
+      "pivot": {
+        "type": "base-center",
+        "offset": [
+          0,
+          0.029999996876023616,
+          -0.019999996457940483
+        ]
+      },
+      "bounds": {
+        "center": [
+          0,
+          0.6043946513352596,
+          -0.019999996457940483
+        ],
+        "halfExtents": [
+          1.9799998737608746,
+          0.574394654459236,
+          1.2199999649680535
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0,
+            0.6043946513352596,
+            -0.019999996457940483
+          ],
+          "halfExtents": [
+            1.9799998737608746,
+            0.574394654459236,
+            1.2199999649680535
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.25,
+        "friction": 0.55,
+        "restitution": 0.05
+      },
+      "sourceSha256": "6486d32ed06fad9f7ed44bcc6dfc2fea02e96ad92cc44817f9c1c35c8525eff7"
     }
   ]
 }
