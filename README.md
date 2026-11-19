@@ -109,12 +109,11 @@ Electron desktop packaging is a separate wrapper; see
 
 ## Deploy with GitHub Pages
 
-The repository is configured to publish `www/` from the `main` branch through
-the **Deploy web to GitHub Pages** Actions workflow. It also supports a manual
-**Run workflow** deployment.
+The **Deploy web to GitHub Pages** Actions workflow builds and publishes `www/`
+from the `main` branch. It enables GitHub Pages for the repository if needed
+and also supports a manual **Run workflow** deployment.
 
-On GitHub, open **Settings → Pages** and choose **GitHub Actions** as the source.
-Then push to `main` or run **Deploy web to GitHub Pages** manually. Open the
+Push to `main` or run **Deploy web to GitHub Pages** manually. Open the
 deployment URL printed in the `github-pages` environment or from the workflow's
 deployment step:
 
