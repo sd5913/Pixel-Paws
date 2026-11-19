@@ -48,9 +48,9 @@ npm run build
 npm run preview
 ```
 
-Open `http://127.0.0.1:4173/`. Press Start, push mugs with the joystick, and drag beyond the inner pad for continuous Dash. A topple shows +10; a fall shows +10 or +20 depending on previous credit. Restart should restore five mugs, zero score and 60 seconds. Let time expire to test timeout settlement, then Replay.
+Open `http://127.0.0.1:4173/play.html` (or choose **Play** on the homepage). Press Start, push mugs with the joystick, and drag beyond the inner pad for continuous Dash. A topple shows +10; a fall shows +10 or +20 depending on previous credit. Restart should restore five mugs, zero score and 60 seconds. Let time expire to test timeout settlement, then Replay.
 
-Optional `?debugScoring=1` replaces the roster with three synthetic IDs and shows labeled test controls. Before Start they must not score. Topple then Fall on one target gives 20; repeats give 0. Directly falling all three in a fresh round gives 60 and settles. These controls use production scoring but do not test physical detection. Normal preview hides them.
+Optional `play.html?debugScoring=1` replaces the roster with three synthetic IDs and shows labeled test controls. Before Start they must not score. Topple then Fall on one target gives 20; repeats give 0. Directly falling all three in a fresh round gives 60 and settles. These controls use production scoring but do not test physical detection. Normal preview hides them.
 
 Automated tests cover shared Mug/Book/Box rules, independent duplicates, direct falls, lifecycle guards, unique IDs, final award before single settlement, empty rosters, reset, bridge filtering and real Rapier pushing/reset. Browser and device playtesting remain necessary for tuning.
 

@@ -11,8 +11,10 @@ export async function buildSite({ sourceDir = 'src', outputDir = 'www' } = {}) {
   await mkdir(resolve(outputDir, 'assets'), { recursive: true });
 
   await Promise.all([
-    cp(resolve(sourceDir, 'index.html'), resolve(outputDir, 'index.html')),
+    cp(resolve(sourceDir, 'landing.html'), resolve(outputDir, 'index.html')),
+    cp(resolve(sourceDir, 'index.html'), resolve(outputDir, 'play.html')),
     cp(resolve(sourceDir, 'level-2.html'), resolve(outputDir, 'level-2.html')),
+    cp(resolve(sourceDir, 'landing.css'), resolve(outputDir, 'landing.css')),
     cp(resolve(sourceDir, 'style.css'), resolve(outputDir, 'style.css')),
     cp(resolve(sourceDir, 'assets', 'asset-manifest.json'), resolve(outputDir, 'assets', 'asset-manifest.json')),
     cp(resolve(sourceDir, 'assets', 'models'), resolve(outputDir, 'assets', 'models'), { recursive: true }),

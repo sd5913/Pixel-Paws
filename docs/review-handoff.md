@@ -18,7 +18,7 @@ Description: Replace the runner prototype with the shared desk scene and animate
 
 ## Try it
 
-Use Node 24; run npm ci, npm test, npm run build and npm run preview. Open http://127.0.0.1:4173/.
+Use Node 24; run npm ci, npm test, npm run build and npm run preview. Open http://127.0.0.1:4173/ and choose Play, or go directly to http://127.0.0.1:4173/play.html.
 
 1. Start; check the approved logo, HUD, joystick and SWAT button. No in-game Restart button should appear.
 2. Walk within the pad, drag outside for Dash, release to stop. Cat stays on the table.
@@ -26,7 +26,7 @@ Use Node 24; run npm ci, npm test, npm run build and npm run preview. Open http:
 4. Topple earns 10; a later fall adds 10. Direct fall earns 20. Five fallen mugs settle once at 100.
 5. Pause freezes time, input, animation and physics. Resume keeps remaining time; Restart resets five bodies and 60 seconds. Home returns to the logo and clears score.
 6. Let 60 seconds expire; verify TIME'S UP art. Clear all targets to verify TABLE CLEARED art. Replay starts fresh.
-7. Optional ?debugScoring=1 uses three synthetic targets; direct clear totals 60. Normal gameplay hides controls.
+7. Optional play.html?debugScoring=1 uses three synthetic targets; direct clear totals 60. Normal gameplay hides controls.
 
 ## Integration notes
 

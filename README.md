@@ -24,8 +24,9 @@ npm run build
 npm run preview
 ```
 
-Open `http://127.0.0.1:4173/` and click **Start**. Move the joystick to push
-mugs; drag beyond its inner pad for continuous Dash. Change `src/` and rerun the checks. A
+Open `http://127.0.0.1:4173/` for the project homepage, then choose **Play**
+to start a round. Move the joystick to push mugs; drag beyond its inner pad for
+continuous Dash. Change `src/` and rerun the checks. A
 teammate can branch, commit, push and open a PR with a description and test
 instructions. Actions uploads the `web` folder and an Android **debug APK**;
 download an artifact from the run and test it. The APK is not a signed store
@@ -39,7 +40,7 @@ physics integration API, see [`docs/scoring.md`](docs/scoring.md). The current
 scene connects eight desktop props to shared physical topple/fall events: toppling earns
 10 points and falling completes each target to 20 points. Rounds end when all targets fall or after 45 seconds. See
 [`docs/physics-integration.md`](docs/physics-integration.md) for detector limits.
-Use `?debugScoring=1` to explicitly enable simulated scoring controls.
+Use `play.html?debugScoring=1` to explicitly enable simulated scoring controls.
 
 Choose **Look** on the title screen to try the three illustrated lighting
 presets. **Achievements** opens the seven-badge collection. New badges appear on
@@ -111,7 +112,8 @@ Electron desktop packaging is a separate wrapper; see
 
 The **Deploy web to GitHub Pages** Actions workflow builds and publishes `www/`
 from the `main` branch. It enables GitHub Pages for the repository if needed
-and also supports a manual **Run workflow** deployment.
+and also supports a manual **Run workflow** deployment. The homepage introduces
+the game; select **Play** to open the game at `/play.html`.
 
 Push to `main` or run **Deploy web to GitHub Pages** manually. Open the
 deployment URL printed in the `github-pages` environment or from the workflow's

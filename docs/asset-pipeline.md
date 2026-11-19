@@ -59,7 +59,9 @@ The preview deliberately does not register its placeholder with the runner's cur
 `npm run build` first validates checked-in asset data, then:
 
 - bundles `src/app.js`, `three`, and Three.js add-ons into `www/app.js`;
-- copies `index.html` and `style.css`;
+- publishes `src/landing.html` as `www/index.html`, and the game in
+  `src/index.html` as `www/play.html` with its `style.css`;
+- copies `src/landing.css` to `www/landing.css`;
 - copies the manifest and models from `src/assets/` to `www/assets/` (authoring generators and reports stay out of the app build);
 - copies `src/scenes/` to `www/scenes/`.
 

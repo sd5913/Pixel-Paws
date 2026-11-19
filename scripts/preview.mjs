@@ -34,5 +34,5 @@ server.on('error', (error) => {
 });
 server.listen(port, '127.0.0.1', () => {
   console.log(`Preview: http://127.0.0.1:${port}/`);
-  console.log(`Scoring tests: http://127.0.0.1:${port}/?debugScoring=1`);
+  console.log(`Scoring tests: http://127.0.0.1:${port}/play.html?debugScoring=1`);
 });
