@@ -34,9 +34,9 @@
       "assetId": "desk-lamp",
       "transform": {
         "position": [
-          -0.75,
+          0.29730227909969686,
           0.75,
-          -1.39
+          -0.8632956936879719
         ],
         "rotation": [
           0,
@@ -67,9 +67,9 @@
       "audioMaterial": "glass",
       "transform": {
         "position": [
-          0.89,
+          -0.8943386199847556,
           0.75,
-          -1.32
+          -1.050036210594719
         ],
         "rotation": [
           0,
@@ -96,9 +96,9 @@
       },
       "transform": {
         "position": [
-          -0.95,
+          0.3367561609993803,
           0.7596900000050664,
-          0.04
+          1.0836003912983028
         ],
         "rotation": [
           0,
@@ -125,9 +125,9 @@
       },
       "transform": {
         "position": [
-          0.91,
+          0.7766943871314955,
           0.75,
-          0.97
+          -0.0011836804643301502
         ],
         "rotation": [
           0,
@@ -154,9 +154,9 @@
       },
       "transform": {
         "position": [
-          -0.6,
+          -0.866376600801482,
           0.7501259999955073,
-          0.48
+          -0.41448709635790415
         ],
         "rotation": [
           0,
@@ -183,9 +183,9 @@
       },
       "transform": {
         "position": [
-          0,
+          -0.1771284866365821,
           0.75,
-          -0.62
+          -1.6043271027993982
         ],
         "rotation": [
           0,
@@ -212,9 +212,9 @@
       },
       "transform": {
         "position": [
-          -0.91,
+          -0.7227800450255502,
           0.75,
-          1.15
+          1.1140808298889766
         ],
         "rotation": [
           0,
@@ -241,20 +241,252 @@
       },
       "transform": {
         "position": [
-          0.93,
-          0.7336367130279541,
-          -0.22
+          -1.0894721707710664,
+          0.8273590707778931,
+          0.3544305103547374
         ],
         "rotation": [
+          -0.7071067811865475,
           0,
-          -0.10977830083717481,
           0,
-          0.9939560979566968
+          0.7071067811865476
         ],
         "scale": [
           0.16,
           0.16,
           0.16
+        ]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
+      }
+    },
+    {
+      "id": "potato-chips",
+      "assetId": "potato-chips",
+      "scoring": {
+        "size": "small"
+      },
+      "transform": {
+        "position": [
+          -0.9140000332945999,
+          0.8048550009727478,
+          1.791169766586477
+        ],
+        "rotation": [
+          -0.7071067811865475,
+          0,
+          0,
+          0.7071067811865476
+        ],
+        "scale": [
+          0.15,
+          0.15,
+          0.15
+        ]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
+      }
+    },
+    {
+      "id": "water-bottle",
+      "assetId": "water-bottle",
+      "scoring": {
+        "size": "medium"
+      },
+      "transform": {
+        "position": [
+          1.2399138281564228,
+          0.75,
+          1.0727091625210854
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "scale": [
+          0.14,
+          0.14,
+          0.14
+        ]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
+      }
+    },
+    {
+      "id": "speaker",
+      "assetId": "speaker",
+      "scoring": {
+        "size": "medium"
+      },
+      "transform": {
+        "position": [
+          0.9461546451341356,
+          0.75,
+          1.0784210294794372
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "scale": [
+          0.14,
+          0.14,
+          0.14
+        ]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
+      }
+    },
+    {
+      "id": "chocolate",
+      "assetId": "chocolate",
+      "scoring": {
+        "size": "small"
+      },
+      "transform": {
+        "position": [
+          -0.6874752986767997,
+          0.75,
+          0.6559468523204424
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "scale": [
+          0.11,
+          0.11,
+          0.11
+        ]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
+      }
+    },
+    {
+      "id": "phone-charger",
+      "assetId": "phone-charger",
+      "scoring": {
+        "size": "small"
+      },
+      "transform": {
+        "position": [
+          -0.19101631498429938,
+          0.75,
+          0.8857903985046165
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "scale": [
+          0.1,
+          0.1,
+          0.1
+        ]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
+      }
+    },
+    {
+      "id": "mouse",
+      "assetId": "mouse",
+      "scoring": {
+        "size": "small"
+      },
+      "transform": {
+        "position": [
+          0.3904043720917538,
+          0.75,
+          1.6859082102280387
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "scale": [
+          0.12,
+          0.12,
+          0.12
+        ]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
+      }
+    },
+    {
+      "id": "candy",
+      "assetId": "candy",
+      "scoring": {
+        "size": "small"
+      },
+      "transform": {
+        "position": [
+          -0.5702862905777686,
+          0.7502017476564941,
+          -0.03724140426207634
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "scale": [
+          0.14,
+          0.14,
+          0.14
+        ]
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "colliderSet": "default"
+      }
+    },
+    {
+      "id": "game-controller",
+      "assetId": "game-controller",
+      "scoring": {
+        "size": "medium"
+      },
+      "transform": {
+        "position": [
+          1.0279139025253543,
+          0.7464000003748772,
+          -1.0507833650665401
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "scale": [
+          0.12,
+          0.12,
+          0.12
         ]
       },
       "physics": {
