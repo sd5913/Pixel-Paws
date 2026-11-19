@@ -1,6 +1,7 @@
 import { createPhysicsWorld } from './physics-world.js';
 import { createPhysicsBody, syncPhysicsBody } from './physics-body.js';
 import { physicsEvents } from './physics-events.js';
+import { createPencilSpill } from './pencil-holder.js';
 import { SWAT } from '../swat.js';
 
 // Gameplay weight tuning leaves the shared asset definitions unchanged.
@@ -32,6 +33,8 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
   cat.rigidBody.setGravityScale(0, true);
   cat.rigidBody.enableCcd(true);
   const dynamic = bodies.filter(entry => entry.instance.physics.bodyType === 'dynamic');
+  const spills = dynamic.filter(({ instance }) => instance.assetId === 'pencil-holder')
+    .map(({ body }) => createPencilSpill(physics, body));
   const fixedObstacles = bodies.filter(({ instance }) => instance.isObstacle && instance.physics.bodyType === 'static')
     .flatMap(({ body }) => body.colliders);
   if (windowWall) {
@@ -105,12 +108,14 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
         }) || 0;
       player.position.copy(cat.rigidBody.translation());
       for (const { body } of dynamic) syncPhysicsBody(body);
+      for (const spill of spills) spill.update();
       events.processCollisionEvents(physics.drainCollisionEvents());
       if (steps) events.updateBodyStates(steps * physics.timestep);
       return steps;
     },
     reset() {
       events.resetImpacts?.();
+      for (const spill of spills) spill.reset();
       for (const { instance, body } of bodies) {
         const [x, y, z] = instance.initialTransform.position;
         const [qx, qy, qz, qw] = instance.initialTransform.rotation;
