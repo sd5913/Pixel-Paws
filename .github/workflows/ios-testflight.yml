@@ -1,0 +1,51 @@
+name: Upload Pixel Paws to TestFlight
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: 'Unused positive integer build number for this app version'
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: pixel-paws-testflight
+  cancel-in-progress: false
+jobs:
+  upload:
+    if: github.repository == 'sd5913/Pixel-Paws' && github.ref == 'refs/heads/main'
+    environment: pixel-paws-testflight
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - name: Check prerequisites
+        env:
+          BUILD_NUMBER: ${{ inputs.build_number }}
+          ENABLED: ${{ vars.PIXEL_PAWS_TESTFLIGHT_ENABLED }}
+        run: |
+          test "$ENABLED" = true
+          [[ "$BUILD_NUMBER" =~ ^[1-9][0-9]{0,8}$ ]]
+          xcodebuild -version
+          sdk="$(xcrun --sdk iphoneos --show-sdk-version)"
+          (( ${sdk%%.*} >= 26 ))
+      - run: npm ci
+      - run: npm run build
+      - run: npx --no-install cap sync ios
+      - name: Sign and upload an internal-only build
+        env:
+          BUILD_NUMBER: ${{ inputs.build_number }}
+          APPLE_TEAM_ID: ${{ vars.PIXEL_PAWS_APPLE_TEAM_ID }}
+          DISTRIBUTION_P12: ${{ secrets.PIXEL_PAWS_DISTRIBUTION_P12_BASE64 }}
+          DISTRIBUTION_PASSWORD: ${{ secrets.PIXEL_PAWS_DISTRIBUTION_P12_PASSWORD }}
+          PROVISIONING_PROFILE: ${{ secrets.PIXEL_PAWS_PROVISIONING_PROFILE_BASE64 }}
+          ASC_KEY: ${{ secrets.PIXEL_PAWS_ASC_KEY_BASE64 }}
+          ASC_KEY_ID: ${{ vars.PIXEL_PAWS_ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ vars.PIXEL_PAWS_ASC_ISSUER_ID }}
+        run: bash .github/scripts/ios-testflight.sh
