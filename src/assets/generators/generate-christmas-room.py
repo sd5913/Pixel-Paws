@@ -136,4 +136,3 @@ bpy.ops.export_scene.gltf(filepath=os.path.abspath('src/assets/models/christmas-
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
 bpy.ops.import_scene.gltf(filepath=os.path.abspath('src/assets/models/christmas-room.glb'))
 print('Christmas room re-imported:',len(bpy.context.scene.objects),'objects')
-
