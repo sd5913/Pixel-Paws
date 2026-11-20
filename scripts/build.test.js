@@ -31,7 +31,10 @@ test('buildSite bundles local Three.js and copies packaged assets', async () => 
   await writeFile(join(sourceDir, 'level-2.html'), '<script type="module" src="level-2.js"></script>');
   await writeFile(join(sourceDir, 'level-2.js'), 'console.log("Level two");');
 
+  await writeFile(join(sourceDir, 'level-3.html'), '<script type="module" src="level-3.js"></script>');
+  await writeFile(join(sourceDir, 'level-3.js'), 'console.log("Level three");');
   await buildSite({ sourceDir, outputDir });
+  assert.match(await readFile(join(outputDir, 'level-3.js'), 'utf8'), /Level three/);
 
   assert.match(await readFile(join(outputDir, 'index.html'), 'utf8'), /landing\.css/);
   assert.match(await readFile(join(outputDir, 'play.html'), 'utf8'), /app\.js/);
