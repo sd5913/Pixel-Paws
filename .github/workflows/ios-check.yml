@@ -1,0 +1,29 @@
+name: iOS build check
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  simulator:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - run: bash .github/scripts/ios-prepare.sh
+      - name: Compile for the simulator
+        run: |
+          xcodebuild -version
+          xcodebuild -project ios/App/App.xcodeproj -scheme PixelPaws \
+            -clonedSourcePackagesDirPath "$RUNNER_TEMP/pixel-paws-spm" \
+            -disableAutomaticPackageResolution -skipPackageUpdates \
+            -configuration Debug -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/pixel-paws-ios" CODE_SIGNING_ALLOWED=NO build
+          test -s "$RUNNER_TEMP/pixel-paws-ios/Build/Products/Debug-iphonesimulator/PixelPaws.app/public/index.html"

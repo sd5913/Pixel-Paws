@@ -1,1 +1,8 @@
-{"appId":"org.sd5913.teamsignal","appName":"Team Signal","webDir":"www"}
+{
+  "appId": "org.sd5913.teamsignal",
+  "appName": "Team Signal",
+  "webDir": "www",
+  "ios": {
+    "scheme": "PixelPaws"
+  }
+}
