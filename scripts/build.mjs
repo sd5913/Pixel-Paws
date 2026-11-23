@@ -17,6 +17,7 @@ export async function buildSite({ sourceDir = 'src', outputDir = 'www' } = {}) {
     cp(resolve(sourceDir, 'level-3.html'), resolve(outputDir, 'level-3.html')),
     cp(resolve(sourceDir, 'landing.css'), resolve(outputDir, 'landing.css')),
     cp(resolve(sourceDir, 'style.css'), resolve(outputDir, 'style.css')),
+    cp(resolve(sourceDir, 'privacy'), resolve(outputDir, 'privacy'), { recursive: true }),
     cp(resolve(sourceDir, 'assets', 'asset-manifest.json'), resolve(outputDir, 'assets', 'asset-manifest.json')),
     cp(resolve(sourceDir, 'assets', 'models'), resolve(outputDir, 'assets', 'models'), { recursive: true }),
     cp(resolve(sourceDir, 'assets', 'ui'), resolve(outputDir, 'assets', 'ui'), { recursive: true }),

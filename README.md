@@ -1,17 +1,10 @@
 # Team Pixel Paws
 
-An interactive game placing the player in the mind of a cat, irritated by their owner and seeking revenge, it is their job to knock 
-everything off of every counter. Each item swatted away correlates to a certain number of points. The more items the player can destory, the 
-higher their score. Allowing users to release their inner rage through a deceptively cute game while on commute, sitting at home, or just in 
-desperate need to relieve stress. 
-
-To manipulate the cat, the player must use the digital joystick to guide the cat to the desired item, the "SMACK!" it off of the level's 
-surface to crash it onto the ground. Points are then recieved upon item destruction, which can then be applied to internal leaderboard along 
-with the time it took to complete the level. In-Game Currency, Cat Treats, can also be gained through the levels. Allowing the player to 
-spend their rewards on customization options for their cat character. At the end of level, achievments will also be accounted for and placed 
-along your account description so the player can share their accomplishments with others. 
-
-The game is based on three.js for ease on mobile and desktop website. 
+Pixel Paws is a small game about a cat clearing objects off a desk. Move with
+the on-screen joystick or keyboard, swat objects, score points, and collect
+achievements. Best scores and achievements are saved on the current device.
+The game has no account, leaderboard, or in-game currency. It uses Three.js
+and is playable on the web, with an iOS version in preparation.
 
 ## Run and change
 
@@ -123,3 +116,28 @@ deployment step:
 
 The build uses relative asset paths, so it works at that project subpath. Pull
 requests do not deploy to Pages.
+
+### Privacy Policy for iOS TestFlight
+
+The intended public URL is `https://sd5913.github.io/Pixel-Paws/privacy/`.
+The policy source is `src/privacy/index.html`. Edit that file when the app's
+data practices change, review the wording against the current iOS build, and
+update its effective or last updated date as appropriate. `scripts/build.mjs`
+copies the `src/privacy/` directory into `www/privacy/`; the existing Pages
+workflow publishes that directory alongside the game homepage. Do not edit
+the generated `www/` copy directly. To publish this PR before merging, run
+the existing **Deploy web to GitHub Pages** workflow manually with this branch
+selected, if the `github-pages` environment permits it; that workflow does not
+run the iOS upload. A later merge to `main`
+also publishes the page through the normal Pages deployment. After a
+successful deployment, check the public URL, then enter it in **App Store
+Connect → Pixel Paws → App Information → Privacy Policy URL** and in any
+TestFlight beta information field that asks for a privacy policy link.
+
+Before submitting the URL, the app owner should verify the shipped iOS build
+and bundled dependencies still have no analytics, ads, tracking, account flow,
+or server upload of gameplay data; confirm the App Store Connect app privacy
+answers and any required privacy manifests match the release. The current
+source saves best scores and achievements locally; appearance choices are
+handled on-device for the current session rather than persisted. Apple may
+separately process diagnostics and feedback for TestFlight testers.
