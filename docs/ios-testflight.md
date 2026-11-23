@@ -179,68 +179,33 @@ step uses a temporary keychain and profile, exports a local IPA, then removes
 signing material. The upload step receives only the individual key and deletes
 the export at job completion. No signed artifact is attached to the run.
 
-### 5. Publish a version from the GitHub website
+Once the workflow has reached protected `main` and the enable variable is
+set, the next reviewed push starts **Upload Pixel Paws to TestFlight**.
+Changes to docs count too. Watch the **Actions** run for that SHA and note
+the build number and upload ID from the upload step. Check **App Store
+Connect → Apps → Pixel Paws → TestFlight → Builds** for that version and build
+number, then wait for Apple processing. The Actions result confirms the
+upload was committed for processing. Confirm the processed build in App Store
+Connect. The export allows both internal and external TestFlight testing;
+the upload does not assign the build to either group.
 
-The iOS marketing version comes from the tag: `v1.1.0` produces
-`CFBundleShortVersionString` `1.1.0`. The Xcode project still has a development
-default of `1.0`; the release workflow overrides it from the validated tag.
-`CFBundleVersion` is generated from the GitHub Actions run number and attempt,
-so a workflow retry gets a new Apple-compatible build number rather than
-reusing the previous attempt's number. The same tag and commit are required on
-every attempt.
+GitHub queues release runs, with a queue limit of 100 pending runs. Each run
+and retry attempt has a distinct numeric build number. If delivery status is
+uncertain, check App Store Connect before retrying. If Apple already accepted
+the build, let it process. Otherwise, rerun the latest applicable main run
+after correcting the failure. Retries of superseded commits stop before
+signing. For an existing TestFlight history, make sure the first automated
+build number exceeds prior uploads for that marketing version. Bump the
+marketing version or migrate the numbering before enabling if needed.
 
-The existing App Store Connect history uses version `1.0`. Before the first
-automated release, inspect **App Store Connect → Apps → Pixel Paws →
-TestFlight → Builds** and select an unused, higher marketing version; use
-`v1.1.0` if it is available. Do not start with `v1.0.0` or another version
-that Apple has already received. For every later release, choose a new,
-unused, higher version and never move or reuse a tag.
-
-1. Make sure the release changes have been merged to protected `main` through
-   the required review and checks. Confirm the desired commit is on `main`
-   and the version tag does not already exist.
-2. Open the repository's **Releases** page and choose **Draft a new release**.
-3. In **Choose a tag**, enter the exact tag, for example `v1.1.0`, and choose
-   **Create new tag on publish**. Set **Target** to `main` (or to the reviewed
-   commit on `main` that should be released). Do not use a branch or commit
-   that is not reachable from protected `main`.
-4. Enter a release title, add release notes, and choose **Publish release**.
-   Publishing creates the tag and starts the tag-based Web/Android and
-   TestFlight workflows. The Web/Android workflow reuses the release created
-   by the website and uploads/replaces its generated package assets; it does
-   not fail by trying to create a duplicate release.
-5. In **Actions**, check the tag's **Check and build** and **Upload Pixel Paws
-   to TestFlight** runs. The TestFlight workflow first checks the exact tag
-   format, the remote tag target, and reachability from `main`. Those checks
-   run before the job that selects `pixel-paws-testflight`; malformed tags or
-   tags on unreviewed branches cannot reach its credentials. If
-   `PIXEL_PAWS_TESTFLIGHT_ENABLED` is not `true`, no signed build or upload is
-   performed.
-6. When enabled, note the generated build number in the run and inspect the
-   matching marketing version and build under **App Store Connect → Apps →
-   Pixel Paws → TestFlight → Builds**. Wait for Apple's processing to finish.
-
-If a run fails, check **App Store Connect** before retrying: each retry has a
-new build number, so an upload accepted by Apple but reported ambiguously may
-otherwise result in an additional build. Retry only the same tag and commit;
-the workflow rechecks the remote tag before signing and refuses a moved tag.
-Use a new version tag for a new release, not a retry.
-
-### 6. TestFlight testers
-
-The export configuration does not restrict a build to internal testing, so
-the uploaded build can be considered for future external testing. Uploading
-does not automatically submit a build for Beta App Review or distribute it
-to testers.
+### 5. Internal testers
 
 In **TestFlight → Internal Testing**, create a group and add eligible App
 Store Connect users who have access to Pixel Paws. Enable automatic
 distribution for a group if you want it to receive each eligible build, or
 use **Add Builds** to assign a build. Complete any required export compliance
 questions. Testers accept in the TestFlight app, and internal testing does
-not require external beta review. This workflow only uploads a build. It never
-assigns testers, starts external review, submits for public App Review, or
-releases on the App Store. Finish by running the real iPhone checks above.
+not require external beta review. Finish by running the real iPhone checks above.
 
 For external testing, use **TestFlight → External Testing** in App Store
 Connect after processing. Complete Apple's beta app information and export
@@ -251,3 +216,19 @@ approves it and you enable distribution for the group.
 [Internal TestFlight testing](https://developer.apple.com/help/app-store-connect/test-a-beta-version/add-internal-testers/) ·
 [External TestFlight testing](https://developer.apple.com/help/app-store-connect/test-a-beta-version/invite-external-testers/) ·
 [Apple build statuses](https://developer.apple.com/help/app-store-connect/reference/app-uploads/app-build-statuses/)
+
+### 6. External testers
+
+After Apple processes the build, complete any export compliance questions in
+App Store Connect. In **TestFlight → External Testing**, create a group and
+select the build. Provide the required beta test information, including what
+to test, a feedback contact, and any sign-in or review instructions Apple
+requests. Submit the build for **TestFlight App Review** and wait for Apple's
+approval before inviting external testers by email or public link. Apple may
+review later builds too. This workflow only uploads the IPA; an authorized
+App Store Connect user must manage the external group, review submission,
+and invitations. Beta approval does not publish the app on the App Store.
+
+[External TestFlight testing](https://developer.apple.com/help/app-store-connect/test-a-beta-version/invite-external-testers/) ·
+[TestFlight App Review](https://developer.apple.com/help/app-store-connect/test-a-beta-version/submit-a-build-for-beta-app-review/) ·
+[Export compliance](https://developer.apple.com/help/app-store-connect/manage-app-information/determine-and-upload-app-encryption-documentation/)
