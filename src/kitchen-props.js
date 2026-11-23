@@ -1,3 +1,4 @@
+import { inSwatRange } from './swat.js';
 import { createVaseBreakage } from './physics/vase-breakage.js';
 import { createLooseKitchenPart } from './physics/loose-kitchen-part.js';
 import * as THREE from 'three';
@@ -13,7 +14,7 @@ const ITEMS = [
   ['08-wooden-cutting-board', .65,.95,.54,.12,.35],
   ['09-ceramic-bowl', 1.30,.35,.35,.28,.20],
   ['10-cookie-cutters', -.40,1.40,.32,.16,.10],
-  ['11-oven-mitt', .15,1.45,.32,.13,.08],
+  ['11-oven-mitt', .15,1.40,.43,.18,.08],
   ['12-cake-stand', 1.15,-.30,.43,.47,.30],
   ['13-egg-tray', -.65,.40,.42,.20,.20],
   ['14-wooden-rolling-pin', .05,.65,.48,.15,.12],
@@ -24,8 +25,13 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
   const looseParts = [];
   const breakages=[];
   const jamSpills=[];
+  const saltPieces=[];
   const entries = await Promise.all(ITEMS.map(async ([id,x,z,width,maxHeight,mass]) => {
     const model = (await loadModel('./assets/models/level-2/'+id+'.glb')).clone(true);
+    if(id==='01-kitchen-scale'){
+      const base=model.getObjectByName('Cube');
+      if(base)base.removeFromParent();
+    }
     const object = new THREE.Group();
     object.add(model);
     if(['02-recipe-book','07-piping-bag'].includes(id))model.rotation.x=-Math.PI/2;
@@ -59,15 +65,38 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
     if(!carrierBounds.isEmpty()){
       const localCenter=carrierBounds.getCenter(new THREE.Vector3()).sub(start);
       const carrierHalf=carrierBounds.getSize(new THREE.Vector3()).multiplyScalar(.5);
+      if(id==='13-egg-tray')carrierHalf.y=Math.max(carrierHalf.y,.018);
       body=world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(...start.toArray()));
       body.enableCcd(true);body.setSoftCcdPrediction(.05);
-      const collider=world.createCollider(R.ColliderDesc.cuboid(carrierHalf.x,carrierHalf.y,carrierHalf.z)
-        .setTranslation(...localCenter.toArray()).setMass(mass).setFriction(.65).setRestitution(.04)
-        .setSolverGroups((2<<16)|3),body);
-      if(id==='06-strawberry-jam'){
+      const holder=id==='03-utensil-holder';
+      const collider=world.createCollider(R.ColliderDesc.cuboid(carrierHalf.x,holder?.008:carrierHalf.y,carrierHalf.z)
+        .setTranslation(localCenter.x,holder?localCenter.y-carrierHalf.y+.008:localCenter.y,localCenter.z).setMass((holder?mass*.3:mass)*.8).setFriction(.65).setRestitution(0).setContactSkin(.003)
+        .setSolverGroups(id==='13-egg-tray'||holder?0xffffffff:((2<<16)|3)),body);
+      if(holder){
+        for(const [sx,sz] of [[-1,0],[1,0],[0,-1],[0,1]]){
+          world.createCollider(R.ColliderDesc.cuboid(sx?.008:carrierHalf.x,carrierHalf.y,sz?.008:carrierHalf.z)
+            .setTranslation(localCenter.x+sx*(carrierHalf.x-.008),localCenter.y,localCenter.z+sz*(carrierHalf.z-.008))
+            .setMass(mass*.175*.8).setFriction(.6).setRestitution(0).setContactSkin(.002),body);
+        }
+      }
+      if(['06-strawberry-jam','04-glass-spice-jar'].includes(id)){
         breakages.push(createVaseBreakage(environment.physics,{object3D:object},{rigidBody:body,colliders:[collider]},environment.floorCollider,{
           fragmentColor:'#e4e5d8',
           onBreak(position){
+            if(id==='04-glass-spice-jar'){
+              const material=new THREE.MeshStandardMaterial({color:'#fff8e6',roughness:1});
+              const heap=new THREE.Mesh(new THREE.SphereGeometry(1,16,8),material);
+              heap.position.set(position.x,.012,position.z);heap.scale.set(.10,.018,.085);scene.add(heap);saltPieces.push({mesh:heap});
+              for(let i=0;i<20;i++){
+                const size=.008+(i%4)*.002;
+                const mesh=new THREE.Mesh(new THREE.BoxGeometry(size,size,size),material);
+                mesh.position.set(position.x,.025,position.z);scene.add(mesh);
+                const rigid=world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(...mesh.position.toArray()));rigid.enableCcd(true);
+                world.createCollider(R.ColliderDesc.cuboid(size/2,size/2,size/2).setMass(.0005).setFriction(.85),rigid);
+                const angle=i*2.4;rigid.setLinvel({x:Math.cos(angle)*.18,y:.1+(i%3)*.03,z:Math.sin(angle)*.18},true);saltPieces.push({mesh,body:rigid});
+              }
+              return;
+            }
             const material=new THREE.MeshStandardMaterial({color:'#9b152f',roughness:.28});
             const spill=new THREE.Mesh(new THREE.SphereGeometry(1,32,10),material);
             spill.position.set(position.x,.009,position.z);spill.scale.set(.035,.009,.03);scene.add(spill);jamSpills.push(spill);
@@ -89,6 +118,7 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
       }
       for(const part of looseParts)part.update(tableHeight,1.95);
       for(const breakage of breakages)breakage.update();
+      for(const piece of saltPieces)if(piece.body){piece.mesh.position.copy(piece.body.translation());piece.mesh.quaternion.copy(piece.body.rotation());}
       for(const spill of jamSpills)spill.scale.lerp(new THREE.Vector3(.24,.009,.19),.06);
     },
     swat(position,yaw) {
@@ -98,8 +128,8 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
         if(!body)continue;
         const center=body.worldCom();
         const dx=center.x-position.x,dz=center.z-position.z;
-        if(Math.hypot(dx,dz)>.75 || dx*forward.x+dz*forward.z<-.1)continue;
-        body.applyImpulseAtPoint({x:forward.x*.25,y:.025,z:forward.z*.25},
+        if(!inSwatRange(position,yaw,center))continue;
+        body.applyImpulseAtPoint({x:forward.x*.20,y:.025,z:forward.z*.20},
           {x:center.x,y:center.y+.10,z:center.z},true);
       }
     },
@@ -114,6 +144,9 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
       scene.updateMatrixWorld(true);
       for(const part of looseParts)part.reset();
       for(const breakage of breakages)breakage.reset();
+      const saltMaterials=new Set();
+      for(const piece of saltPieces){if(piece.body)world.removeRigidBody(piece.body);piece.mesh.removeFromParent();piece.mesh.geometry.dispose();saltMaterials.add(piece.mesh.material);}
+      for(const material of saltMaterials)material.dispose();saltPieces.length=0;
       for(const spill of jamSpills){spill.removeFromParent();spill.geometry.dispose();spill.material.dispose();}jamSpills.length=0;
     },
   };

@@ -583,7 +583,7 @@ function renderScore(snapshot) {
       ui.result.showModal();
     };
     // Stop the round immediately, but let the final points remain visible first.
-    if (gained > 0) resultRevealTimer = setTimeout(reveal, 700);
+    if (gained > 0 && !cleared) resultRevealTimer = setTimeout(reveal, 700);
     else reveal();
   } else if (ui.result.open) ui.result.close();
   ui.status.textContent = snapshot.state === 'ended'

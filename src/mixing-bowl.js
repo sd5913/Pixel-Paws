@@ -1,3 +1,4 @@
+import { inSwatRange } from './swat.js';
 import { addBakingWindowColliders } from './physics/baking-window-colliders.js';
 import { addBakingChairColliders } from './physics/baking-chair-colliders.js';
 import * as THREE from 'three';
@@ -40,7 +41,7 @@ export async function createMixingBowl(scene, renderer, tableHeight, tableRadius
     }
   });
   const vertices = new Float32Array(points);
-  const bowlCollider = world.createCollider(R.ColliderDesc.convexHull(vertices).setMass(.35).setFriction(.6).setRestitution(.03), body);
+  const bowlCollider = world.createCollider(R.ColliderDesc.convexHull(vertices).setMass(.28).setFriction(.6).setRestitution(.03), body);
   // Contents must escape the bowl's conservative solid collision hull.
   bowlCollider.setSolverGroups((2 << 16) | 3);
   const whisk = model.children.find(node => node.name.startsWith('03_'));
@@ -86,7 +87,7 @@ export async function createMixingBowl(scene, renderer, tableHeight, tableRadius
     whiskRestTime = 0;
     if (whiskCollider) world.removeCollider(whiskCollider, true);
     whiskCollider = world.createCollider(R.ColliderDesc.convexHull(new Float32Array(hull))
-      .setMass(.045).setFriction(.7).setRestitution(0)
+      .setMass(.036).setFriction(.7).setRestitution(0)
       .setSolverGroups((4 << 16) | 5), whiskBody);
     whiskBody.setTranslation(center, true);
     whiskBody.setRotation({x:0,y:0,z:0,w:1},true);
@@ -167,17 +168,17 @@ export async function createMixingBowl(scene, renderer, tableHeight, tableRadius
   function swat(position,yaw) {
     if (whiskReleased) {
       const center = whiskBody.worldCom();
-      if (Math.hypot(center.x-position.x,center.z-position.z)<.8) {
-        whiskBody.applyImpulse({x:Math.sin(yaw)*.10,y:.015,z:Math.cos(yaw)*.10},true);
+      if (inSwatRange(position,yaw,center)) {
+        whiskBody.applyImpulse({x:Math.sin(yaw)*.08,y:.015,z:Math.cos(yaw)*.08},true);
       }
     }
     const center=body.worldCom();
-    if(Math.hypot(center.x-position.x,center.z-position.z)>.85)return;
-    body.applyImpulseAtPoint({x:Math.sin(yaw)*.30,y:.035,z:Math.cos(yaw)*.30},
+    if(!inSwatRange(position,yaw,center))return;
+    body.applyImpulseAtPoint({x:Math.sin(yaw)*.24,y:.035,z:Math.cos(yaw)*.24},
       {x:center.x,y:center.y+.22,z:center.z},true);
   }
   function update(delta, catPosition) {
-    catBody.setNextKinematicTranslation({x:catPosition.x,y:tableHeight+.20,z:catPosition.z});
+    if (!environment) catBody.setNextKinematicTranslation({x:catPosition.x,y:tableHeight+.20,z:catPosition.z});
     if (!environment) physics.step(delta, (_world, timestep) => supportWhisk(timestep));
     else supportWhisk(delta);
     model.position.copy(body.translation());model.quaternion.copy(body.rotation());model.updateMatrixWorld(true);

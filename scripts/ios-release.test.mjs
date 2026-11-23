@@ -87,7 +87,7 @@ test('rejects broad access, invalid ranges, and failed parts before commit', asy
 });
 
 test('release only runs from protected main, with stage-scoped credentials', () => {
-  const read = name => readFileSync(new URL('../.github/workflows/' + name, import.meta.url), 'utf8');
+  const read = name => readFileSync(new URL('../.github/workflows/' + name, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   const release = read('ios-testflight.yml');
   assert.match(release, /on:\n  push:\n    branches: \[main\]/);
   assert.doesNotMatch(release, /pull_request|workflow_dispatch|ASC_ISSUER/);

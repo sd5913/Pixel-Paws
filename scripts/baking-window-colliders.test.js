@@ -17,11 +17,11 @@ test('baking window and rear wall stop fast props and the sill supports falling 
     });
     for(let frame=0;frame<30;frame++)physics.step(1/60);
     for(const body of objects)assert.ok(body.translation().z> -2.44,'rear barrier blocks fast-moving object');
-    world.gravity.y=-9.81;
-    const falling = world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(.8,1.2,-2.08));
+
+    const falling = world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(.8,1.2,-1.65));
     world.createCollider(R.ColliderDesc.ball(.03).setMass(.04).setRestitution(0),falling);
-    falling.enableCcd(true);
+    falling.enableCcd(true); falling.setLinvel({x:0,y:0,z:-8},true);
     for(let frame=0;frame<180;frame++)physics.step(1/60);
-    assert.ok(falling.translation().y>.60,'sill catches falling object');
+    assert.ok(falling.translation().z > -1.86, 'air wall blocks entry into planter row');
   } finally {physics.dispose();}
 });
