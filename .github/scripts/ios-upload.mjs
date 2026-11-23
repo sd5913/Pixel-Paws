@@ -6,6 +6,12 @@ import { pathToFileURL } from 'node:url';
 const apiOrigin = 'https://api.appstoreconnect.apple.com';
 const bundleId = 'org.sd5913.pixelpaws';
 
+export function releaseVersion(tag) {
+  const match = /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.exec(tag ?? '');
+  if (!match) throw new Error('Release tag must strictly match vMAJOR.MINOR.PATCH (for example, v1.1.0)');
+  return match.slice(1).join('.');
+}
+
 export function buildNumber(run, attempt) {
   if (!/^[1-9]\d{0,4}$/.test(run) || Number(run) > 99989 || !/^[1-9]\d{0,2}$/.test(attempt)) {
     throw new Error('GitHub run number or attempt exceeds the reserved iOS build-number range');
@@ -56,7 +62,8 @@ export async function uploadBuild({ key, keyId, ipa, version, build, fileName = 
     throw new Error('Expected the individual key to see exactly one app, ' + bundleId);
   }
   if (checkOnly) return app.id;
-  if (!ipa?.length || !/^\d+\.\d+(?:\.\d+)?$/.test(version) || !/^[1-9]\d{0,3}\.\d{1,2}\.\d{1,2}$/.test(build)) {
+  if (!ipa?.length || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version) ||
+      !/^[1-9]\d{0,3}\.\d{1,2}\.\d{1,2}$/.test(build)) {
     throw new Error('Expected a nonempty IPA and valid iOS version and build numbers');
   }
 
@@ -108,6 +115,10 @@ export async function uploadBuild({ key, keyId, ipa, version, build, fileName = 
 }
 
 async function main([command, ipaPath, version, build]) {
+  if (command === 'release-version') {
+    console.log(releaseVersion(ipaPath));
+    return;
+  }
   if (command === 'build-number') {
     console.log(buildNumber(process.env.GITHUB_RUN_NUMBER, process.env.GITHUB_RUN_ATTEMPT));
     return;
@@ -118,7 +129,7 @@ async function main([command, ipaPath, version, build]) {
     console.log('Individual key can see only Pixel Paws (App Store Connect app ID ' + id + ').');
     return;
   }
-  if (command !== 'upload' || !ipaPath) throw new Error('Expected build-number, check-access, or upload <ipa> <version> <build>');
+  if (command !== 'upload' || !ipaPath) throw new Error('Expected release-version <tag>, build-number, check-access, or upload <ipa> <version> <build>');
   const id = await uploadBuild({ ...auth, ipa: await readFile(ipaPath), fileName: basename(ipaPath), version, build });
   console.log('App Store Connect accepted upload ' + id + ' for processing. Build ' + build + '.');
 }

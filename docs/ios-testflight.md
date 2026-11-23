@@ -120,15 +120,24 @@ workflow disabled until all protections, credentials, and tests are in place.
   executed in release builds. Separate reviewers from contributors who need
   ordinary write access.
 - In **Settings → Environments**, create `pixel-paws-testflight`. Set
-  **Deployment branches and tags → Selected branches and tags** with an exact
-  branch rule for `main` only and no tag rules. Limit who can change the
-  branch protection, rulesets, workflow policy, or environment to the owner
-  and trusted release administrators. Confirm these controls are enforced
-  for the actual repo and plan before adding secrets.
+  **Deployment branches and tags → Selected branches and tags**. Remove the
+  `main` branch rule and add only the tag rule `v[0-9]*`; do not add any branch
+  rules or a wildcard `*` tag rule. GitHub's environment patterns are globs,
+  not regular expressions, so this is only a coarse filter. The separate
+  validation job enforces the exact `vMAJOR.MINOR.PATCH` syntax and verifies
+  the tag's commit is reachable from `main` before the upload job, which is the
+  only job that names this environment, can start or read its secrets.
+- Add a repository **tag ruleset** targeting `v*`. Restrict creation,
+  updates, and deletion to the owner or trusted release administrators. Do
+  not grant bypass to ordinary contributors or `GITHUB_TOKEN`. This makes
+  published version tags immutable and prevents deletion followed by reuse.
+  The workflow also checks that the remote tag still points to the triggering
+  commit, including on retries.
 - Leave **Required reviewers** off for this environment. An environment
   reviewer would pause each run. The enforced PR/Code Owner review is the
-  human approval of the release code, and the branch restriction controls
-  which ref can use credentials.
+  human approval of the release code; the tag ruleset, exact workflow
+  validation, and deployment tag restriction control which ref can use
+  credentials.
 - If students have repository administration, or the required boundaries
   cannot be enforced, use an **owner-controlled GitHub release repository**.
   Keep the credentials and protected release workflow there. Have the owner
@@ -198,7 +207,14 @@ use **Add Builds** to assign a build. Complete any required export compliance
 questions. Testers accept in the TestFlight app, and internal testing does
 not require external beta review. Finish by running the real iPhone checks above.
 
+For external testing, use **TestFlight → External Testing** in App Store
+Connect after processing. Complete Apple's beta app information and export
+compliance questions, create an external group, add the processed build, and
+submit it for Beta App Review. External distribution begins only after Apple
+approves it and you enable distribution for the group.
+
 [Internal TestFlight testing](https://developer.apple.com/help/app-store-connect/test-a-beta-version/add-internal-testers/) ·
+[External TestFlight testing](https://developer.apple.com/help/app-store-connect/test-a-beta-version/invite-external-testers/) ·
 [Apple build statuses](https://developer.apple.com/help/app-store-connect/reference/app-uploads/app-build-statuses/)
 
 ### 6. External testers

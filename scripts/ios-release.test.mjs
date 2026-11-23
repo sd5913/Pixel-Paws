@@ -5,7 +5,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { buildNumber, individualToken, uploadBuild } from '../.github/scripts/ios-upload.mjs';
+import { buildNumber, individualToken, releaseVersion, uploadBuild } from '../.github/scripts/ios-upload.mjs';
 
 const credentials = () => {
   const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
@@ -39,7 +39,15 @@ function mock({ apps = onlyPixelPaws, operations = [operation(0, 5), operation(5
   };
   return { requests, fetch };
 }
-const perform = fetch => uploadBuild({ ...credentials(), ipa: zip, version: '1.0', build: '1.10.1', fetch });
+const perform = fetch => uploadBuild({ ...credentials(), ipa: zip, version: '1.0.0', build: '1.10.1', fetch });
+
+test('release tags map only strict three-component versions', () => {
+  assert.equal(releaseVersion('v0.0.0'), '0.0.0');
+  assert.equal(releaseVersion('v1.2.3'), '1.2.3');
+  for (const tag of ['1.2.3', 'v01.2.3', 'v1.02.3', 'v1.2.03', 'v1.2', 'v1.2.3-rc.1', 'v1.2.3+build']) {
+    assert.throws(() => releaseVersion(tag), /vMAJOR\.MINOR\.PATCH/);
+  }
+});
 
 test('build numbers distinguish runs and attempts and use Apple-compatible components', () => {
   assert.equal(buildNumber('1', '1'), '1.10.1');
@@ -70,7 +78,7 @@ test('reserves the correct app and streams byte ranges before committing the fil
   ]);
   assert.equal(JSON.parse(requests[1].body).data.relationships.app.data.id, '123');
   assert.deepEqual(JSON.parse(requests[1].body).data.attributes,
-    { platform: 'IOS', cfBundleShortVersionString: '1.0', cfBundleVersion: '1.10.1' });
+    { platform: 'IOS', cfBundleShortVersionString: '1.0.0', cfBundleVersion: '1.10.1' });
   assert.equal(JSON.parse(requests[2].body).data.attributes.uti, 'com.apple.ipa');
   assert.deepEqual(Buffer.concat(requests.slice(3, 5).map(({ body }) => body)), zip);
   assert(!new Headers(requests[3].headers).has('authorization'));
@@ -89,15 +97,26 @@ test('rejects broad access, invalid ranges, and failed parts before commit', asy
   assert(!fail.requests.some(({ method }) => method === 'PATCH'));
 });
 
-test('release only runs from protected main, with stage-scoped credentials', () => {
-  const read = name => readFileSync(new URL('../.github/workflows/' + name, import.meta.url), 'utf8');
+test('TestFlight accepts only validated immutable tags reachable from main before secrets', () => {
+  const read = name => readFileSync(new URL('../.github/workflows/' + name, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   const release = read('ios-testflight.yml');
-  assert.match(release, /on:\n  push:\n    branches: \[main\]/);
-  assert.doesNotMatch(release, /pull_request|workflow_dispatch|ASC_ISSUER/);
-  assert.match(release, /github\.ref_protected/);
+  assert.match(release, /on:\n  push:\n    tags: \['v\[0-9\]\*'\]/);
+  assert.doesNotMatch(release, /branches: \[main\]|pull_request|workflow_dispatch|github\.ref_protected|ASC_ISSUER/);
+  const validation = release.split('  upload:')[0];
+  assert.match(validation, /release-version/);
+  assert.match(validation, /git merge-base --is-ancestor/);
+  assert.match(validation, /refs\/tags\/\$\{GITHUB_REF_NAME\}\^\{\}/);
+  assert.doesNotMatch(validation, /environment:|secrets\./);
+  assert.match(release, /needs: \[validate-release\]/);
   assert.match(release, /environment: pixel-paws-testflight/);
   assert.match(release, /ios-prepare\.sh/);
+  assert.match(release, /node \.github\/scripts\/ios-upload\.mjs build-number/);
+  assert.match(release, /MARKETING_VERSION: \$\{\{ steps\.prepare\.outputs\.version \}\}/);
   assert.match(readFileSync(new URL('../.github/scripts/ios-prepare.sh', import.meta.url), 'utf8'), /npm ci --ignore-scripts/);
+  const signing = readFileSync(new URL('../.github/scripts/ios-testflight.sh', import.meta.url), 'utf8');
+  assert.match(signing, /MARKETING_VERSION="\$MARKETING_VERSION"/);
+  assert.match(signing, /testFlightInternalTestingOnly": False/);
+  assert.match(signing, /CFBundleShortVersionString/);
   assert.match(release, /Sign and export[\s\S]*DISTRIBUTION_P12[\s\S]*Upload to App Store Connect[\s\S]*ASC_KEY/);
   assert.doesNotMatch(read('ios-check.yml'), /secrets\.|pixel-paws-testflight/);
 });
