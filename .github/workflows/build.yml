@@ -83,4 +83,8 @@ jobs:
             echo 'Release tags must look like v1.2.3' >&2
             exit 1
           fi
-          gh release create "$RELEASE_TAG" release/web.zip release/android-debug.apk --verify-tag --generate-notes
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" release/web.zip release/android-debug.apk --clobber
+          else
+            gh release create "$RELEASE_TAG" release/web.zip release/android-debug.apk --verify-tag --generate-notes
+          fi

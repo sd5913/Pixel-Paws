@@ -17,6 +17,8 @@ test('buildSite bundles local Three.js and copies packaged assets', async () => 
   await mkdir(join(sourceDir, 'scenes'), { recursive: true });
   await writeFile(join(sourceDir, 'landing.html'), '<link rel="stylesheet" href="landing.css">');
   await writeFile(join(sourceDir, 'landing.css'), 'body { color: #333; }');
+  await mkdir(join(sourceDir, 'privacy'));
+  await writeFile(join(sourceDir, 'privacy', 'index.html'), '<title>Privacy Policy</title>');
   await writeFile(join(sourceDir, 'index.html'), '<script type="module" src="app.js"></script>');
   await writeFile(join(sourceDir, 'style.css'), 'body { margin: 0; }');
   await writeFile(
@@ -39,6 +41,7 @@ test('buildSite bundles local Three.js and copies packaged assets', async () => 
   assert.match(await readFile(join(outputDir, 'index.html'), 'utf8'), /landing\.css/);
   assert.match(await readFile(join(outputDir, 'play.html'), 'utf8'), /app\.js/);
   assert.match(await readFile(join(outputDir, 'landing.css'), 'utf8'), /color: #333/);
+  assert.equal(await readFile(join(outputDir, 'privacy', 'index.html'), 'utf8'), '<title>Privacy Policy</title>');
   assert.match(await readFile(join(outputDir, 'level-2.html'), 'utf8'), /level-2\.js/);
   assert.match(await readFile(join(outputDir, 'level-2.js'), 'utf8'), /Level two/);
 
