@@ -25,6 +25,7 @@ export async function createMixingBowl(scene, renderer, tableHeight, tableRadius
   addBakingWindowColliders(physics, tableRadius);
   }
   const body = world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(...start.toArray()));
+  body.userData={floorAsset:'mixing-bowl'};
   body.enableCcd(true);
   const shape = model.children.find(node => node.name.startsWith('01_'));
   const points = [];
@@ -50,6 +51,7 @@ export async function createMixingBowl(scene, renderer, tableHeight, tableRadius
   scene.add(whiskRoot);
   model.updateMatrixWorld(true);
   const whiskBody = world.createRigidBody(R.RigidBodyDesc.dynamic());
+  whiskBody.userData={floorAsset:'whisk'};
   whiskBody.enableCcd(true);
   whiskBody.setSoftCcdPrediction(.06);
   whiskBody.setLinearDamping(.2);

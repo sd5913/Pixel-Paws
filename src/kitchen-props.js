@@ -67,6 +67,7 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
       const carrierHalf=carrierBounds.getSize(new THREE.Vector3()).multiplyScalar(.5);
       if(id==='13-egg-tray')carrierHalf.y=Math.max(carrierHalf.y,.018);
       body=world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(...start.toArray()));
+      body.userData={floorAsset:id};
       body.enableCcd(true);body.setSoftCcdPrediction(.05);
       const holder=id==='03-utensil-holder';
       const collider=world.createCollider(R.ColliderDesc.cuboid(carrierHalf.x,holder?.008:carrierHalf.y,carrierHalf.z)

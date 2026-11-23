@@ -25,6 +25,7 @@ export async function createMilkJug(scene, renderer, tableHeight, tableRadius, l
   addBakingWindowColliders(physics, tableRadius);
   }
   const body = world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(...start.toArray()));
+  body.userData={floorAsset:'glass-jug'};
   body.enableCcd(true);
   const shape = model.children.find(node => node.name.startsWith('02_'));
   const points = [];

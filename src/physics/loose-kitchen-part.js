@@ -7,6 +7,7 @@ export function createLooseKitchenPart(scene, physics, nodes, {mass=.025, egg=fa
   const originals=nodes.map(node=>({node,parent:node.parent,position:node.position.clone(),rotation:node.quaternion.clone(),scale:node.scale.clone()}));
   const root=new THREE.Group();scene.add(root);
   const body=world.createRigidBody(R.RigidBodyDesc.dynamic());body.enableCcd(true);body.setSoftCcdPrediction(.04);
+  body.userData={floorAsset:egg?'egg':nodes.map(node=>node.name).join(' ').toLowerCase()};
   body.setLinearDamping(.3);body.setAngularDamping(.4);body.setEnabled(false);
   let collider=null,released=false,broken=false;
   const hullPoints=[];

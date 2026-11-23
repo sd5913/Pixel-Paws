@@ -1,3 +1,4 @@
+import { AudioManager } from './feedback/audio-manager.js';
 import * as THREE from 'three';
 import { PLAY_CAMERA, resizePlayCamera } from './play-camera.js';
 import { CAT_EDGE_MARGIN, createCatAvatar } from './assets/cat-avatar.js';
@@ -19,6 +20,10 @@ const {elevation,distance,focusHeight,frameZ}=PLAY_CAMERA;
 const focus=new THREE.Vector3(0,tableHeight+focusHeight,frameZ);
 const cameraOffset=new THREE.Vector3(0,distance*Math.sin(elevation),distance*Math.cos(elevation));
 camera.position.copy(focus).add(cameraOffset);camera.lookAt(focus);
+const audio = new AudioManager();
+audio.init(camera,scene);
+void audio.preload();
+window.addEventListener('pagehide',event=>{if(!event.persisted)audio.dispose();});
 const room=await loadGlb('./assets/models/christmas-room.glb');
 room.traverse(child=>{if(child.isMesh)child.castShadow=child.receiveShadow=true;});
 const flames = [];

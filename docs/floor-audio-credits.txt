@@ -1,0 +1,16 @@
+Floor contact sound effects are from Kenney, Impact Sounds (1.0).
+Original creator: Kenney / Kenney.nl
+License: Creative Commons CC0 1.0 Universal.
+Official source: https://kenney.nl/assets/impact-sounds
+License terms: https://creativecommons.org/publicdomain/zero/1.0/
+Retrieved 2026-11-23 from the public mirror:
+https://github.com/Mcamento8/open-game-sfx-index/tree/34bbe8b525b5ceff3804915ea745532af11f6055/audio/impact-sounds
+
+Original variants 000 and 001 from:
+impactWood_light, impactMetal_light, impactGlass_light,
+impactPlate_light, impactGeneric_light.
+Converted from OGG to PCM WAV for browser compatibility.
+Game directories: src/assets/audio/ui/floor-{wood,metal,glass,ceramic,soft}/
+
+Shortened to at most 0.42 s, high-pass filtered at 650 Hz (glass: 900 Hz),
+with a 3 kHz high shelf, peak normalization and short end fades.

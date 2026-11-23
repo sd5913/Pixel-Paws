@@ -3,7 +3,7 @@ import { IMPACT_CONFIG } from './config.js';
 import { impactLevel, impactVolume, parseAudioPath } from './audio-catalog.js';
 
 export class AudioManager {
-  constructor({ three = THREE, fetchImpl = globalThis.fetch, random = Math.random,
+  constructor({ three = THREE, fetchImpl = (...args) => globalThis.fetch(...args), random = Math.random,
     warn = console.warn, development = ['localhost', '127.0.0.1'].includes(globalThis.location?.hostname),
     catalogUrl = './assets/audio/catalog.json' } = {}) {
     Object.assign(this, { three, fetchImpl, random, warn, development, catalogUrl });
@@ -16,6 +16,11 @@ export class AudioManager {
     this.disposed = false;
     this.nextVoice = 0;
     this.nextUIVoice = 0;
+    this.visibility = () => {
+      if (globalThis.document?.hidden) {
+        if (this.musicVoice?.isPlaying) this.musicVoice.pause();
+      } else void this.unlock();
+    };
     this.gesture = () => { void this.unlock(); };
   }
 
@@ -34,6 +39,7 @@ export class AudioManager {
       }
       for (let i = 0; i < IMPACT_CONFIG.uiPoolSize; i++) this.ui.push(new this.three.Audio(this.listener));
       this.setMasterVolume(this.volume);
+      globalThis.document?.addEventListener('visibilitychange', this.visibility);
       globalThis.document?.addEventListener('pointerdown', this.gesture, true);
       globalThis.document?.addEventListener('keydown', this.gesture, true);
       return true;
@@ -69,6 +75,7 @@ export class AudioManager {
             this.buffers.get(key).push(buffer);
           } catch (error) { if (!this.disposed) this.warn(`Could not load audio sample: ${path}`, error); }
         }));
+        this.startMusic();
       } catch (error) { if (!this.disposed) this.warn('Could not load bundled audio catalog; continuing silently.', error); }
     })();
     return this.loading;
@@ -81,6 +88,7 @@ export class AudioManager {
       if (context.state !== 'running') await context.resume();
       if (this.disposed || context.state !== 'running') return false;
       this.removeGestureListeners();
+      this.startMusic();
       return true;
     } catch { return false; } // A later gesture may retry.
   }
@@ -117,15 +125,62 @@ export class AudioManager {
     return true;
   }
 
-  playUISound(soundId) {
+  playUISound(soundId, volume = 1) {
     if (!this.ready()) return false;
     const buffer = this.sample('ui', soundId);
     if (!buffer) return false;
     const source = this.ui.find(voice => !voice.isPlaying) ?? this.ui[this.nextUIVoice++ % this.ui.length];
     if (source.isPlaying) source.stop();
     source.setBuffer(buffer);
-    source.setVolume(1);
+    const floorSound = soundId.startsWith('floor-');
+    if (floorSound && this.listener.context.createBiquadFilter) {
+      if (!source.floorFilters) {
+        const lowCut = this.listener.context.createBiquadFilter();
+        lowCut.type = 'highpass'; lowCut.frequency.value = 160; lowCut.Q.value = .7;
+        const clarity = this.listener.context.createBiquadFilter();
+        clarity.type = 'highshelf'; clarity.frequency.value = 2200; clarity.gain.value = 2;
+        source.floorFilters = [lowCut, clarity];
+      }
+      source.setFilters(source.floorFilters);
+    } else source.setFilters?.([]);
+    if(floorSound && this.musicVoice?.isPlaying){
+      const now=this.listener.context.currentTime,gain=this.musicVoice.gain.gain;
+      gain.cancelScheduledValues(now);gain.setValueAtTime(gain.value,now);
+      gain.linearRampToValueAtTime(.06,now+.015);
+      gain.setValueAtTime(.06,now+.18);
+      gain.linearRampToValueAtTime(.22,now+.38);
+    }
+    source.setPlaybackRate(floorSound ? 1 : 1);
+    source.setVolume(Math.max(0,Math.min(1,volume)));
     source.play();
+    return true;
+  }
+
+  startMusic() {
+    if (!this.ready() || globalThis.document?.hidden || this.musicVoice?.isPlaying) return false;
+    const buffer = this.buffers.get('music:bgm')?.[0];
+    if (!buffer) return false;
+    if (!this.musicVoice) {
+      this.musicVoice = new this.three.Audio(this.listener);
+      this.musicVoice.setBuffer(buffer);
+      this.musicVoice.setLoop(true);
+      this.musicVoice.setVolume(.22);
+    }
+    this.musicVoice.play();
+    return true;
+  }
+
+  playCatMeow() {
+    if (!this.ready() || this.catVoice?.isPlaying) return false;
+    const buffer = this.sample('ui', 'meow');
+    if (!buffer) return false;
+    if (!this.catVoice) this.catVoice = new this.three.Audio(this.listener);
+    this.catVoice.setBuffer(buffer);
+    // One complete meow from the supplied recording, without the other calls.
+    this.catVoice.offset = 4.94;
+    this.catVoice.duration = .68;
+    this.catVoice.setVolume(.8);
+    this.catVoice.play();
     return true;
   }
 
@@ -136,8 +191,9 @@ export class AudioManager {
 
   setMuted(value) {
     this.muted = Boolean(value);
-    if (this.muted) for (const source of [...this.positional, ...this.ui]) if (source.isPlaying) source.stop();
+    if (this.muted) for (const source of [...this.positional, ...this.ui, ...(this.catVoice ? [this.catVoice] : []), ...(this.musicVoice ? [this.musicVoice] : []), ...(this.musicVoice ? [this.musicVoice] : [])]) if (source.isPlaying) source.stop();
     this.setMasterVolume(this.volume);
+    if (!this.muted) this.startMusic();
   }
 
   removeGestureListeners() {
@@ -147,11 +203,13 @@ export class AudioManager {
 
   dispose() {
     this.disposed = true;
+    globalThis.document?.removeEventListener('visibilitychange', this.visibility);
     this.removeGestureListeners();
-    for (const source of [...this.positional, ...this.ui]) {
+    for (const source of [...this.positional, ...this.ui, ...(this.catVoice ? [this.catVoice] : []), ...(this.musicVoice ? [this.musicVoice] : [])]) {
       if (source.isPlaying) source.stop();
       // Unplayed THREE.Audio nodes have not yet connected their graph.
       if (source.source) source.disconnect();
+      source.floorFilters?.forEach(filter => filter.disconnect());
       source.panner?.disconnect();
       source.gain?.disconnect();
       source.removeFromParent();

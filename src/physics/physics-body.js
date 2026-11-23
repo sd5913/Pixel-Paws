@@ -183,6 +183,8 @@ export function createPhysicsBody(physicsWorld, instance) {
     colliders.push(rapierCollider);
   }
 
+  rigidBody.userData = {floorAsset:assetId ?? id};
+
   // 重新计算刚体质量属性
   rigidBody.recomputeMassPropertiesFromColliders();
 
