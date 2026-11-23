@@ -2,7 +2,7 @@
 set -euo pipefail
 umask 077
 
-for setting in APPLE_TEAM_ID DISTRIBUTION_P12 DISTRIBUTION_PASSWORD PROVISIONING_PROFILE BUILD_NUMBER IPA_DIR; do
+for setting in APPLE_TEAM_ID DISTRIBUTION_P12 DISTRIBUTION_PASSWORD PROVISIONING_PROFILE BUILD_NUMBER MARKETING_VERSION IPA_DIR; do
   if [[ -z "${!setting:-}" ]]; then
     echo "::error::Missing TestFlight configuration: $setting"
     exit 1
@@ -10,6 +10,7 @@ for setting in APPLE_TEAM_ID DISTRIBUTION_P12 DISTRIBUTION_PASSWORD PROVISIONING
 done
 [[ "$APPLE_TEAM_ID" =~ ^[A-Z0-9]{10}$ ]]
 [[ "$BUILD_NUMBER" =~ ^[1-9][0-9]{0,3}\.[0-9]{1,2}\.[0-9]{1,2}$ ]]
+[[ "$MARKETING_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
 bundle_id=org.sd5913.pixelpaws
 
 work="$(mktemp -d "$RUNNER_TEMP/pixel-paws-signing.XXXXXX")"
@@ -77,12 +78,14 @@ xcodebuild archive -project ios/App/App.xcodeproj -scheme PixelPaws \
   -clonedSourcePackagesDirPath "$RUNNER_TEMP/pixel-paws-spm" \
   -disableAutomaticPackageResolution -skipPackageUpdates \
   -configuration Release -destination 'generic/platform=iOS' \
-  -archivePath "$work/PixelPaws.xcarchive" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+  -archivePath "$work/PixelPaws.xcarchive" \
+  MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution' \
   DEVELOPMENT_TEAM="$APPLE_TEAM_ID" PROVISIONING_PROFILE_SPECIFIER="$profile_uuid"
 app="$work/PixelPaws.xcarchive/Products/Applications/PixelPaws.app"
 test -s "$app/public/index.html"
 test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$app/Info.plist")" = "$bundle_id"
+test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$app/Info.plist")" = "$MARKETING_VERSION"
 test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$app/Info.plist")" = "$BUILD_NUMBER"
 codesign --verify --strict --deep "$app"
 
@@ -100,7 +103,7 @@ with open(path, 'wb') as output:
         "teamID": team,
         "provisioningProfiles": {bundle_id: profile},
         "manageAppVersionAndBuildNumber": False,
-        "testFlightInternalTestingOnly": True,
+        "testFlightInternalTestingOnly": False,
     }, output)
 PY
 
