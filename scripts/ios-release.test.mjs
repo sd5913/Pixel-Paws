@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { generateKeyPairSync, verify } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 import { buildNumber, individualToken, uploadBuild } from '../.github/scripts/ios-upload.mjs';
 
@@ -97,4 +100,30 @@ test('release only runs from protected main, with stage-scoped credentials', () 
   assert.match(readFileSync(new URL('../.github/scripts/ios-prepare.sh', import.meta.url), 'utf8'), /npm ci --ignore-scripts/);
   assert.match(release, /Sign and export[\s\S]*DISTRIBUTION_P12[\s\S]*Upload to App Store Connect[\s\S]*ASC_KEY/);
   assert.doesNotMatch(read('ios-check.yml'), /secrets\.|pixel-paws-testflight/);
+});
+
+test('export options allow external TestFlight testing with manual App Store signing', () => {
+  const script = readFileSync(new URL('../.github/scripts/ios-testflight.sh', import.meta.url), 'utf8');
+  const match = script.match(/python3 - "\$work\/export\.plist"[^\n]*<<'PY'\n([\s\S]*?)\nPY/);
+  assert(match, 'export plist generator must exist');
+  const directory = mkdtempSync(join(tmpdir(), 'pixel-paws-export-'));
+  const plist = join(directory, 'export.plist');
+  try {
+    execFileSync('python3', ['-c', match[1], plist, 'ABCDE12345', 'org.sd5913.pixelpaws', 'profile-uuid']);
+    const result = JSON.parse(execFileSync('python3', [
+      '-c', 'import json, plistlib, sys; print(json.dumps(plistlib.load(open(sys.argv[1], "rb"))))', plist,
+    ], { encoding: 'utf8' }));
+    assert.deepEqual(result, {
+      method: 'app-store-connect',
+      destination: 'export',
+      signingStyle: 'manual',
+      signingCertificate: 'Apple Distribution',
+      teamID: 'ABCDE12345',
+      provisioningProfiles: { 'org.sd5913.pixelpaws': 'profile-uuid' },
+      manageAppVersionAndBuildNumber: false,
+      testFlightInternalTestingOnly: false,
+    });
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });

@@ -176,9 +176,9 @@ Changes to docs count too. Watch the **Actions** run for that SHA and note
 the build number and upload ID from the upload step. Check **App Store
 Connect → Apps → Pixel Paws → TestFlight → Builds** for that version and build
 number, then wait for Apple processing. The Actions result confirms the
-upload was committed for processing. Confirm the processed build and whether
-Apple shows the **Internal** marker requested by Xcode's internal-only export
-option. This marker has not been validated with the separate API upload.
+upload was committed for processing. Confirm the processed build in App Store
+Connect. The export allows both internal and external TestFlight testing;
+the upload does not assign the build to either group.
 
 GitHub queues release runs, with a queue limit of 100 pending runs. Each run
 and retry attempt has a distinct numeric build number. If delivery status is
@@ -196,9 +196,23 @@ Store Connect users who have access to Pixel Paws. Enable automatic
 distribution for a group if you want it to receive each eligible build, or
 use **Add Builds** to assign a build. Complete any required export compliance
 questions. Testers accept in the TestFlight app, and internal testing does
-not require external beta review. This workflow only uploads a build. It never
-assigns testers, starts external review, submits for public App Review, or
-releases on the App Store. Finish by running the real iPhone checks above.
+not require external beta review. Finish by running the real iPhone checks above.
 
 [Internal TestFlight testing](https://developer.apple.com/help/app-store-connect/test-a-beta-version/add-internal-testers/) ·
 [Apple build statuses](https://developer.apple.com/help/app-store-connect/reference/app-uploads/app-build-statuses/)
+
+### 6. External testers
+
+After Apple processes the build, complete any export compliance questions in
+App Store Connect. In **TestFlight → External Testing**, create a group and
+select the build. Provide the required beta test information, including what
+to test, a feedback contact, and any sign-in or review instructions Apple
+requests. Submit the build for **TestFlight App Review** and wait for Apple's
+approval before inviting external testers by email or public link. Apple may
+review later builds too. This workflow only uploads the IPA; an authorized
+App Store Connect user must manage the external group, review submission,
+and invitations. Beta approval does not publish the app on the App Store.
+
+[External TestFlight testing](https://developer.apple.com/help/app-store-connect/test-a-beta-version/invite-external-testers/) ·
+[TestFlight App Review](https://developer.apple.com/help/app-store-connect/test-a-beta-version/submit-a-build-for-beta-app-review/) ·
+[Export compliance](https://developer.apple.com/help/app-store-connect/manage-app-information/determine-and-upload-app-encryption-documentation/)

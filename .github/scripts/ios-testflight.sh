@@ -100,7 +100,7 @@ with open(path, 'wb') as output:
         "teamID": team,
         "provisioningProfiles": {bundle_id: profile},
         "manageAppVersionAndBuildNumber": False,
-        "testFlightInternalTestingOnly": True,
+        "testFlightInternalTestingOnly": False,
     }, output)
 PY
 
