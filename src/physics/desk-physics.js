@@ -1,3 +1,4 @@
+import { Box3 } from 'three';
 import { createVaseBreakage } from './vase-breakage.js';
 import { createPhysicsWorld } from './physics-world.js';
 import { createPhysicsBody, syncPhysicsBody } from './physics-body.js';
@@ -69,6 +70,8 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
     body.rigidBody.enableCcd(true);
     if (windowWall) body.rigidBody.setSoftCcdPrediction(0.32);
   });
+  const clearedOffDesk = new Set();
+  const clearanceBounds = new Box3();
   const tracked = [...bodies.map(entry => entry.body), cat];
   tracked.forEach(body => events.registerBody(body));
   return {
@@ -118,6 +121,17 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
         }) || 0;
       player.position.copy(cat.rigidBody.translation());
       for (const { body } of dynamic) syncPhysicsBody(body);
+      for (const {instance} of dynamic) {
+        if(clearedOffDesk.has(instance.id))continue;
+        instance.object3D.updateMatrixWorld(true);
+        clearanceBounds.setFromObject(instance.object3D,true);
+        const outside=clearanceBounds.max.x<centerX-halfX || clearanceBounds.min.x>centerX+halfX
+          || clearanceBounds.max.z<centerZ-halfZ || clearanceBounds.min.z>centerZ+halfZ;
+        if(outside && clearanceBounds.min.y<study.surface.height-.05){
+          clearedOffDesk.add(instance.id);
+          events.bus?.emit('game:object-cleared',{objectId:instance.id});
+        }
+      }
       for (const spill of spills) spill.update();
       for (const breakage of breakages) breakage.update();
       events.processCollisionEvents(physics.drainCollisionEvents());

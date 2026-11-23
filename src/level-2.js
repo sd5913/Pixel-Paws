@@ -1,3 +1,4 @@
+import { SWAT } from './swat.js';
 import { createBakingPhysics } from './physics/baking-physics.js';
 import { createKitchenProps } from './kitchen-props.js';
 import { loadGlb } from './assets/load-assets.js';
@@ -220,9 +221,12 @@ const mixingBowl = await createMixingBowl(scene, renderer, tableHeight, tableRad
 const milkJug = await createMilkJug(scene, renderer, tableHeight, tableRadius, loadGlb, bakingPhysics);
 const kitchenProps = await createKitchenProps(scene, bakingPhysics, tableHeight);
 const swatButton = document.querySelector('#swat');
-const swat = () => { cat.swat(); mixingBowl.swat(cat.object.position, cat.object.rotation.y); milkJug.swat(cat.object.position, cat.object.rotation.y); kitchenProps.swat(cat.object.position, cat.object.rotation.y); };
+let nextSwatAt = 0;
+const swat = () => { const now=performance.now();if(now<nextSwatAt)return;nextSwatAt=now+SWAT.duration*1000;cat.swat(); mixingBowl.swat(cat.object.position, cat.object.rotation.y); milkJug.swat(cat.object.position, cat.object.rotation.y); kitchenProps.swat(cat.object.position, cat.object.rotation.y); };
 swatButton.addEventListener('click', swat);
 document.querySelector('#restart').addEventListener('click', () => {
+  nextSwatAt=0;cat.reset();
+  bakingPhysics.resetCat();
   kitchenProps.reset();
   milkJug.reset();
   mixingBowl.reset(); cat.object.position.set(0, tableHeight + .007, 0); resetInput();
@@ -278,17 +282,18 @@ renderer.setAnimationLoop(timestamp => {
   const distance = JOYSTICK_SPEED.walk * delta
     / Math.max(1, Math.hypot(x, z));
   next.set(position.x + x * distance, position.z + z * distance).clampLength(0, walkRadius);
-  cat.update(delta, next.x - position.x, next.y - position.z);
-  position.x = next.x;
-  position.z = next.y;
+  bakingPhysics.step(delta,next);
+  const actual = bakingPhysics.catBody.translation();
+  cat.update(delta,actual.x-position.x,actual.z-position.z);
+  position.x=actual.x;
+  position.z=actual.z;
   // Keep the play angle and scale, following the cat as in the first level.
   const follow = 1 - Math.exp(-10 * delta);
   focus.x += (position.x - focus.x) * follow;
   focus.z += (position.z + frameZ - focus.z) * follow;
   camera.position.copy(focus).add(cameraOffset);
   camera.lookAt(focus);
-  bakingPhysics.catBody.setNextKinematicTranslation({x:position.x,y:tableHeight+.2,z:position.z});
-  bakingPhysics.physics.step(delta);
+
   kitchenProps.update();
   mixingBowl.update(delta, position);
   milkJug.update(delta, position);

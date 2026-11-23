@@ -1,3 +1,4 @@
+import { inSwatRange } from '../swat.js';
 import * as THREE from 'three';
 
 // Detachable authored assemblies retain their original transforms for round reset.
@@ -23,8 +24,20 @@ export function createLooseKitchenPart(scene, physics, nodes, {mass=.025, egg=fa
     hullPoints.length=0;
     for(let i=0;i<vertices.length;i+=3)hullPoints.push(new THREE.Vector3(vertices[i],vertices[i+1],vertices[i+2]));
     if(collider)world.removeCollider(collider,true);
-    collider=world.createCollider(R.ColliderDesc.convexHull(new Float32Array(vertices)).setMass(mass).setFriction(.7).setRestitution(.03).setSolverGroups(held ? ((4<<16)|5) : 0xffffffff),body);
-    body.setTranslation(root.position,true);body.setRotation({x:0,y:0,z:0,w:1},true);body.setLinvel(velocity,true);body.setAngvel({x:.2,y:.1,z:.2},true);body.setEnabled(true);
+    let descriptor;
+    if(tableSupport){
+      // A solid envelope avoids unstable contacts on the cutters' thin metal rims.
+      const bounds=new THREE.Box3().setFromPoints(hullPoints);
+      const half=bounds.getSize(new THREE.Vector3()).multiplyScalar(.5);
+      const center=bounds.getCenter(new THREE.Vector3());
+      descriptor=R.ColliderDesc.cuboid(half.x,Math.max(.006,half.y),half.z)
+        .setTranslation(center.x,center.y,center.z);
+      body.setGravityScale(1,true);body.setLinearDamping(.8);body.setAngularDamping(1.2);
+    }else descriptor=R.ColliderDesc.convexHull(new Float32Array(vertices));
+    collider=world.createCollider(descriptor.setMass(mass*.8).setFriction(.7).setRestitution(0)
+      .setContactSkin(.002).setSolverGroups(held ? ((4<<16)|5) : 0xffffffff),body);
+    body.setEnabledTranslations(true,true,true,true);body.setEnabledRotations(true,true,true,true);
+    body.setTranslation(root.position,true);body.setRotation({x:0,y:0,z:0,w:1},true);body.setLinvel(velocity,true);body.setAngvel(tableSupport?{x:0,y:0,z:0}:{x:.2,y:.1,z:.2},true);body.setEnabled(true);
     released=true;
   }
   function crack(tableHeight,tableRadius) {
@@ -59,21 +72,11 @@ export function createLooseKitchenPart(scene, physics, nodes, {mass=.025, egg=fa
       scene.updateMatrixWorld(true);
       const center=released?new THREE.Vector3().copy(body.worldCom()):new THREE.Box3().setFromObject(nodes[0],true).getCenter(new THREE.Vector3());
       const dx=center.x-position.x,dz=center.z-position.z;
-      if(broken||Math.hypot(dx,dz)>.65||dx*Math.sin(yaw)+dz*Math.cos(yaw)<-.05)return;
-      release();body.applyImpulse({x:Math.sin(yaw)*.055,y:.012,z:Math.cos(yaw)*.055},true);
+      if(broken||!inSwatRange(position,yaw,center))return;
+      release();body.applyImpulse({x:Math.sin(yaw)*.044,y:.012,z:Math.cos(yaw)*.044},true);
     },
     update(tableHeight,tableRadius){
       if(released&&!broken){
-        if(tableSupport){
-          const position=new THREE.Vector3().copy(body.translation());
-          const rotation=new THREE.Quaternion().copy(body.rotation());
-          let minY=Infinity,overTable=true;
-          for(const local of hullPoints){const point=local.clone().applyQuaternion(rotation).add(position);minY=Math.min(minY,point.y);if(Math.hypot(point.x,point.z)>tableRadius-.01)overTable=false;}
-          if(overTable&&position.y>tableHeight-.15&&minY<tableHeight+.012){
-            position.y+=tableHeight+.012-minY;body.setTranslation(position,true);
-            const velocity=body.linvel();if(velocity.y<0)body.setLinvel({x:velocity.x,y:0,z:velocity.z},true);
-          }
-        }
         root.position.copy(body.translation());root.quaternion.copy(body.rotation());
         let touchedFloor = false;
         if (egg && floorCollider) {
