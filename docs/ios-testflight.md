@@ -120,15 +120,24 @@ workflow disabled until all protections, credentials, and tests are in place.
   executed in release builds. Separate reviewers from contributors who need
   ordinary write access.
 - In **Settings → Environments**, create `pixel-paws-testflight`. Set
-  **Deployment branches and tags → Selected branches and tags** with an exact
-  branch rule for `main` only and no tag rules. Limit who can change the
-  branch protection, rulesets, workflow policy, or environment to the owner
-  and trusted release administrators. Confirm these controls are enforced
-  for the actual repo and plan before adding secrets.
+  **Deployment branches and tags → Selected branches and tags**. Remove the
+  `main` branch rule and add only the tag rule `v[0-9]*`; do not add any branch
+  rules or a wildcard `*` tag rule. GitHub's environment patterns are globs,
+  not regular expressions, so this is only a coarse filter. The separate
+  validation job enforces the exact `vMAJOR.MINOR.PATCH` syntax and verifies
+  the tag's commit is reachable from `main` before the upload job, which is the
+  only job that names this environment, can start or read its secrets.
+- Add a repository **tag ruleset** targeting `v*`. Restrict creation,
+  updates, and deletion to the owner or trusted release administrators. Do
+  not grant bypass to ordinary contributors or `GITHUB_TOKEN`. This makes
+  published version tags immutable and prevents deletion followed by reuse.
+  The workflow also checks that the remote tag still points to the triggering
+  commit, including on retries.
 - Leave **Required reviewers** off for this environment. An environment
   reviewer would pause each run. The enforced PR/Code Owner review is the
-  human approval of the release code, and the branch restriction controls
-  which ref can use credentials.
+  human approval of the release code; the tag ruleset, exact workflow
+  validation, and deployment tag restriction control which ref can use
+  credentials.
 - If students have repository administration, or the required boundaries
   cannot be enforced, use an **owner-controlled GitHub release repository**.
   Keep the credentials and protected release workflow there. Have the owner
@@ -170,26 +179,59 @@ step uses a temporary keychain and profile, exports a local IPA, then removes
 signing material. The upload step receives only the individual key and deletes
 the export at job completion. No signed artifact is attached to the run.
 
-Once the workflow has reached protected `main` and the enable variable is
-set, the next reviewed push starts **Upload Pixel Paws to TestFlight**.
-Changes to docs count too. Watch the **Actions** run for that SHA and note
-the build number and upload ID from the upload step. Check **App Store
-Connect → Apps → Pixel Paws → TestFlight → Builds** for that version and build
-number, then wait for Apple processing. The Actions result confirms the
-upload was committed for processing. Confirm the processed build and whether
-Apple shows the **Internal** marker requested by Xcode's internal-only export
-option. This marker has not been validated with the separate API upload.
+### 5. Publish a version from the GitHub website
 
-GitHub queues release runs, with a queue limit of 100 pending runs. Each run
-and retry attempt has a distinct numeric build number. If delivery status is
-uncertain, check App Store Connect before retrying. If Apple already accepted
-the build, let it process. Otherwise, rerun the latest applicable main run
-after correcting the failure. Retries of superseded commits stop before
-signing. For an existing TestFlight history, make sure the first automated
-build number exceeds prior uploads for that marketing version. Bump the
-marketing version or migrate the numbering before enabling if needed.
+The iOS marketing version comes from the tag: `v1.1.0` produces
+`CFBundleShortVersionString` `1.1.0`. The Xcode project still has a development
+default of `1.0`; the release workflow overrides it from the validated tag.
+`CFBundleVersion` is generated from the GitHub Actions run number and attempt,
+so a workflow retry gets a new Apple-compatible build number rather than
+reusing the previous attempt's number. The same tag and commit are required on
+every attempt.
 
-### 5. Internal testers
+The existing App Store Connect history uses version `1.0`. Before the first
+automated release, inspect **App Store Connect → Apps → Pixel Paws →
+TestFlight → Builds** and select an unused, higher marketing version; use
+`v1.1.0` if it is available. Do not start with `v1.0.0` or another version
+that Apple has already received. For every later release, choose a new,
+unused, higher version and never move or reuse a tag.
+
+1. Make sure the release changes have been merged to protected `main` through
+   the required review and checks. Confirm the desired commit is on `main`
+   and the version tag does not already exist.
+2. Open the repository's **Releases** page and choose **Draft a new release**.
+3. In **Choose a tag**, enter the exact tag, for example `v1.1.0`, and choose
+   **Create new tag on publish**. Set **Target** to `main` (or to the reviewed
+   commit on `main` that should be released). Do not use a branch or commit
+   that is not reachable from protected `main`.
+4. Enter a release title, add release notes, and choose **Publish release**.
+   Publishing creates the tag and starts the tag-based Web/Android and
+   TestFlight workflows. The Web/Android workflow reuses the release created
+   by the website and uploads/replaces its generated package assets; it does
+   not fail by trying to create a duplicate release.
+5. In **Actions**, check the tag's **Check and build** and **Upload Pixel Paws
+   to TestFlight** runs. The TestFlight workflow first checks the exact tag
+   format, the remote tag target, and reachability from `main`. Those checks
+   run before the job that selects `pixel-paws-testflight`; malformed tags or
+   tags on unreviewed branches cannot reach its credentials. If
+   `PIXEL_PAWS_TESTFLIGHT_ENABLED` is not `true`, no signed build or upload is
+   performed.
+6. When enabled, note the generated build number in the run and inspect the
+   matching marketing version and build under **App Store Connect → Apps →
+   Pixel Paws → TestFlight → Builds**. Wait for Apple's processing to finish.
+
+If a run fails, check **App Store Connect** before retrying: each retry has a
+new build number, so an upload accepted by Apple but reported ambiguously may
+otherwise result in an additional build. Retry only the same tag and commit;
+the workflow rechecks the remote tag before signing and refuses a moved tag.
+Use a new version tag for a new release, not a retry.
+
+### 6. TestFlight testers
+
+The export configuration does not restrict a build to internal testing, so
+the uploaded build can be considered for future external testing. Uploading
+does not automatically submit a build for Beta App Review or distribute it
+to testers.
 
 In **TestFlight → Internal Testing**, create a group and add eligible App
 Store Connect users who have access to Pixel Paws. Enable automatic
@@ -200,5 +242,12 @@ not require external beta review. This workflow only uploads a build. It never
 assigns testers, starts external review, submits for public App Review, or
 releases on the App Store. Finish by running the real iPhone checks above.
 
+For external testing, use **TestFlight → External Testing** in App Store
+Connect after processing. Complete Apple's beta app information and export
+compliance questions, create an external group, add the processed build, and
+submit it for Beta App Review. External distribution begins only after Apple
+approves it and you enable distribution for the group.
+
 [Internal TestFlight testing](https://developer.apple.com/help/app-store-connect/test-a-beta-version/add-internal-testers/) ·
+[External TestFlight testing](https://developer.apple.com/help/app-store-connect/test-a-beta-version/invite-external-testers/) ·
 [Apple build statuses](https://developer.apple.com/help/app-store-connect/reference/app-uploads/app-build-statuses/)

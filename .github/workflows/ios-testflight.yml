@@ -1,7 +1,7 @@
 name: Upload Pixel Paws to TestFlight
 on:
   push:
-    branches: [main]
+    tags: ['v[0-9]*']
 permissions:
   contents: read
 defaults:
@@ -11,8 +11,49 @@ concurrency:
   group: pixel-paws-testflight
   queue: max
 jobs:
+  validate-release:
+    name: Validate release tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.tag.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Validate version tag
+        id: tag
+        run: |
+          version="$(node .github/scripts/ios-upload.mjs release-version "$GITHUB_REF_NAME")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          tag_commit="$(git ls-remote origin "refs/tags/${GITHUB_REF_NAME}^{}" | cut -f1)"
+          if [[ -z "$tag_commit" ]]; then
+            tag_commit="$(git ls-remote origin "refs/tags/${GITHUB_REF_NAME}" | cut -f1)"
+          fi
+          if [[ "$tag_commit" != "$GITHUB_SHA" ]]; then
+            echo "Tag $GITHUB_REF_NAME no longer points to triggering commit $GITHUB_SHA." >&2
+            exit 1
+          fi
+
+      - name: Verify commit is reachable from protected main
+        run: |
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+            echo "Tagged commit ${GITHUB_SHA} is not reachable from origin/main." >&2
+            exit 1
+          fi
+          echo "Commit is reachable from main."
+
   upload:
-    if: github.repository == 'sd5913/Pixel-Paws' && github.ref == 'refs/heads/main' && github.ref_protected && !github.event.deleted
+    needs: [validate-release]
+    if: github.repository == 'sd5913/Pixel-Paws' && github.ref_type == 'tag' && !github.event.deleted && needs.validate-release.outputs.version != ''
     environment: pixel-paws-testflight
     runs-on: macos-26
     timeout-minutes: 40
@@ -42,15 +83,18 @@ jobs:
         id: prepare
         if: steps.gate.outputs.enabled == 'true'
         run: |
-          if (( GITHUB_RUN_ATTEMPT > 1 )); then
-            current_main="$(git ls-remote --exit-code origin refs/heads/main | cut -f1)"
-            if [[ "$current_main" != "$GITHUB_SHA" ]]; then
-              echo 'Retry the newest main run instead of uploading an older revision.' >&2
-              exit 1
-            fi
+          tag_commit="$(git ls-remote origin "refs/tags/${GITHUB_REF_NAME}^{}" | cut -f1)"
+          if [[ -z "$tag_commit" ]]; then
+            tag_commit="$(git ls-remote origin "refs/tags/${GITHUB_REF_NAME}" | cut -f1)"
           fi
+          if [[ "$tag_commit" != "$GITHUB_SHA" ]]; then
+            echo 'Tagged commit no longer matches the remote tag ref.' >&2
+            exit 1
+          fi
+
           number="$(node .github/scripts/ios-upload.mjs build-number)"
           echo "build=$number" >> "$GITHUB_OUTPUT"
+          echo "version=${{ needs.validate-release.outputs.version }}" >> "$GITHUB_OUTPUT"
           xcodebuild -version
           sdk="$(xcrun --sdk iphoneos --show-sdk-version)"
           (( ${sdk%%.*} >= 26 ))
@@ -59,6 +103,7 @@ jobs:
         if: steps.gate.outputs.enabled == 'true'
         env:
           BUILD_NUMBER: ${{ steps.prepare.outputs.build }}
+          MARKETING_VERSION: ${{ steps.prepare.outputs.version }}
           APPLE_TEAM_ID: ${{ vars.PIXEL_PAWS_APPLE_TEAM_ID }}
           DISTRIBUTION_P12: ${{ secrets.PIXEL_PAWS_DISTRIBUTION_P12_BASE64 }}
           DISTRIBUTION_PASSWORD: ${{ secrets.PIXEL_PAWS_DISTRIBUTION_P12_PASSWORD }}
