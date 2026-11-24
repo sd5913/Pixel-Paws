@@ -32,7 +32,8 @@ On a real iPhone, check launch with airplane mode enabled, portrait and landscap
 safe areas, two-thumb movement and swat, sound after the first gesture, recovery
 after backgrounding, level navigation, and score persistence after relaunch.
 Check the oldest supported iOS version available to the team. The app currently
-uses the Capacitor template icon and launch artwork. Review those and the
+uses the supplied Pixel Paws icon in `ios/App/App/Assets.xcassets/AppIcon.appiconset`.
+The launch artwork still uses the Capacitor template. Review it and the
 app/dependency privacy manifest requirements before distributing a build.
 
 [Capacitor setup](https://capacitorjs.com/docs/getting-started/environment-setup) ·
