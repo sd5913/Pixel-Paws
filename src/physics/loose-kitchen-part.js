@@ -2,7 +2,7 @@ import { inSwatRange } from '../swat.js';
 import * as THREE from 'three';
 
 // Detachable authored assemblies retain their original transforms for round reset.
-export function createLooseKitchenPart(scene, physics, nodes, {mass=.025, egg=false, held=false, floorCollider=null, tableSupport=false}={}) {
+export function createLooseKitchenPart(scene, physics, nodes, {mass=.025, egg=false, held=false, floorCollider=null, tableSupport=false, onHit=()=>{}}={}) {
   const {world,rapier:R}=physics;
   const originals=nodes.map(node=>({node,parent:node.parent,position:node.position.clone(),rotation:node.quaternion.clone(),scale:node.scale.clone()}));
   const root=new THREE.Group();scene.add(root);
@@ -74,7 +74,7 @@ export function createLooseKitchenPart(scene, physics, nodes, {mass=.025, egg=fa
       const center=released?new THREE.Vector3().copy(body.worldCom()):new THREE.Box3().setFromObject(nodes[0],true).getCenter(new THREE.Vector3());
       const dx=center.x-position.x,dz=center.z-position.z;
       if(broken||!inSwatRange(position,yaw,center))return;
-      release();body.applyImpulse({x:Math.sin(yaw)*.044,y:.012,z:Math.cos(yaw)*.044},true);
+      release();onHit(body);body.applyImpulse({x:Math.sin(yaw)*.044,y:.012,z:Math.cos(yaw)*.044},true);
     },
     update(tableHeight,tableRadius){
       if(released&&!broken){

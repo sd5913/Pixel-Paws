@@ -36,6 +36,7 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
   });
   // A finite-mass movement motor lets heavy props resist a dash. Keep the cat
   // upright on the tabletop, while horizontal collisions remain physical.
+  floorAudio.setCatBody(cat.rigidBody);
   cat.rigidBody.setEnabledTranslations(true, false, true, true);
   cat.rigidBody.lockRotations(true, true);
   cat.rigidBody.setGravityScale(0, true);
@@ -95,6 +96,7 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
         // only sliding its broad base along the desk.
         const contactHeight = instance.assetId === 'desk-lamp' ? 0.55 : 0.1;
         // A slightly left-of-centre contact adds a rightward yaw to the paw strike.
+        floorAudio.notifyHit(body.rigidBody);
         body.rigidBody.applyImpulseAtPoint({ x: forward.x * SWAT.forwardImpulse,
           y: SWAT.upwardImpulse, z: forward.z * SWAT.forwardImpulse },
         { x: point.x - Math.cos(yaw) * SWAT.leftContactOffset,

@@ -171,11 +171,13 @@ export async function createMixingBowl(scene, renderer, tableHeight, tableRadius
     if (whiskReleased) {
       const center = whiskBody.worldCom();
       if (inSwatRange(position,yaw,center)) {
+        environment?.contactAudio?.notifyHit(whiskBody);
         whiskBody.applyImpulse({x:Math.sin(yaw)*.08,y:.015,z:Math.cos(yaw)*.08},true);
       }
     }
     const center=body.worldCom();
     if(!inSwatRange(position,yaw,center))return;
+    environment?.contactAudio?.notifyHit(body);
     body.applyImpulseAtPoint({x:Math.sin(yaw)*.24,y:.035,z:Math.cos(yaw)*.24},
       {x:center.x,y:center.y+.22,z:center.z},true);
   }

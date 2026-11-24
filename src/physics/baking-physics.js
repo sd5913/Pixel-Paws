@@ -25,6 +25,7 @@ export async function createBakingPhysics(tableHeight, tableRadius, audio = null
   const catBody=world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(0,tableHeight+.2,0));
   world.createCollider(R.ColliderDesc.cuboid(.21,.22,.25).setMass(.45).setFriction(0).setRestitution(0)
     .setCollisionGroups((1<<16)|0xffef).setSolverGroups((1<<16)|0xffff),catBody);
+  floorAudio.setCatBody(catBody);
   catBody.setEnabledTranslations(true,false,true,true);catBody.lockRotations(true,true);catBody.setGravityScale(0,true);catBody.enableCcd(true);
   function resetCat(position={x:0,z:0}){
     floorAudio.reset();
@@ -45,5 +46,5 @@ export async function createBakingPhysics(tableHeight, tableRadius, audio = null
       if(Math.hypot(dx,dz)>.0001)catBody.applyImpulse({x:dx*.45,y:0,z:dz*.45},true);
     });
   }
-  return {physics,catBody,floorCollider,step,resetCat};
+  return {physics,catBody,floorCollider,step,resetCat,contactAudio:floorAudio};
 }

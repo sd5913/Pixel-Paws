@@ -16,6 +16,8 @@ export class AudioManager {
     this.disposed = false;
     this.nextVoice = 0;
     this.nextUIVoice = 0;
+    this.objectVoices = new Map();
+    this.nextObjectPopAt = 0;
     this.visibility = () => {
       if (globalThis.document?.hidden) {
         if (this.musicVoice?.isPlaying) this.musicVoice.pause();
@@ -95,7 +97,17 @@ export class AudioManager {
 
   sample(kind, key) {
     const variants = this.buffers.get(`${kind}:${key}`);
-    if (variants?.length) return variants[Math.floor(this.random() * variants.length)];
+    if (variants?.length) {
+      if(kind==='ui' && key==='floor-pop' && variants.length>1){
+        const previous=this.lastFloorPopIndex;
+        const count=previous===undefined?variants.length:variants.length-1;
+        let index=Math.floor(this.random()*count);
+        if(previous!==undefined && index>=previous)index++;
+        this.lastFloorPopIndex=index;
+        return variants[index];
+      }
+      return variants[Math.floor(this.random()*variants.length)];
+    }
     if (this.development && !this.warned.has(`${kind}:${key}`)) {
       this.warned.add(`${kind}:${key}`);
       this.warn(`No audio sample for ${kind}:${key}. Add files under src/assets/audio/${kind === 'impact' ? 'impacts' : 'ui'}/${key}/ and rebuild.`);
@@ -133,7 +145,7 @@ export class AudioManager {
     if (source.isPlaying) source.stop();
     source.setBuffer(buffer);
     const floorSound = soundId.startsWith('floor-');
-    if (floorSound && this.listener.context.createBiquadFilter) {
+    if (floorSound && soundId !== 'floor-pop' && this.listener.context.createBiquadFilter) {
       if (!source.floorFilters) {
         const lowCut = this.listener.context.createBiquadFilter();
         lowCut.type = 'highpass'; lowCut.frequency.value = 160; lowCut.Q.value = .7;
@@ -154,6 +166,39 @@ export class AudioManager {
     source.setVolume(Math.max(0,Math.min(1,volume)));
     source.play();
     return true;
+  }
+
+  playObjectContact(objectId, landing = false) {
+    if (!this.ready()) return false;
+    const variants=this.buffers.get('ui:floor-pop');
+    if(!variants?.length)return false;
+    let hash=0;
+    for(const character of objectId)hash=(Math.imul(hash,31)+character.charCodeAt(0))>>>0;
+    const key=objectId+':' +(landing?'land':'hit');
+    let voice=this.objectVoices.get(key);
+    if(!voice){voice=new this.three.Audio(this.listener);this.objectVoices.set(key,voice);}
+    if(voice.isPlaying)return false;
+    voice.setBuffer(variants[hash%variants.length]);
+    voice.setVolume(landing?1:.85);
+    const now=this.listener.context.currentTime;
+    const start=Math.max(now,this.nextObjectPopAt);
+    this.nextObjectPopAt=start+.035;
+    voice.play(start-now);
+    this.duckMusic();
+    return true;
+  }
+
+  resetObjectContactSounds() {
+    this.nextObjectPopAt=0;
+    for(const voice of this.objectVoices.values())if(voice.isPlaying)voice.stop();
+  }
+
+  duckMusic() {
+    if(!this.musicVoice?.isPlaying)return;
+    const now=this.listener.context.currentTime,gain=this.musicVoice.gain.gain;
+    gain.cancelScheduledValues(now);gain.setValueAtTime(gain.value,now);
+    gain.linearRampToValueAtTime(.06,now+.015);gain.setValueAtTime(.06,now+.18);
+    gain.linearRampToValueAtTime(.22,now+.38);
   }
 
   startMusic() {
@@ -191,7 +236,7 @@ export class AudioManager {
 
   setMuted(value) {
     this.muted = Boolean(value);
-    if (this.muted) for (const source of [...this.positional, ...this.ui, ...(this.catVoice ? [this.catVoice] : []), ...(this.musicVoice ? [this.musicVoice] : []), ...(this.musicVoice ? [this.musicVoice] : [])]) if (source.isPlaying) source.stop();
+    if (this.muted) for (const source of [...this.positional, ...this.ui, ...this.objectVoices.values(), ...(this.catVoice ? [this.catVoice] : []), ...(this.musicVoice ? [this.musicVoice] : [])]) if (source.isPlaying) source.stop();
     this.setMasterVolume(this.volume);
     if (!this.muted) this.startMusic();
   }
@@ -205,7 +250,7 @@ export class AudioManager {
     this.disposed = true;
     globalThis.document?.removeEventListener('visibilitychange', this.visibility);
     this.removeGestureListeners();
-    for (const source of [...this.positional, ...this.ui, ...(this.catVoice ? [this.catVoice] : []), ...(this.musicVoice ? [this.musicVoice] : [])]) {
+    for (const source of [...this.positional, ...this.ui, ...this.objectVoices.values(), ...(this.catVoice ? [this.catVoice] : []), ...(this.musicVoice ? [this.musicVoice] : [])]) {
       if (source.isPlaying) source.stop();
       // Unplayed THREE.Audio nodes have not yet connected their graph.
       if (source.source) source.disconnect();
@@ -219,6 +264,7 @@ export class AudioManager {
     this.listener?.gain.disconnect();
     this.listener = null;
     this.positional.length = this.ui.length = 0;
+    this.objectVoices.clear();
     this.buffers.clear();
     this.warned.clear();
     // THREE shares its AudioContext globally; do not close it here.

@@ -112,6 +112,7 @@ export async function createMilkJug(scene, renderer, tableHeight, tableRadius, l
     if(broken)return;
     const center=body.worldCom();
     if(!inSwatRange(position,yaw,center))return;
+    environment?.contactAudio?.notifyHit(body);
     body.applyImpulseAtPoint({x:Math.sin(yaw)*.24,y:.035,z:Math.cos(yaw)*.24},
       {x:center.x,y:center.y+.22,z:center.z},true);
   }

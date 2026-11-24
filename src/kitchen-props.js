@@ -22,6 +22,7 @@ const ITEMS = [
 
 export async function createKitchenProps(scene, environment, tableHeight, loadModel = loadGlb) {
   const {world, rapier:R} = environment.physics;
+  const onHit=body=>environment.contactAudio?.notifyHit(body);
   const looseParts = [];
   const breakages=[];
   const jamSpills=[];
@@ -49,7 +50,7 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
     object.updateMatrixWorld(true);
     const parts=[];
     const children=[...model.children];
-    if(id==='03-utensil-holder')for(const node of children.filter(node=>!node.name.startsWith('01_')))parts.push(createLooseKitchenPart(scene,environment.physics,[node],{held:true}));
+    if(id==='03-utensil-holder')for(const node of children.filter(node=>!node.name.startsWith('01_')))parts.push(createLooseKitchenPart(scene,environment.physics,[node],{onHit,held:true}));
     if(id==='12-cake-stand')for(const node of children.filter(node=>/^Cake_[12]_assembly/.test(node.name)))parts.push(createLooseKitchenPart(scene,environment.physics,[node],{mass:.06}));
     if(id==='13-egg-tray')for(const node of children.filter(node=>node.name.startsWith('Egg_')))parts.push(createLooseKitchenPart(scene,environment.physics,[node],{held:true,egg:true,mass:.035,floorCollider:environment.floorCollider}));
     if(id==='10-cookie-cutters')for(const node of children)parts.push(createLooseKitchenPart(scene,environment.physics,[node],{mass:.025,tableSupport:true}));
@@ -130,6 +131,7 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
         const center=body.worldCom();
         const dx=center.x-position.x,dz=center.z-position.z;
         if(!inSwatRange(position,yaw,center))continue;
+        onHit(body);
         body.applyImpulseAtPoint({x:forward.x*.20,y:.025,z:forward.z*.20},
           {x:center.x,y:center.y+.10,z:center.z},true);
       }

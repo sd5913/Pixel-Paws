@@ -1,34 +1,47 @@
-export function floorSoundKind(id='') {
-  id=id.toLowerCase();
-  if(/glass|vase|ink-bottle|jam|spice|jug/.test(id))return 'glass';
-  if(/mug|ceramic|bowl|cake-stand|holder/.test(id))return 'ceramic';
-  if(/whisk|utensil|cutter|scale|metal/.test(id))return 'metal';
-  if(/book|mitt|egg|piping|chips|candy|tissue|chocolate|eraser|cake|spatula/.test(id))return 'soft';
-  return 'wood';
-}
+export function createFloorContactAudio(physics, floorCollider, audio) {
+  const landed = new Set();
+  const hit = new Set();
+  let catBody = null;
 
-export function createFloorContactAudio(physics,floorCollider,audio) {
-  const played=new Set();
-  let nextSoundAt=0;
+  function isTouching(first, second) {
+    let touching = false;
+    physics.world.contactPair(first, second, manifold => {
+      for (let i = 0; i < manifold.numContacts(); i++) {
+        if (manifold.contactDist(i) <= .006) touching = true;
+      }
+    });
+    return touching;
+  }
+  function notifyHit(body) {
+    if (!audio || !body?.isDynamic() || !body.userData?.floorAsset
+      || body.userData.floorAsset === 'player-cat' || hit.has(body.handle) || landed.has(body.handle)) return;
+    hit.add(body.handle);
+    if(audio.playObjectContact)audio.playObjectContact(body.userData.floorAsset+':'+body.handle,false);
+    else audio.playUISound('floor-pop',.85);
+  }
   return {
-    update(){
-      if(!audio)return;
-      const now=audio.listener?.context.currentTime??0;
-      physics.world.contactPairsWith(floorCollider,collider=>{
-        const body=collider.parent();
-        if(!body?.isDynamic()||played.has(body.handle)||body.userData?.floorAsset==='player-cat')return;
-        let touching=false;
-        physics.world.contactPair(floorCollider,collider,manifold=>{
-          for(let i=0;i<manifold.numContacts();i++)if(manifold.contactDist(i)<=.006)touching=true;
-        });
-        if(!touching)return;
-        played.add(body.handle);
-        // Ignore fragments and suppress simultaneous cascades rather than queueing sound.
-        if(!body.userData?.floorAsset||now<nextSoundAt)return;
-        const kind=floorSoundKind(body.userData.floorAsset);
-        if(audio.playUISound('floor-'+kind,1))nextSoundAt=now+.14;
+    setCatBody(body) { catBody = body; },
+    notifyHit,
+    update() {
+      if (!audio) return;
+      if (catBody) {
+        for (let i = 0; i < catBody.numColliders(); i++) {
+          const catCollider = catBody.collider(i);
+          physics.world.contactPairsWith(catCollider, collider => {
+            if (isTouching(catCollider, collider)) notifyHit(collider.parent());
+          });
+        }
+      }
+      physics.world.contactPairsWith(floorCollider, collider => {
+        const body = collider.parent();
+        if (!body?.isDynamic() || landed.has(body.handle)
+          || body.userData?.floorAsset === 'player-cat' || !isTouching(floorCollider, collider)) return;
+        landed.add(body.handle);
+        if (!body.userData?.floorAsset) return;
+        if(audio.playObjectContact)audio.playObjectContact(body.userData.floorAsset+':'+body.handle,true);
+        else audio.playUISound('floor-pop',1);
       });
     },
-    reset(){played.clear();nextSoundAt=0;},
+    reset() { landed.clear(); hit.clear(); audio?.resetObjectContactSounds?.(); },
   };
 }
