@@ -18,6 +18,13 @@ const ITEMS = [
   ['12-cake-stand', 1.15,-.30,.43,.47,.30],
   ['13-egg-tray', -.65,.40,.42,.20,.20],
   ['14-wooden-rolling-pin', .05,.65,.48,.15,.12],
+  ['16-strawberry-cupcake', -1.25,-.80,.28,.40,.08],
+  ['17-blueberry-and-strawberries', -.05,-.90,.32,.18,.04],
+  ['18-cake-slice', .60,.35,.30,.30,.08],
+  ['19-cookies', -.45,.95,.25,.08,.04],
+  ['20-butter-block-and-knife', 1.25,.95,.36,.18,.12],
+  ['21-butter-cubes', .65,1.40,.31,.18,.04],
+  ['22-lemon', -1.25,.90,.27,.22,.06],
 ];
 
 export async function createKitchenProps(scene, environment, tableHeight, loadModel = loadGlb) {
@@ -34,6 +41,7 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
       if(base)base.removeFromParent();
     }
     const object = new THREE.Group();
+    object.name = id;
     object.add(model);
     if(['02-recipe-book','07-piping-bag'].includes(id))model.rotation.x=-Math.PI/2;
     object.updateMatrixWorld(true);
@@ -54,10 +62,18 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
     if(id==='12-cake-stand')for(const node of children.filter(node=>/^Cake_[12]_assembly/.test(node.name)))parts.push(createLooseKitchenPart(scene,environment.physics,[node],{mass:.06}));
     if(id==='13-egg-tray')for(const node of children.filter(node=>node.name.startsWith('Egg_')))parts.push(createLooseKitchenPart(scene,environment.physics,[node],{held:true,egg:true,mass:.035,floorCollider:environment.floorCollider}));
     if(id==='10-cookie-cutters')for(const node of children)parts.push(createLooseKitchenPart(scene,environment.physics,[node],{mass:.025,tableSupport:true}));
+    if(['17-blueberry-and-strawberries','21-butter-cubes'].includes(id)){
+      for(const node of children)parts.push(createLooseKitchenPart(scene,environment.physics,[node],{onHit,mass:.025,tableSupport:id==='21-butter-cubes'}));
+    }
+    if(id==='20-butter-block-and-knife'){
+      for(const node of children.filter(node=>node.name!=='Faceted_shallow_plate')){
+        parts.push(createLooseKitchenPart(scene,environment.physics,[node],{onHit,mass:.04,held:true}));
+      }
+    }
     looseParts.push(...parts);
     const held=parts.filter(part=>!part.released);
     // Exclude detachable contents when measuring the carrier collider.
-    const excluded=children.filter(node=>id==='03-utensil-holder'?!node.name.startsWith('01_'):id==='13-egg-tray'?node.name.startsWith('Egg_'):false);
+    const excluded=children.filter(node=>id==='03-utensil-holder'?!node.name.startsWith('01_'):id==='13-egg-tray'?node.name.startsWith('Egg_'):id==='20-butter-block-and-knife'?node.name!=='Faceted_shallow_plate':false);
     const visibility=excluded.map(node=>node.visible);for(const node of excluded)node.removeFromParent();
     object.updateMatrixWorld(true);
     const carrierBounds=new THREE.Box3().setFromObject(object,true);
@@ -69,6 +85,10 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
       if(id==='13-egg-tray')carrierHalf.y=Math.max(carrierHalf.y,.018);
       body=world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(...start.toArray()));
       body.userData={floorAsset:id};
+      if(Number.parseInt(id)>=16){
+        body.setAdditionalSolverIterations(8);
+        body.setLinearDamping(.8);body.setAngularDamping(1.2);
+      }
       body.enableCcd(true);body.setSoftCcdPrediction(.05);
       const holder=id==='03-utensil-holder';
       const collider=world.createCollider(R.ColliderDesc.cuboid(carrierHalf.x,holder?.008:carrierHalf.y,carrierHalf.z)
