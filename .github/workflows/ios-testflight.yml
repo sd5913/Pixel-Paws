@@ -1,5 +1,9 @@
 name: Upload Pixel Paws to TestFlight
 on:
+  schedule:
+    # Runs at 00:00 UTC every Sunday
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
   push:
     tags: ['v[0-9]*']
 permissions:
@@ -12,7 +16,7 @@ concurrency:
   queue: max
 jobs:
   validate-release:
-    name: Validate release tag
+    name: Resolve version and validate commit
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.tag.outputs.version }}
@@ -30,17 +34,21 @@ jobs:
       - name: Validate version tag
         id: tag
         run: |
-          version="$(node .github/scripts/ios-upload.mjs release-version "$GITHUB_REF_NAME")"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then
+            version="$(node .github/scripts/ios-upload.mjs release-version "$GITHUB_REF_NAME")"
 
-          tag_commit="$(git ls-remote origin "refs/tags/${GITHUB_REF_NAME}^{}" | cut -f1)"
-          if [[ -z "$tag_commit" ]]; then
-            tag_commit="$(git ls-remote origin "refs/tags/${GITHUB_REF_NAME}" | cut -f1)"
+            tag_commit="$(git ls-remote origin "refs/tags/${GITHUB_REF_NAME}^{}" | cut -f1)"
+            if [[ -z "$tag_commit" ]]; then
+              tag_commit="$(git ls-remote origin "refs/tags/${GITHUB_REF_NAME}" | cut -f1)"
+            fi
+            if [[ "$tag_commit" != "$GITHUB_SHA" ]]; then
+              echo "Tag $GITHUB_REF_NAME no longer points to triggering commit $GITHUB_SHA." >&2
+              exit 1
+            fi
+          else
+            version="$(node -p "JSON.parse(require('node:fs').readFileSync('package.json', 'utf8')).version")"
           fi
-          if [[ "$tag_commit" != "$GITHUB_SHA" ]]; then
-            echo "Tag $GITHUB_REF_NAME no longer points to triggering commit $GITHUB_SHA." >&2
-            exit 1
-          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Verify commit is reachable from protected main
         run: |
@@ -53,7 +61,7 @@ jobs:
 
   upload:
     needs: [validate-release]
-    if: github.repository == 'sd5913/Pixel-Paws' && github.ref_type == 'tag' && !github.event.deleted && needs.validate-release.outputs.version != ''
+    if: github.repository == 'sd5913/Pixel-Paws' && !github.event.deleted && needs.validate-release.outputs.version != ''
     environment: pixel-paws-testflight
     runs-on: macos-26
     timeout-minutes: 40

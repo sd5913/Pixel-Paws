@@ -9,6 +9,7 @@ export function parseAudioPath(path) {
     && ['light', 'medium', 'heavy'].includes(parts[3])) {
     return { kind: 'impact', key: parts.slice(1, 4).join('/') };
   }
+  if (parts[0] === 'music' && parts.length === 2) return {kind:'music',key:parts[1].replace(/\.[^.]+$/, '')};
   if (parts[0] === 'ui' && (parts.length === 2 || parts.length === 3)) {
     return { kind: 'ui', key: parts.length === 3 ? parts[1] : parts[1].replace(/\.[^.]+$/, '') };
   }

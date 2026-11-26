@@ -25,6 +25,7 @@ export async function createMixingBowl(scene, renderer, tableHeight, tableRadius
   addBakingWindowColliders(physics, tableRadius);
   }
   const body = world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(...start.toArray()));
+  body.userData={floorAsset:'mixing-bowl'};
   body.enableCcd(true);
   const shape = model.children.find(node => node.name.startsWith('01_'));
   const points = [];
@@ -50,6 +51,7 @@ export async function createMixingBowl(scene, renderer, tableHeight, tableRadius
   scene.add(whiskRoot);
   model.updateMatrixWorld(true);
   const whiskBody = world.createRigidBody(R.RigidBodyDesc.dynamic());
+  whiskBody.userData={floorAsset:'whisk'};
   whiskBody.enableCcd(true);
   whiskBody.setSoftCcdPrediction(.06);
   whiskBody.setLinearDamping(.2);
@@ -169,11 +171,13 @@ export async function createMixingBowl(scene, renderer, tableHeight, tableRadius
     if (whiskReleased) {
       const center = whiskBody.worldCom();
       if (inSwatRange(position,yaw,center)) {
+        environment?.contactAudio?.notifyHit(whiskBody);
         whiskBody.applyImpulse({x:Math.sin(yaw)*.08,y:.015,z:Math.cos(yaw)*.08},true);
       }
     }
     const center=body.worldCom();
     if(!inSwatRange(position,yaw,center))return;
+    environment?.contactAudio?.notifyHit(body);
     body.applyImpulseAtPoint({x:Math.sin(yaw)*.24,y:.035,z:Math.cos(yaw)*.24},
       {x:center.x,y:center.y+.22,z:center.z},true);
   }

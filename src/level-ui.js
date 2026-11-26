@@ -6,7 +6,7 @@ import { renderDigits } from './level-digits.js';
 import digitArt from './assets/ui/ui-nishiki-digits.svg';
 import template from './level-ui-template.js';
 import { Box3 } from 'three';
-import { hasLeftRoundTable } from './table-clearance.js';
+import { hasLeftRoundTable, hasLeftRectangularTable } from './table-clearance.js';
 
 // Carrier groups score once; decorative parts and breakage fragments never register targets.
 export const KITCHEN_POINTS = Object.freeze({
@@ -16,9 +16,12 @@ export const KITCHEN_POINTS = Object.freeze({
   '09-ceramic-bowl': 20, '10-cookie-cutters': 10, '11-oven-mitt': 10,
   '12-cake-stand': 30, '13-egg-tray': 20, '14-wooden-rolling-pin': 20,
   '15-glass-measuring-jug': 30,
+  '16-strawberry-cupcake': 20, '17-blueberry-and-strawberries': 10,
+  '18-cake-slice': 20, '19-cookies': 10, '20-butter-block-and-knife': 20,
+  '21-butter-cubes': 10, '22-lemon': 10,
 });
 
-export function createLevelUI({ level, onSwat, onRestart, targets = [], tableHeight = 0.78, tableRadius = 1.95 }) {
+export function createLevelUI({ level, onSwat, onRestart, targets = [], tableHeight = 0.78, tableRadius = 1.95, tableShape = null }) {
   document.querySelector('#room-loading')?.remove();
   const shell = document.createElement('div');
   shell.className = 'game-layout level-ui';
@@ -99,7 +102,7 @@ export function createLevelUI({ level, onSwat, onRestart, targets = [], tableHei
       else {
         clearInterval(countdown); intro.close();
         if (!started) {
-          scorer.startRound(targets.map(({id}) => ({id,points:KITCHEN_POINTS[id] ?? 20})));
+          scorer.startRound(targets.map(({id,points}) => ({id,points:points ?? KITCHEN_POINTS[id] ?? 20})));
           timer.start(performance.now()); started = true;
         } else timer.resume(performance.now());
         setState('playing');
@@ -138,7 +141,10 @@ export function createLevelUI({ level, onSwat, onRestart, targets = [], tableHei
       for (const target of targets) {
         // A carrier is cleared once its entire footprint leaves the table, even if a chair catches it.
         // Detached contents, puddles and fragments are not part of this roster.
-        const offSurface = target.body && hasLeftRoundTable(targetBounds.setFromObject(target.object, true), tableHeight, tableRadius);
+        const bounds = target.body && (target.readBounds ? target.readBounds() : targetBounds.setFromObject(target.object, true));
+        const offSurface = bounds && (tableShape
+          ? hasLeftRectangularTable(bounds, tableHeight, tableShape)
+          : hasLeftRoundTable(bounds, tableHeight, tableRadius));
         if (target.cleared || offSurface) scorer.notifyFallen(target.id, timer.elapsedMs);
         else if (target.body) {
           const q = target.body?.rotation() ?? target.object.quaternion;

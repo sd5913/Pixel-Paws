@@ -1324,6 +1324,426 @@
         "friction": 0.55,
         "restitution": 0.05
       }
+    },
+    {
+      "id": "16-strawberry-cupcake",
+      "path": "assets/models/level-2/16-strawberry-cupcake.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        1.8200000353554513,
+        2.5687152489328224,
+        1.8200000411665778
+      ],
+      "pivot": {
+        "type": "center",
+        "offset": [
+          1.5347683068878126e-8,
+          1.309357643383936,
+          5.834771921175985e-8
+        ],
+        "basis": "Imported teammate model; native origin and node transforms preserved. Runtime placement scales and bottom-aligns the complete assembly."
+      },
+      "bounds": {
+        "center": [
+          1.5347683068878126e-8,
+          1.309357643383936,
+          5.834771921175985e-8
+        ],
+        "halfExtents": [
+          0.9100000176777256,
+          1.2843576244664112,
+          0.9100000205832889
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            1.5347683068878126e-8,
+            1.309357643383936,
+            5.834771921175985e-8
+          ],
+          "halfExtents": [
+            0.9100000176777256,
+            1.2843576244664112,
+            0.9100000205832889
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.064,
+        "friction": 0.65,
+        "restitution": 0
+      }
+    },
+    {
+      "id": "17-blueberry-and-strawberries",
+      "path": "assets/models/level-2/17-blueberry-and-strawberries.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        2.973960313834659,
+        0.9713448473419101,
+        1.2774368393814348
+      ],
+      "pivot": {
+        "type": "center",
+        "offset": [
+          0.08498020483946411,
+          0.44867495098125726,
+          -0.11709482056311044
+        ],
+        "basis": "Imported teammate model; native origin and node transforms preserved. Runtime placement scales and bottom-aligns the complete assembly."
+      },
+      "bounds": {
+        "center": [
+          0.08498020483946411,
+          0.44867495098125726,
+          -0.11709482056311044
+        ],
+        "halfExtents": [
+          1.4869801569173295,
+          0.48567242367095503,
+          0.6387184196907174
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0.08498020483946411,
+            0.44867495098125726,
+            -0.11709482056311044
+          ],
+          "halfExtents": [
+            1.4869801569173295,
+            0.48567242367095503,
+            0.6387184196907174
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.06,
+        "friction": 0.65,
+        "restitution": 0
+      }
+    },
+    {
+      "id": "18-cake-slice",
+      "path": "assets/models/level-2/18-cake-slice.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        1.8200000524520874,
+        1.9826316833496094,
+        2.188024870937255
+      ],
+      "pivot": {
+        "type": "center",
+        "offset": [
+          0,
+          0.9913158416748047,
+          0.2661110872250987
+        ],
+        "basis": "Imported teammate model; native origin and node transforms preserved. Runtime placement scales and bottom-aligns the complete assembly."
+      },
+      "bounds": {
+        "center": [
+          0,
+          0.9913158416748047,
+          0.2661110872250987
+        ],
+        "halfExtents": [
+          0.9100000262260437,
+          0.9913158416748047,
+          1.0940124354686276
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0,
+            0.9913158416748047,
+            0.2661110872250987
+          ],
+          "halfExtents": [
+            0.9100000262260437,
+            0.9913158416748047,
+            1.0940124354686276
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.064,
+        "friction": 0.65,
+        "restitution": 0
+      }
+    },
+    {
+      "id": "19-cookies",
+      "path": "assets/models/level-2/19-cookies.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        1.7872989177703857,
+        0.22000000532716513,
+        1.9931033849716187
+      ],
+      "pivot": {
+        "type": "center",
+        "offset": [
+          0,
+          0.10999999614432454,
+          0
+        ],
+        "basis": "Imported teammate model; native origin and node transforms preserved. Runtime placement scales and bottom-aligns the complete assembly."
+      },
+      "bounds": {
+        "center": [
+          0,
+          0.10999999614432454,
+          0
+        ],
+        "halfExtents": [
+          0.8936494588851929,
+          0.11000000266358256,
+          0.9965516924858093
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0,
+            0.10999999614432454,
+            0
+          ],
+          "halfExtents": [
+            0.8936494588851929,
+            0.11000000266358256,
+            0.9965516924858093
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.032,
+        "friction": 0.65,
+        "restitution": 0
+      }
+    },
+    {
+      "id": "20-butter-block-and-knife",
+      "path": "assets/models/level-2/20-butter-block-and-knife.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        2.559999942779541,
+        0.8200000040233135,
+        2.559999942779541
+      ],
+      "pivot": {
+        "type": "center",
+        "offset": [
+          0,
+          0.4300000015646219,
+          0
+        ],
+        "basis": "Imported teammate model; native origin and node transforms preserved. Runtime placement scales and bottom-aligns the complete assembly."
+      },
+      "bounds": {
+        "center": [
+          0,
+          0.4300000015646219,
+          0
+        ],
+        "halfExtents": [
+          1.2799999713897705,
+          0.41000000201165676,
+          1.2799999713897705
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0,
+            0.4300000015646219,
+            0
+          ],
+          "halfExtents": [
+            1.2799999713897705,
+            0.41000000201165676,
+            1.2799999713897705
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.16,
+        "friction": 0.65,
+        "restitution": 0
+      }
+    },
+    {
+      "id": "21-butter-cubes",
+      "path": "assets/models/level-2/21-butter-cubes.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        2.0352197645380703,
+        0.9200000166893005,
+        1.9976098417378767
+      ],
+      "pivot": {
+        "type": "center",
+        "offset": [
+          0,
+          0.46000000834465027,
+          -0.08119506244176111
+        ],
+        "basis": "Imported teammate model; native origin and node transforms preserved. Runtime placement scales and bottom-aligns the complete assembly."
+      },
+      "bounds": {
+        "center": [
+          0,
+          0.46000000834465027,
+          -0.08119506244176111
+        ],
+        "halfExtents": [
+          1.0176098822690351,
+          0.46000000834465027,
+          0.9988049208689384
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0,
+            0.46000000834465027,
+            -0.08119506244176111
+          ],
+          "halfExtents": [
+            1.0176098822690351,
+            0.46000000834465027,
+            0.9988049208689384
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.06,
+        "friction": 0.65,
+        "restitution": 0
+      }
+    },
+    {
+      "id": "22-lemon",
+      "path": "assets/models/level-2/22-lemon.glb",
+      "visualScale": [
+        1,
+        1,
+        1
+      ],
+      "dimensionsMeters": [
+        2.120290925459903,
+        1.5,
+        1.259999931539809
+      ],
+      "pivot": {
+        "type": "center",
+        "offset": [
+          0.03014540229271334,
+          0.7300000190734863,
+          3.6809289782890886e-8
+        ],
+        "basis": "Imported teammate model; native origin and node transforms preserved. Runtime placement scales and bottom-aligns the complete assembly."
+      },
+      "bounds": {
+        "center": [
+          0.03014540229271334,
+          0.7300000190734863,
+          3.6809289782890886e-8
+        ],
+        "halfExtents": [
+          1.0601454627299516,
+          0.75,
+          0.6299999657699045
+        ]
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "center": [
+            0.03014540229271334,
+            0.7300000190734863,
+            3.6809289782890886e-8
+          ],
+          "halfExtents": [
+            1.0601454627299516,
+            0.75,
+            0.6299999657699045
+          ]
+        }
+      ],
+      "render": {
+        "castShadow": true,
+        "receiveShadow": true
+      },
+      "physics": {
+        "bodyType": "dynamic",
+        "suggestedMass": 0.048,
+        "friction": 0.65,
+        "restitution": 0
+      }
     }
   ]
 }

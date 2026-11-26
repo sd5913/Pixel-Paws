@@ -1,10 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { hasLeftRoundTable, loosePartHasLeftTable } from '../src/table-clearance.js';
+import { hasLeftRoundTable, loosePartHasLeftTable, hasLeftRectangularTable } from '../src/table-clearance.js';
 import { createScoring } from '../src/level-scoring.js';
 
 const bounds = (x, y, z, r = .1) => ({
   min: { x:x-r, y:y-r, z:z-r }, max: { x:x+r, y:y+r, z:z+r },
+});
+
+test('Christmas room uses its longer rectangular tabletop, not the kitchen radius', () => {
+  const shape={halfWidth:1.95,halfDepth:2.65};
+  assert.equal(hasLeftRectangularTable(bounds(1.6,.95,2.3),.807,shape),false);
+  assert.equal(hasLeftRectangularTable(bounds(0,.95,2.7),.807,shape),false);
+  assert.equal(hasLeftRectangularTable(bounds(0,.95,2.9),.807,shape),true);
+  assert.equal(hasLeftRectangularTable(bounds(-2.2,.95,0),.807,shape),true);
+  assert.equal(hasLeftRectangularTable(bounds(0,.2,0),.807,shape),true);
 });
 
 test('props caught outside the tabletop clear without a half-metre drop', () => {

@@ -25,6 +25,7 @@ export async function createMilkJug(scene, renderer, tableHeight, tableRadius, l
   addBakingWindowColliders(physics, tableRadius);
   }
   const body = world.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(...start.toArray()));
+  body.userData={floorAsset:'glass-jug'};
   body.enableCcd(true);
   const shape = model.children.find(node => node.name.startsWith('02_'));
   const points = [];
@@ -111,6 +112,7 @@ export async function createMilkJug(scene, renderer, tableHeight, tableRadius, l
     if(broken)return;
     const center=body.worldCom();
     if(!inSwatRange(position,yaw,center))return;
+    environment?.contactAudio?.notifyHit(body);
     body.applyImpulseAtPoint({x:Math.sin(yaw)*.24,y:.035,z:Math.cos(yaw)*.24},
       {x:center.x,y:center.y+.22,z:center.z},true);
   }

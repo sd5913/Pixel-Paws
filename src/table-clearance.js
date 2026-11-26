@@ -10,3 +10,10 @@ export function hasLeftRoundTable(bounds, tableHeight, tableRadius) {
 export function loosePartHasLeftTable(position, tableHeight, tableRadius) {
   return position.y < tableHeight - 0.1 || Math.hypot(position.x, position.z) > tableRadius + 0.12;
 }
+
+export function hasLeftRectangularTable(bounds, tableHeight, { halfWidth, halfDepth }) {
+  if (!bounds || bounds.min.x > bounds.max.x) return false;
+  return bounds.max.y < tableHeight - 0.1
+    || bounds.min.x > halfWidth + 0.02 || bounds.max.x < -halfWidth - 0.02
+    || bounds.min.z > halfDepth + 0.02 || bounds.max.z < -halfDepth - 0.02;
+}

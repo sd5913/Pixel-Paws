@@ -24,14 +24,17 @@ two active seconds add 5, 10, then at most 15 bonus points per clear. The timer
 and scoring stop immediately when all groups are completed. Records are saved
 separately for each room.
 
-## Christmas room integration boundary
+## Christmas room
 
-The fetched room currently supplies scenery and character movement, without
-movable tabletop targets or clear events. Its UI and timeout/retry flow work,
-but its target roster remains empty and therefore awards no points or stars.
-Do not register the fireplace, tree, flames or other scenery as scoring targets.
-When interactive props are implemented, pass their carrier IDs, starting
-positions and readable transforms to `createLevelUI` and configure their values.
+The updated room registers 33 movable carrier groups. Static scenery, snow, lights
+and other effects are excluded. Tall items (at least 0.4 m) award 30 points, flat
+items award 10 and other small props award 20. Base score: 720; star thresholds:
+180 / 720 / 990. Clearance uses the rectangular 3.9 by 5.3 m tabletop and the
+physical carrier bounds, so snow/glow effects cannot block a clear.
+
+The kitchen now also includes food groups 16–22: 20 points for the cupcake, cake
+slice and butter with knife, and 10 for berries, cookies, butter cubes and lemon.
+Its updated base score is 430; star thresholds are 108 / 430 / 592.
 
 ## Try it
 
