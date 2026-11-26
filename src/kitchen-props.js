@@ -3,6 +3,7 @@ import { createVaseBreakage } from './physics/vase-breakage.js';
 import { createLooseKitchenPart } from './physics/loose-kitchen-part.js';
 import * as THREE from 'three';
 import { loadGlb } from './assets/load-assets.js';
+import { loosePartHasLeftTable } from './table-clearance.js';
 
 const ITEMS = [
   ['01-kitchen-scale', -.95,-1.10,.39,.60,.45],
@@ -104,9 +105,10 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
         }));
       }
     }
-    return {id,object,body,start,held,rotation:object.quaternion.clone()};
+    return {id,object,body,start,held, parts, get cleared() { return body ? !object.visible : parts.length > 0 && parts.every(part => loosePartHasLeftTable(part.position, tableHeight, 1.95)); }, rotation:object.quaternion.clone()};
   }));
   return {
+    scoreTargets: entries,
     update() {
       for(const {object,body,held} of entries){
         if(!body)continue;

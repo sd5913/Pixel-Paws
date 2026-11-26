@@ -1,3 +1,4 @@
+import { createLevelUI } from './level-ui.js';
 import * as THREE from 'three';
 import { PLAY_CAMERA, resizePlayCamera } from './play-camera.js';
 import { CAT_EDGE_MARGIN, createCatAvatar } from './assets/cat-avatar.js';
@@ -47,6 +48,10 @@ cat.object.traverse(child => {
   if (child.isMesh) child.castShadow = child.receiveShadow = true;
 });
 scene.add(cat.object);
+const levelUI = createLevelUI({ level: 3, onSwat: () => cat.swat(), onRestart: () => {
+
+ cat.reset(); cat.object.position.set(0, tableHeight + 0.007, 0); resetInput();
+} });
 const directions = new Map([
   ['ArrowLeft', [-1, 0]], ['KeyA', [-1, 0]], ['ArrowRight', [1, 0]], ['KeyD', [1, 0]],
   ['ArrowUp', [0, -1]], ['KeyW', [0, -1]], ['ArrowDown', [0, 1]], ['KeyS', [0, 1]],
@@ -58,6 +63,7 @@ const resetInput = () => { pressed.clear(); drag = null; };
 window.addEventListener('blur', resetInput);
 document.addEventListener('visibilitychange', () => { if (document.hidden) resetInput(); });
 window.addEventListener('keydown', event => {
+  if (!levelUI.playing) return;
   if (directions.has(event.code)) {
     event.preventDefault();
     pressed.add(event.code);
@@ -67,7 +73,7 @@ window.addEventListener('keydown', event => {
 window.addEventListener('keyup', event => pressed.delete(event.code));
 canvas.style.touchAction = 'none';
 canvas.addEventListener('pointerdown', event => {
-  if (drag || event.button !== 0) return;
+  if (!levelUI.playing || drag || event.button !== 0) return;
   canvas.setPointerCapture(event.pointerId);
   drag = { id: event.pointerId, startX: event.clientX, startY: event.clientY, x: 0, z: 0 };
 });
@@ -87,8 +93,11 @@ const walkRadius = tableRadius - CAT_EDGE_MARGIN;
 const clock = new THREE.Timer();
 renderer.setAnimationLoop(timestamp => {
   clock.update(timestamp);
-  let x = drag?.x ?? 0;
-  let z = drag?.z ?? 0;
+  levelUI.tick();
+  if (!levelUI.playing) { resetInput(); renderer.render(scene, camera); return; }
+  const input = levelUI.read();
+  let x = drag?.x ?? input.x;
+  let z = drag?.z ?? input.z;
   for (const code of pressed) {
     const [dx, dz] = directions.get(code);
     x += dx;

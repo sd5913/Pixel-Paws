@@ -167,5 +167,5 @@ export async function createMilkJug(scene, renderer, tableHeight, tableRadius, l
       stream.scale.set(.012+rate*.045,direction.length(),.012+rate*.045);
     }
   }
-  return {update,swat,reset};
+  return {update,swat,reset, scoreTargets: [{id: '15-glass-measuring-jug', object: model, body, start, get cleared() { return broken; }}]};
 }

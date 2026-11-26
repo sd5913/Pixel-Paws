@@ -1,3 +1,4 @@
+import { createLevelUI } from './level-ui.js';
 import { SWAT } from './swat.js';
 import { createBakingPhysics } from './physics/baking-physics.js';
 import { createKitchenProps } from './kitchen-props.js';
@@ -7,7 +8,7 @@ import { createMixingBowl } from './mixing-bowl.js';
 import { PLAY_CAMERA, resizePlayCamera } from './play-camera.js';
 import * as THREE from 'three';
 import { CAT_EDGE_MARGIN, createCatAvatar } from './assets/cat-avatar.js';
-import { joystickVector, JOYSTICK_SPEED } from './joystick.js';
+import { joystickInput, JOYSTICK_SPEED } from './joystick.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#f6ddd2');
@@ -220,17 +221,14 @@ const bakingPhysics = await createBakingPhysics(tableHeight, tableRadius);
 const mixingBowl = await createMixingBowl(scene, renderer, tableHeight, tableRadius, loadGlb, bakingPhysics);
 const milkJug = await createMilkJug(scene, renderer, tableHeight, tableRadius, loadGlb, bakingPhysics);
 const kitchenProps = await createKitchenProps(scene, bakingPhysics, tableHeight);
-const swatButton = document.querySelector('#swat');
+
 let nextSwatAt = 0;
-const swat = () => { const now=performance.now();if(now<nextSwatAt)return;nextSwatAt=now+SWAT.duration*1000;cat.swat(); mixingBowl.swat(cat.object.position, cat.object.rotation.y); milkJug.swat(cat.object.position, cat.object.rotation.y); kitchenProps.swat(cat.object.position, cat.object.rotation.y); };
-swatButton.addEventListener('click', swat);
-document.querySelector('#restart').addEventListener('click', () => {
-  nextSwatAt=0;cat.reset();
-  bakingPhysics.resetCat();
-  kitchenProps.reset();
-  milkJug.reset();
-  mixingBowl.reset(); cat.object.position.set(0, tableHeight + .007, 0); resetInput();
-});
+const swat = () => { if (!levelUI.playing) return; const now=performance.now();if(now<nextSwatAt)return;nextSwatAt=now+SWAT.duration*1000;cat.swat(); mixingBowl.swat(cat.object.position, cat.object.rotation.y); milkJug.swat(cat.object.position, cat.object.rotation.y); kitchenProps.swat(cat.object.position, cat.object.rotation.y); };
+
+const levelUI = createLevelUI({ level: 2, targets: [...kitchenProps.scoreTargets, ...mixingBowl.scoreTargets, ...milkJug.scoreTargets], onSwat: () => swat(), onRestart: () => {
+ nextSwatAt = 0; bakingPhysics.resetCat(); kitchenProps.reset(); milkJug.reset(); mixingBowl.reset();
+ cat.reset(); cat.object.position.set(0, tableHeight + 0.007, 0); resetInput();
+} });
 const directions = new Map([
   ['ArrowLeft', [-1, 0]], ['KeyA', [-1, 0]], ['ArrowRight', [1, 0]], ['KeyD', [1, 0]],
   ['ArrowUp', [0, -1]], ['KeyW', [0, -1]], ['ArrowDown', [0, 1]], ['KeyS', [0, 1]],
@@ -242,22 +240,24 @@ const resetInput = () => { pressed.clear(); drag = null; };
 window.addEventListener('blur', resetInput);
 document.addEventListener('visibilitychange', () => { if (document.hidden) resetInput(); });
 window.addEventListener('keydown', event => {
+  if (!levelUI.playing) return;
   if (directions.has(event.code)) {
     event.preventDefault();
     pressed.add(event.code);
   }
+  if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') pressed.add(event.code);
   if (event.code === 'KeyK' && !event.repeat) swat();
 });
 window.addEventListener('keyup', event => pressed.delete(event.code));
 canvas.style.touchAction = 'none';
 canvas.addEventListener('pointerdown', event => {
-  if (drag || event.button !== 0) return;
+  if (!levelUI.playing || drag || event.button !== 0) return;
   canvas.setPointerCapture(event.pointerId);
   drag = { id: event.pointerId, startX: event.clientX, startY: event.clientY, x: 0, z: 0 };
 });
 canvas.addEventListener('pointermove', event => {
   if (drag?.id !== event.pointerId) return;
-  Object.assign(drag, joystickVector(event.clientX - drag.startX, event.clientY - drag.startY, 54));
+  Object.assign(drag, joystickInput(event.clientX - drag.startX, event.clientY - drag.startY, 54, 22));
 });
 for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
   canvas.addEventListener(type, event => {
@@ -271,18 +271,25 @@ const walkRadius = tableRadius - CAT_EDGE_MARGIN;
 const clock = new THREE.Timer();
 renderer.setAnimationLoop(timestamp => {
   clock.update(timestamp);
-  let x = drag?.x ?? 0;
-  let z = drag?.z ?? 0;
+  levelUI.tick();
+  if (!levelUI.playing) { resetInput(); renderer.render(scene, camera); return; }
+  const input = levelUI.read();
+  let x = drag?.x ?? input.x;
+  let z = drag?.z ?? input.z;
   for (const code of pressed) {
-    const [dx, dz] = directions.get(code);
+    const direction = directions.get(code);
+    if (!direction) continue;
+    const [dx, dz] = direction;
     x += dx;
     z += dz;
   }
   const delta = Math.min(clock.getDelta(), 0.05);
-  const distance = JOYSTICK_SPEED.walk * delta
+  const dashing = (drag?.dash ?? input.dash) || pressed.has('ShiftLeft') || pressed.has('ShiftRight');
+  const speed = dashing ? JOYSTICK_SPEED.dash : JOYSTICK_SPEED.walk;
+  const distance = speed * delta
     / Math.max(1, Math.hypot(x, z));
   next.set(position.x + x * distance, position.z + z * distance).clampLength(0, walkRadius);
-  bakingPhysics.step(delta,next);
+  bakingPhysics.step(delta,next,speed);
   const actual = bakingPhysics.catBody.translation();
   cat.update(delta,actual.x-position.x,actual.z-position.z);
   position.x=actual.x;

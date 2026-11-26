@@ -41,9 +41,9 @@ export async function createCatAvatar({ loadModel = loadGlb } = {}) {
     object, reset, cancelSwat,
     swat() { play('PawWave'); },
     update(delta, dx, dz) {
-      if (current === paw && paw.isRunning()) { mixer.update(delta); return; }
       const moving = Math.hypot(dx, dz) > 0.001;
       if (moving) object.rotation.y = Math.atan2(dx, dz); // Source faces +Z.
+      if (current === paw && paw.isRunning()) { mixer.update(delta); return; }
       play(moving ? 'Walk' : 'Idle');
       mixer.update(delta);
     },

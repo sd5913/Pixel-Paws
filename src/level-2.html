@@ -1,13 +1,16 @@
 <!doctype html>
 <html lang="en">
+<head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Pixel Paws · Level 2</title>
-<style>body{margin:0;background:#f1d9ca}main{height:100dvh;overflow:hidden}canvas{display:block}.home-link{position:fixed;z-index:1;top:max(12px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));padding:8px 13px;border-radius:999px;background:#fff6e9;color:#67453b;font:600 14px system-ui;text-decoration:none}</style>
-<a class="home-link" href="./">← Home</a>
-<a class="home-link" style="left:auto;right:12px" href="./level-3.html">Level 3</a>
-<button id="restart" style="position:fixed;z-index:2;left:12px;bottom:18px;padding:12px;border-radius:24px">Restart</button>
-<button id="swat" style="position:fixed;z-index:2;right:18px;bottom:24px;padding:20px;border-radius:50%">SWAT</button>
-<main aria-label="Level 2 baking room"></main>
-<script type="module" src="./level-2.js"></script>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body data-game-state="loading">
+<p id="room-loading" role="status" style="position:fixed;z-index:5;top:45%;width:100%;text-align:center;color:#613019;font:800 20px system-ui">Loading room…</p>
+<main id="game-root" aria-label="Level 2: Kitchen Mischief">
+</main>
+<script type="module" src="./level-2.js">
+</script>
+</body>
 </html>

@@ -230,5 +230,5 @@ export async function createMixingBowl(scene, renderer, tableHeight, tableRadius
       stream.scale.set(.012+rate*.045,direction.length(),.012+rate*.045);
     }
   }
-  return {update,swat,reset};
+  return {update,swat,reset, scoreTargets: [{id: '05-mixing-bowl-and-whisk', object: model, body, start}]};
 }

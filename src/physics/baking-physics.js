@@ -1,3 +1,4 @@
+import { JOYSTICK_SPEED } from '../joystick.js';
 import { createPhysicsWorld } from './physics-world.js';
 import { addBakingChairColliders } from './baking-chair-colliders.js';
 import { addBakingWindowColliders } from './baking-window-colliders.js';
@@ -29,15 +30,18 @@ export async function createBakingPhysics(tableHeight, tableRadius) {
     catBody.setLinvel({x:0,y:0,z:0},true);catBody.setAngvel({x:0,y:0,z:0},true);
     catBody.resetForces(true);catBody.resetTorques(true);
   }
-  function step(delta,target){
+  function step(delta,target,maxSpeed=JOYSTICK_SPEED.walk){
     if(delta<=0)return;
     const origin=catBody.translation();
     const desired={x:(target.x-origin.x)/delta,z:(target.y-origin.z)/delta};
     const speed=Math.hypot(desired.x,desired.z);
-    if(speed>1.4){desired.x*=1.4/speed;desired.z*=1.4/speed;}
+    const speedLimit = Math.min(JOYSTICK_SPEED.dash, Math.max(0, maxSpeed));
+    if(speed>speedLimit){desired.x*=speedLimit/speed;desired.z*=speedLimit/speed;}
     physics.step(delta,()=>{},(_world,timestep)=>{
       const velocity=catBody.linvel();let dx=desired.x-velocity.x,dz=desired.z-velocity.z;
-      const change=Math.hypot(dx,dz),limit=7*timestep;
+      // Supply enough horizontal force to overcome tabletop friction without teleporting props.
+      const acceleration = speedLimit > JOYSTICK_SPEED.walk ? 30 : 18;
+      const change=Math.hypot(dx,dz),limit=acceleration*timestep;
       if(change>limit){dx*=limit/change;dz*=limit/change;}
       if(Math.hypot(dx,dz)>.0001)catBody.applyImpulse({x:dx*.45,y:0,z:dz*.45},true);
     });

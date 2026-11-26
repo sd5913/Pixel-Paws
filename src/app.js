@@ -1,3 +1,4 @@
+import { bindSwatButton } from './swat-button.js';
 import { PLAY_CAMERA, resizePlayCamera } from './play-camera.js';
 import { AudioManager } from './feedback/audio-manager.js';
 import { ImpactVFXManager } from './feedback/impact-vfx-manager.js';
@@ -330,7 +331,7 @@ const roundIntroMessage = roundIntro.querySelector('p');
 roundIntro.addEventListener('cancel', event => event.preventDefault());
 let lastTimestamp = 0;
 const swatButton = document.querySelector('#swat');
-swatButton.addEventListener('click', game.requestSwat);
+bindSwatButton(swatButton, game.requestSwat);
 
 const achievementBook = document.querySelector('#achievement-book');
 const achievementPages = document.querySelector('#achievement-pages');
@@ -725,7 +726,7 @@ function stepGame(delta) {
   const input = joystick.read();
   const dx = input.x + Number(keys.right) - Number(keys.left);
   const dz = input.z + Number(keys.back) - Number(keys.forward);
-  const speed = game.swatting ? 0 : input.dash ? JOYSTICK_SPEED.dash : JOYSTICK_SPEED.walk;
+  const speed = input.dash ? JOYSTICK_SPEED.dash : JOYSTICK_SPEED.walk;
   const scale = speed / Math.max(1, Math.hypot(dx, dz));
   const { x, z } = player.position;
   if (!deskPhysics.step(delta, { x: dx * scale, z: dz * scale })) return;

@@ -68,6 +68,7 @@ export function createLooseKitchenPart(scene, physics, nodes, {mass=.025, egg=fa
     release,
     reset,
     get released(){return released;},
+    get position(){return body.translation();},
     swat(position,yaw){
       scene.updateMatrixWorld(true);
       const center=released?new THREE.Vector3().copy(body.worldCom()):new THREE.Box3().setFromObject(nodes[0],true).getCenter(new THREE.Vector3());

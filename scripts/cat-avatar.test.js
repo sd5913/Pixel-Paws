@@ -33,6 +33,10 @@ test('packaged cat loads with independent bones and animated walking', async () 
   avatar.swat();
   avatar.update(.2, 0, 0);
   assert.ok(initial.angleTo(paw.quaternion) > .01);
+  const swatPose = paw.quaternion.clone();
+  avatar.update(.05, 1, 0);
+  assert.equal(avatar.object.rotation.y, Math.PI / 2, 'moving swat follows the movement direction');
+  assert.ok(swatPose.angleTo(paw.quaternion) > .001, 'the swat animation continues while moving');
   avatar.update(.7, 0, 0);
   avatar.update(.2, 0, 0);
   assert.ok(paw.quaternion.toArray().every(Number.isFinite));
