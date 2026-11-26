@@ -1,11 +1,11 @@
-import {createChristmasPhysics} from './physics/christmas-physics.js';
+import {createChristmasPhysics,clampChristmasTarget,addChristmasEnvironmentColliders} from './physics/christmas-physics.js';
 import {createChristmasProps} from './christmas-props.js';
 import {SWAT} from './swat.js';
 import {batchStaticMeshes} from './assets/batch-static-meshes.js';
 import { AudioManager } from './feedback/audio-manager.js';
 import * as THREE from 'three';
 import { PLAY_CAMERA, resizePlayCamera } from './play-camera.js';
-import { CAT_EDGE_MARGIN, createCatAvatar } from './assets/cat-avatar.js';
+import { createCatAvatar } from './assets/cat-avatar.js';
 import { loadGlb } from './assets/load-assets.js';
 import { joystickVector, JOYSTICK_SPEED } from './joystick.js';
 const scene = new THREE.Scene();
@@ -19,7 +19,6 @@ renderer.toneMappingExposure=1.05;
 document.querySelector('main').append(renderer.domElement);
 const camera=new THREE.OrthographicCamera(-1,1,1,-1,.01,30);
 const tableHeight=.807;
-const tableRadius=1.95;
 const {elevation,distance,focusHeight,frameZ}=PLAY_CAMERA;
 const focus=new THREE.Vector3(0,tableHeight+focusHeight,frameZ);
 const cameraOffset=new THREE.Vector3(0,distance*Math.sin(elevation),distance*Math.cos(elevation));
@@ -35,9 +34,9 @@ room.traverse(child => {
   if (child.name === 'Red_woven_blanket') child.material = new THREE.MeshStandardMaterial({color:'#8f2632', roughness:1});
   if (child.name.startsWith('Amber_flame') || child.name.startsWith('Golden_heart')) flames.push(child);
 });
-// Replace the old procedural mantel cottage with the supplied ornament.
-room.traverse(node=>{if(/^(Christmas_cottage|Cottage_|Lit_cottage|Window_cross)/.test(node.name))node.visible=false;});
-batchStaticMeshes(room,{exclude:node=>flames.includes(node)});
+// Preserve the original mantel decorations alongside the movable tabletop copies.
+
+// Keep authored environment parts available for solid collision proxies.
 scene.add(room);
 scene.add(new THREE.HemisphereLight('#ffe6c5','#674334',2.1));
 const key=new THREE.DirectionalLight('#ffcf94',2.6);key.position.set(-3,5,2);key.castShadow=true;key.shadow.mapSize.set(2048,2048);Object.assign(key.shadow.camera,{left:-5,right:5,top:5,bottom:-5});key.shadow.normalBias=.025;scene.add(key);
@@ -60,6 +59,7 @@ cat.object.traverse(child => {
 });
 scene.add(cat.object);
 const christmasPhysics=await createChristmasPhysics(tableHeight,audio);
+addChristmasEnvironmentColliders(christmasPhysics.physics,room);
 const christmasProps=await createChristmasProps(scene,christmasPhysics,tableHeight);
 document.querySelector('#loading').remove();
 for(const id of ['restart','swat'])document.getElementById(id).disabled=false;
@@ -110,7 +110,6 @@ for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
 
 const position = cat.object.position;
 const next = new THREE.Vector2();
-const walkRadius = tableRadius - CAT_EDGE_MARGIN;
 const clock = new THREE.Timer();
 renderer.setAnimationLoop(timestamp => {
   clock.update(timestamp);
@@ -124,12 +123,13 @@ renderer.setAnimationLoop(timestamp => {
   const delta = Math.min(clock.getDelta(), 0.05);
   const distance = JOYSTICK_SPEED.walk * delta
     / Math.max(1, Math.hypot(x, z));
-  next.set(THREE.MathUtils.clamp(position.x + x * distance, -1.72 + CAT_EDGE_MARGIN, 1.72 - CAT_EDGE_MARGIN), THREE.MathUtils.clamp(position.z + z * distance, -2.42 + CAT_EDGE_MARGIN, 2.42 - CAT_EDGE_MARGIN));
+  const target=clampChristmasTarget(position.x+x*distance,position.z+z*distance);
+  next.set(target.x,target.z);
   christmasPhysics.step(delta,next);
   const actual=christmasPhysics.catBody.translation();
   cat.update(delta,actual.x-position.x,actual.z-position.z);
   position.x=actual.x;position.z=actual.z;
-  christmasProps.update();
+  christmasProps.update(delta);
   // Keep the play angle and scale, following the cat as in the first level.
   const follow = 1 - Math.exp(-10 * delta);
   focus.x += (position.x - focus.x) * follow;

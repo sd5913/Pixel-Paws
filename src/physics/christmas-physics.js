@@ -1,12 +1,20 @@
+import {Box3,Vector3} from 'three';
 import {createPhysicsWorld} from './physics-world.js';
 import {createFloorContactAudio} from '../feedback/floor-contact-audio.js';
+
+export const CHRISTMAS_TABLE=Object.freeze({halfWidth:1.95,halfDepth:2.65,edgeInset:.18});
+export function clampChristmasTarget(x,z){
+  const limitX=CHRISTMAS_TABLE.halfWidth-CHRISTMAS_TABLE.edgeInset;
+  const limitZ=CHRISTMAS_TABLE.halfDepth-CHRISTMAS_TABLE.edgeInset;
+  return {x:Math.max(-limitX,Math.min(limitX,x)),z:Math.max(-limitZ,Math.min(limitZ,z))};
+}
 
 export async function createChristmasPhysics(tableHeight=.807,audio=null){
   const physics=await createPhysicsWorld();
   const {world,rapier:R}=physics;
   const fixed=world.createRigidBody(R.RigidBodyDesc.fixed());
   const tableGroup=(16<<16)|0xffff;
-  world.createCollider(R.ColliderDesc.cuboid(1.95,.075,2.65).setTranslation(0,tableHeight-.075,0).setFriction(.65).setCollisionGroups(tableGroup),fixed);
+  world.createCollider(R.ColliderDesc.cuboid(CHRISTMAS_TABLE.halfWidth,.075,CHRISTMAS_TABLE.halfDepth).setTranslation(0,tableHeight-.075,0).setFriction(.65).setCollisionGroups(tableGroup),fixed);
   const floorCollider=world.createCollider(R.ColliderDesc.cuboid(6,.05,6).setTranslation(0,-.06,0).setFriction(.7),fixed);
   world.createCollider(R.ColliderDesc.cuboid(6,2,.12).setTranslation(0,2,-3.7),fixed);
   // Closed supporting furniture, below the flat tabletop.
@@ -21,9 +29,18 @@ export async function createChristmasPhysics(tableHeight=.807,audio=null){
     physics,catBody,floorCollider,contactAudio,
     step(delta,target){
       if(delta<=0)return;
-      const p=catBody.translation(),desired={x:(target.x-p.x)/delta,z:(target.y-p.z)/delta};
+      const bounded=clampChristmasTarget(target.x,target.y);
+      const p=catBody.translation(),desired={x:(bounded.x-p.x)/delta,z:(bounded.z-p.z)/delta};
       const speed=Math.hypot(desired.x,desired.z);if(speed>1.4){desired.x*=1.4/speed;desired.z*=1.4/speed;}
-      physics.step(delta,()=>contactAudio.update(),(_world,timestep)=>{
+      physics.step(delta,()=>{
+        const p=catBody.translation(),bounded=clampChristmasTarget(p.x,p.z);
+        if(p.x!==bounded.x||p.z!==bounded.z){
+          const v=catBody.linvel();
+          catBody.setTranslation({x:bounded.x,y:p.y,z:bounded.z},true);
+          catBody.setLinvel({x:p.x===bounded.x?v.x:0,y:0,z:p.z===bounded.z?v.z:0},true);
+        }
+        contactAudio.update();
+      },(_world,timestep)=>{
         const v=catBody.linvel();let dx=desired.x-v.x,dz=desired.z-v.z;
         const change=Math.hypot(dx,dz),limit=7*timestep;
         if(change>limit){dx*=limit/change;dz*=limit/change;}
@@ -32,4 +49,18 @@ export async function createChristmasPhysics(tableHeight=.807,audio=null){
     },
     resetCat(){contactAudio.reset();catBody.setTranslation({x:0,y:tableHeight+.2,z:0},true);catBody.setLinvel({x:0,y:0,z:0},true);catBody.setAngvel({x:0,y:0,z:0},true);catBody.resetForces(true);catBody.resetTorques(true);},
   };
+}
+
+export function addChristmasEnvironmentColliders(physics,room){
+ const {world,rapier:R}=physics;room.updateMatrixWorld(true);
+ const fixed=world.createRigidBody(R.RigidBodyDesc.fixed());
+ // Seal the fireplace frontage so falling props cannot enter the firebox.
+ world.createCollider(R.ColliderDesc.cuboid(1.7,1.6,.12).setTranslation(0,1.6,-2.84),fixed);
+ room.traverse(node=>{
+  if(!node.isMesh||!node.visible||/Floor|Walnut_tabletop|Wood_grain|blanket|fringe|flame|heart|ember|Cottage|cottage|Window_cross/.test(node.name))return;
+  if(!/Table_leg|Fireplace|Hearth|Mantel|Back_wall|Christmas_tree|Wrapped_gift|Gift_lid|Candle|Little_tree/.test(node.name))return;
+  const box=new Box3().setFromObject(node,true),half=box.getSize(new Vector3()).multiplyScalar(.5),center=box.getCenter(new Vector3());
+  if(Math.min(half.x,half.y,half.z)<.005)return;
+  world.createCollider(R.ColliderDesc.cuboid(half.x,half.y,half.z).setTranslation(center.x,center.y,center.z).setFriction(.7),fixed);
+ });
 }
