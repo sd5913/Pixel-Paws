@@ -97,13 +97,14 @@ test('rejects broad access, invalid ranges, and failed parts before commit', asy
   assert(!fail.requests.some(({ method }) => method === 'PATCH'));
 });
 
-test('TestFlight accepts only validated immutable tags reachable from main before secrets', () => {
+test('TestFlight accepts weekly protected-main builds and validated immutable tags before secrets', () => {
   const read = name => readFileSync(new URL('../.github/workflows/' + name, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   const release = read('ios-testflight.yml');
-  assert.match(release, /on:\n  push:\n    tags: \['v\[0-9\]\*'\]/);
-  assert.doesNotMatch(release, /branches: \[main\]|pull_request|workflow_dispatch|github\.ref_protected|ASC_ISSUER/);
+  assert.match(release, /on:\n  schedule:\n    # Runs at 00:00 UTC every Sunday\n    - cron: '0 0 \* \* 0'\n  workflow_dispatch:\n  push:\n    tags: \['v\[0-9\]\*'\]/);
+  assert.doesNotMatch(release, /branches: \[main\]|pull_request|github\.ref_protected|ASC_ISSUER/);
   const validation = release.split('  upload:')[0];
   assert.match(validation, /release-version/);
+  assert.match(validation, /package\.json/);
   assert.match(validation, /git merge-base --is-ancestor/);
   assert.match(validation, /refs\/tags\/\$\{GITHUB_REF_NAME\}\^\{\}/);
   assert.doesNotMatch(validation, /environment:|secrets\./);
