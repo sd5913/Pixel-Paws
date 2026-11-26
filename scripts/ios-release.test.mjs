@@ -114,7 +114,7 @@ test('TestFlight accepts weekly protected-main builds and validated immutable ta
   assert.match(release, /node \.github\/scripts\/ios-upload\.mjs build-number/);
   assert.match(release, /MARKETING_VERSION: \$\{\{ steps\.prepare\.outputs\.version \}\}/);
   assert.match(readFileSync(new URL('../.github/scripts/ios-prepare.sh', import.meta.url), 'utf8'), /npm ci --ignore-scripts/);
-  const signing = readFileSync(new URL('../.github/scripts/ios-testflight.sh', import.meta.url), 'utf8');
+  const signing = readFileSync(new URL('../.github/scripts/ios-testflight.sh', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   assert.match(signing, /MARKETING_VERSION="\$MARKETING_VERSION"/);
   assert.match(signing, /testFlightInternalTestingOnly": False/);
   assert.match(signing, /CFBundleShortVersionString/);
@@ -123,7 +123,7 @@ test('TestFlight accepts weekly protected-main builds and validated immutable ta
 });
 
 test('export options allow external TestFlight testing with manual App Store signing', () => {
-  const script = readFileSync(new URL('../.github/scripts/ios-testflight.sh', import.meta.url), 'utf8');
+  const script = readFileSync(new URL('../.github/scripts/ios-testflight.sh', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   const match = script.match(/python3 - "\$work\/export\.plist"[^\n]*<<'PY'\n([\s\S]*?)\nPY/);
   assert(match, 'export plist generator must exist');
   const directory = mkdtempSync(join(tmpdir(), 'pixel-paws-export-'));

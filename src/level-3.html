@@ -3,8 +3,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pixel Paws · Level 3</title>
-<style>body{margin:0;background:#f1d9ca}main{height:100dvh;overflow:hidden}canvas{display:block}.home-link{position:fixed;z-index:1;top:max(12px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));padding:8px 13px;border-radius:999px;background:#fff6e9;color:#67453b;font:600 14px system-ui;text-decoration:none}</style>
+<style>body{margin:0;background:#f1d9ca}main{height:100dvh;overflow:hidden}canvas{display:block}.home-link{position:fixed;z-index:1;top:max(12px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));padding:8px 13px;border-radius:999px;background:#fff6e9;color:#67453b;font:600 14px system-ui;text-decoration:none}.action{position:fixed;z-index:2;bottom:max(16px,env(safe-area-inset-bottom));border:2px solid #67453b;border-radius:999px;background:#fff6e9;color:#67453b;padding:14px 20px;font:600 16px system-ui;touch-action:manipulation}#restart{left:12px}#swat{right:12px;padding:20px 28px}</style>
 <a class="home-link" href="./">Home</a>
+<p id="loading" role="status" style="position:fixed;z-index:3;top:45%;width:100%;text-align:center;color:#fff6e9;font:600 18px system-ui">Loading Christmas room…</p>
+<button class="action" id="restart" type="button" disabled>Restart</button>
+<button class="action" id="swat" type="button" disabled>SWAT</button>
 <main aria-label="Level 3 Christmas fireplace room"></main>
 <script type="module" src="./level-3.js"></script>
 </html>
