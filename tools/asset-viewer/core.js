@@ -50,7 +50,8 @@ export function setModelStyle(record, { mode, preset = 'warm-illustrated', wiref
 }
 
 export function modelMetadata(record, entry) {
-  const bounds = new T.Box3().setFromObject(record.object);
+  // Match the asset validator: measure transformed vertices, not rotated local AABBs.
+  const bounds = new T.Box3().setFromObject(record.object, true);
   const dimensions = bounds.getSize(new T.Vector3()).toArray();
   let triangles = 0, vertices = 0;
   const materialSet = new Set();

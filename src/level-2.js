@@ -1,3 +1,4 @@
+import { AudioManager } from './feedback/audio-manager.js';
 import { SWAT } from './swat.js';
 import { createBakingPhysics } from './physics/baking-physics.js';
 import { createKitchenProps } from './kitchen-props.js';
@@ -216,7 +217,11 @@ cat.object.traverse(child => {
   if (child.isMesh) child.castShadow = child.receiveShadow = true;
 });
 scene.add(cat.object);
-const bakingPhysics = await createBakingPhysics(tableHeight, tableRadius);
+const audio = new AudioManager();
+audio.init(camera,scene);
+void audio.preload();
+window.addEventListener('pagehide',event=>{if(!event.persisted)audio.dispose();});
+const bakingPhysics = await createBakingPhysics(tableHeight, tableRadius, audio);
 const mixingBowl = await createMixingBowl(scene, renderer, tableHeight, tableRadius, loadGlb, bakingPhysics);
 const milkJug = await createMilkJug(scene, renderer, tableHeight, tableRadius, loadGlb, bakingPhysics);
 const kitchenProps = await createKitchenProps(scene, bakingPhysics, tableHeight);

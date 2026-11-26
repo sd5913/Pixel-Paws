@@ -1,3 +1,8 @@
+import {createChristmasPhysics} from './physics/christmas-physics.js';
+import {createChristmasProps} from './christmas-props.js';
+import {SWAT} from './swat.js';
+import {batchStaticMeshes} from './assets/batch-static-meshes.js';
+import { AudioManager } from './feedback/audio-manager.js';
 import * as THREE from 'three';
 import { PLAY_CAMERA, resizePlayCamera } from './play-camera.js';
 import { CAT_EDGE_MARGIN, createCatAvatar } from './assets/cat-avatar.js';
@@ -19,6 +24,10 @@ const {elevation,distance,focusHeight,frameZ}=PLAY_CAMERA;
 const focus=new THREE.Vector3(0,tableHeight+focusHeight,frameZ);
 const cameraOffset=new THREE.Vector3(0,distance*Math.sin(elevation),distance*Math.cos(elevation));
 camera.position.copy(focus).add(cameraOffset);camera.lookAt(focus);
+const audio = new AudioManager();
+audio.init(camera,scene);
+void audio.preload();
+window.addEventListener('pagehide',event=>{if(!event.persisted)audio.dispose();});
 const room=await loadGlb('./assets/models/christmas-room.glb');
 room.traverse(child=>{if(child.isMesh)child.castShadow=child.receiveShadow=true;});
 const flames = [];
@@ -26,6 +35,9 @@ room.traverse(child => {
   if (child.name === 'Red_woven_blanket') child.material = new THREE.MeshStandardMaterial({color:'#8f2632', roughness:1});
   if (child.name.startsWith('Amber_flame') || child.name.startsWith('Golden_heart')) flames.push(child);
 });
+// Replace the old procedural mantel cottage with the supplied ornament.
+room.traverse(node=>{if(/^(Christmas_cottage|Cottage_|Lit_cottage|Window_cross)/.test(node.name))node.visible=false;});
+batchStaticMeshes(room,{exclude:node=>flames.includes(node)});
 scene.add(room);
 scene.add(new THREE.HemisphereLight('#ffe6c5','#674334',2.1));
 const key=new THREE.DirectionalLight('#ffcf94',2.6);key.position.set(-3,5,2);key.castShadow=true;key.shadow.mapSize.set(2048,2048);Object.assign(key.shadow.camera,{left:-5,right:5,top:5,bottom:-5});key.shadow.normalBias=.025;scene.add(key);
@@ -47,6 +59,21 @@ cat.object.traverse(child => {
   if (child.isMesh) child.castShadow = child.receiveShadow = true;
 });
 scene.add(cat.object);
+const christmasPhysics=await createChristmasPhysics(tableHeight,audio);
+const christmasProps=await createChristmasProps(scene,christmasPhysics,tableHeight);
+document.querySelector('#loading').remove();
+for(const id of ['restart','swat'])document.getElementById(id).disabled=false;
+let nextSwatAt=0;
+const swat=()=>{
+  const now=performance.now();if(now<nextSwatAt)return;
+  nextSwatAt=now+SWAT.duration*1000;
+  cat.swat();christmasProps.swat(cat.object.position,cat.object.rotation.y);
+};
+document.querySelector('#swat').addEventListener('click',swat);
+document.querySelector('#restart').addEventListener('click',()=>{
+  nextSwatAt=0;resetInput();cat.reset();christmasPhysics.resetCat();christmasProps.reset();
+  cat.object.position.set(0,tableHeight+.007,0);focus.set(0,tableHeight+focusHeight,frameZ);
+});
 const directions = new Map([
   ['ArrowLeft', [-1, 0]], ['KeyA', [-1, 0]], ['ArrowRight', [1, 0]], ['KeyD', [1, 0]],
   ['ArrowUp', [0, -1]], ['KeyW', [0, -1]], ['ArrowDown', [0, 1]], ['KeyS', [0, 1]],
@@ -62,7 +89,7 @@ window.addEventListener('keydown', event => {
     event.preventDefault();
     pressed.add(event.code);
   }
-  if (event.code === 'KeyK' && !event.repeat) cat.swat();
+  if (event.code === 'KeyK' && !event.repeat) swat();
 });
 window.addEventListener('keyup', event => pressed.delete(event.code));
 canvas.style.touchAction = 'none';
@@ -98,9 +125,11 @@ renderer.setAnimationLoop(timestamp => {
   const distance = JOYSTICK_SPEED.walk * delta
     / Math.max(1, Math.hypot(x, z));
   next.set(THREE.MathUtils.clamp(position.x + x * distance, -1.72 + CAT_EDGE_MARGIN, 1.72 - CAT_EDGE_MARGIN), THREE.MathUtils.clamp(position.z + z * distance, -2.42 + CAT_EDGE_MARGIN, 2.42 - CAT_EDGE_MARGIN));
-  cat.update(delta, next.x - position.x, next.y - position.z);
-  position.x = next.x;
-  position.z = next.y;
+  christmasPhysics.step(delta,next);
+  const actual=christmasPhysics.catBody.translation();
+  cat.update(delta,actual.x-position.x,actual.z-position.z);
+  position.x=actual.x;position.z=actual.z;
+  christmasProps.update();
   // Keep the play angle and scale, following the cat as in the first level.
   const follow = 1 - Math.exp(-10 * delta);
   focus.x += (position.x - focus.x) * follow;
