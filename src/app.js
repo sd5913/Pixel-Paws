@@ -208,7 +208,7 @@ void Promise.all([createCatAvatar(), loadStudyScene()]).then(async ([avatar, stu
   player.add(avatar.object);
   world.add(...study.instances.map(instance => instance.object3D));
   for (const instance of study.instances) scoreAnchors.set(instance.id, instance.object3D);
-  deskPhysics = await createDeskPhysics(study, player, { edgeMargin: CAT_EDGE_MARGIN });
+  deskPhysics = await createDeskPhysics(study, player, { edgeMargin: CAT_EDGE_MARGIN, audio });
   resetTargets = () => { study.reset({ randomize: true }); deskPhysics.reset(); };
   if (!debugScoring) roundTargets = study.targets;
   resetPrototypeScene();
@@ -257,7 +257,13 @@ function pointsAtHomeCat(event) {
 }
 
 renderer.domElement.addEventListener('click', event => {
-  if (pointsAtHomeCat(event)) catAvatar.swat();
+  if (!pointsAtHomeCat(event)) return;
+  catAvatar.swat();
+  void audio.unlock().then(async unlocked => {
+    if (!unlocked) return;
+    await audio.preload();
+    if (document.body.dataset.gameState === 'ready') audio.playCatMeow();
+  });
 });
 renderer.domElement.addEventListener('pointermove', event => {
   renderer.domElement.style.cursor = pointsAtHomeCat(event) ? 'pointer' : '';
@@ -720,7 +726,12 @@ if (debugScoring) {
 
 function stepGame(delta) {
   movementX = movementZ = 0;
-  if (!game.playing || !deskPhysics) return;
+  if (!deskPhysics) return;
+  if (!game.playing) {
+    // Let already-falling props finish landing behind the results panel.
+    if (game.snapshot().state === 'ended') deskPhysics.step(delta, {x:0,z:0});
+    return;
+  }
 
   const input = joystick.read();
   const dx = input.x + Number(keys.right) - Number(keys.left);

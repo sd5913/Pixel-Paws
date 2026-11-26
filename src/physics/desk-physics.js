@@ -1,3 +1,4 @@
+import { createFloorContactAudio } from '../feedback/floor-contact-audio.js';
 import { Box3 } from 'three';
 import { createVaseBreakage } from './vase-breakage.js';
 import { createPhysicsWorld } from './physics-world.js';
@@ -10,12 +11,13 @@ import { SWAT } from '../swat.js';
 const OBJECT_MASS_MULTIPLIER = 1.6;
 const GAMEPLAY_MASS = Object.freeze({ eraser: 0.18, 'desk-lamp': 0.32 });
 
-export async function createDeskPhysics(study, player, { events = physicsEvents, windowWall = true, edgeMargin = 0 } = {}) {
+export async function createDeskPhysics(study, player, { events = physicsEvents, windowWall = true, edgeMargin = 0, audio = null } = {}) {
   const physics = await createPhysicsWorld();
   // Match the visible floor at Y=-0.01 so fallen props remain in the room.
   const floor = physics.world.createRigidBody(physics.rapier.RigidBodyDesc.fixed());
   const floorCollider = physics.world.createCollider(physics.rapier.ColliderDesc.cuboid(100, .1, 100)
     .setTranslation(0, -.11, 0).setFriction(.8).setRestitution(.02), floor);
+  const floorAudio=createFloorContactAudio(physics,floorCollider,audio);
   const bodies = study.instances.map(instance => ({ instance, body: createPhysicsBody(physics, {
     ...instance,
     physics: instance.physics.bodyType === 'dynamic'
@@ -34,6 +36,7 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
   });
   // A finite-mass movement motor lets heavy props resist a dash. Keep the cat
   // upright on the tabletop, while horizontal collisions remain physical.
+  floorAudio.setCatBody(cat.rigidBody);
   cat.rigidBody.setEnabledTranslations(true, false, true, true);
   cat.rigidBody.lockRotations(true, true);
   cat.rigidBody.setGravityScale(0, true);
@@ -93,6 +96,7 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
         // only sliding its broad base along the desk.
         const contactHeight = instance.assetId === 'desk-lamp' ? 0.55 : 0.1;
         // A slightly left-of-centre contact adds a rightward yaw to the paw strike.
+        floorAudio.notifyHit(body.rigidBody);
         body.rigidBody.applyImpulseAtPoint({ x: forward.x * SWAT.forwardImpulse,
           y: SWAT.upwardImpulse, z: forward.z * SWAT.forwardImpulse },
         { x: point.x - Math.cos(yaw) * SWAT.leftContactOffset,
@@ -109,6 +113,7 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
       const steps = physics.step(delta,
         (world, timestep) => {
           events.processImpacts?.(world, timestep);
+          floorAudio.update();
           for (const breakage of breakages) breakage.update();
         },
         (_world, timestep) => {
@@ -140,6 +145,8 @@ export async function createDeskPhysics(study, player, { events = physicsEvents,
     },
     reset() {
       events.resetImpacts?.();
+      floorAudio.reset();
+      clearedOffDesk.clear();
       for (const spill of spills) spill.reset();
       for (const breakage of breakages) breakage.reset();
       for (const { instance, body } of bodies) {

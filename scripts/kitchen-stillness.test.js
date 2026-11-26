@@ -10,3 +10,29 @@ for(let i=0;i<900;i++)step();let movingAfterReset=0;
 env.physics.world.forEachRigidBody(body=>{if(body.isDynamic()&&body.isEnabled()&&!body.isSleeping())movingAfterReset++;});
 assert.equal(movingAfterReset,0);env.physics.dispose();
 });
+
+test('new kitchen props remain solid on the floor and return on restart', async () => {
+  const scene = new Scene();
+  const env = await createBakingPhysics(.78, 1.95);
+  const props = await createKitchenProps(scene, env, .78, load);
+  const imported = [];
+  env.physics.world.forEachRigidBody(body => {
+    if (/^(?:1[6-9]-|2[0-2]-|blueberry001|strawberry00[12]|butter_cube_[123])/.test(body.userData?.floorAsset ?? '')
+        && body.isEnabled()) imported.push(body);
+  });
+  assert.equal(imported.length, 11, 'five carriers and six separate berries/butter cubes');
+  const starts = imported.map(body => ({...body.translation()}));
+  imported.forEach((body, index) => body.setTranslation({x: 3 + index * .5, y: 1, z: 2}, true));
+  for (let i = 0; i < 360; i++) { env.step(1/60, new Vector2()); props.update(); }
+  for (const body of imported) {
+    assert.ok(body.isEnabled(), 'fallen props remain in the game');
+    const center = body.worldCom();
+    assert.ok(center.y >= 0 && center.y < .4, 'solid floor supports each prop');
+    assert.ok(body.isSleeping(), 'fallen props settle');
+  }
+  props.reset();
+  imported.forEach((body, index) => {
+    assert.ok(new Vector3().copy(body.translation()).distanceTo(starts[index]) < 1e-5);
+  });
+  env.physics.dispose();
+});
