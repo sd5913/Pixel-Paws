@@ -52,6 +52,18 @@ test('compound colliders apply scene transforms once, without double-applying as
   assert.deepEqual(bounds.getSize(new T.Vector3()).toArray().map(n => +n.toFixed(4)), [0.9, 0.1, 2.7]);
 });
 
+test('rotated mesh metadata measures vertices instead of an enlarged local box', () => {
+  const object = new T.Group();
+  const geometry = new T.BufferGeometry();
+  geometry.setAttribute('position', new T.Float32BufferAttribute([0,0,0, 2,0,0, 0,1,1],3));
+  const mesh = new T.Mesh(geometry,new T.MeshStandardMaterial());
+  mesh.rotation.y = Math.PI/4;object.add(mesh);
+  const entry = {...mug,dimensionsMeters:[Math.SQRT2,1,3/Math.SQRT2]};
+  const data = modelMetadata(prepareModel(object,entry),entry);
+  assert.equal(data.boundsMatch,true);
+  assert.ok(Math.abs(data.dimensions[0]-Math.SQRT2)<1e-6);
+});
+
 test('unsupported node colliders are reported explicitly rather than fabricated', () => {
   const entry = { ...mug, colliders: [{ type: 'convex-hull', center: [0, 0, 0], includeNodes: ['body'] }] };
   const { group, warnings } = createColliderLayer(entry);
