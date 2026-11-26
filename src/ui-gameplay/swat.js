@@ -8,8 +8,8 @@ export function createSwat({ canStart, onStart, onHit, onReset = () => {} }) {
   let hit = false;
   return {
     get active() { return elapsed !== null; },
-    request() {
-      if (elapsed !== null || !canStart()) return false;
+    request(options = {}) {
+      if (!canStart() || (elapsed !== null && !options.retrigger)) return false;
       elapsed = 0;
       hit = false;
       onStart();

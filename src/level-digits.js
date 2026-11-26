@@ -11,6 +11,11 @@ export function renderDigits(element, value) {
   artwork.setAttribute('aria-hidden', 'true');
   let x = 0;
   for (const character of text) {
+    if(character==='-'){
+      const minus=document.createElementNS(svgNamespace,'path');
+      minus.setAttribute('d',`M${x+10} 45h35v10h-35Z`);
+      artwork.append(minus);x+=55;continue;
+    }
     const colon = character === ':';
     const width = colon ? 25 : 61;
     const glyph = document.createElementNS(svgNamespace, 'use');

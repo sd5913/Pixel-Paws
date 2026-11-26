@@ -64,15 +64,18 @@ addChristmasEnvironmentColliders(christmasPhysics.physics,room);
 const christmasProps=await createChristmasProps(scene,christmasPhysics,tableHeight);
 
 
-let nextSwatAt=0;
 const swat=()=>{
-  if(!levelUI.playing)return;const now=performance.now();if(now<nextSwatAt)return;
-  nextSwatAt=now+SWAT.duration*1000;
-  cat.swat();christmasProps.swat(cat.object.position,cat.object.rotation.y);
+  if(!levelUI.playing)return;
+  const strike=strikeDirection();if(!strike.moving)cat.swat();levelUI.recordSwat(christmasProps.swat(cat.object.position,strike.yaw));return true;
 };
-const levelUI = createLevelUI({ level: 3, targets: christmasProps.entries.filter(e=>!e.spec.scenery).map(e=>({...e,id:'christmas-'+e.spec.id,points:e.spec.height>=.4?30:e.spec.flat?10:20, readBounds: () => new THREE.Box3(e.half.clone().negate(), e.half.clone()).applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(e.object.quaternion).setPosition(e.object.position))})), tableHeight, tableShape: { halfWidth: 1.95, halfDepth: 2.65 }, onSwat: swat, onRestart: () => {
-nextSwatAt=0;resetInput();cat.reset();christmasPhysics.resetCat();christmasProps.reset();cat.object.position.set(0,tableHeight+.007,0);focus.set(0,tableHeight+focusHeight,frameZ);
+const levelUI = createLevelUI({ level: 3, camera, protectedRules: [{id:'christmas-11',name:'Snow globe',penalty:80},{id:'christmas-17',name:'Vintage lantern',penalty:80}], targets: christmasProps.entries.filter(e=>!e.spec.scenery).map(e=>({...e,id:'christmas-'+e.spec.id,points:e.spec.height>=.4?30:e.spec.flat?10:20, readBounds: () => new THREE.Box3(e.half.clone().negate(), e.half.clone()).applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(e.object.quaternion).setPosition(e.object.position))})), tableHeight, tableShape: { halfWidth: 1.95, halfDepth: 2.65 }, onSwat: swat, onRestart: () => {
+resetInput();cat.reset();christmasPhysics.resetCat();christmasProps.reset();cat.object.position.set(0,tableHeight+.007,0);focus.set(0,tableHeight+focusHeight,frameZ);
 } });
+function strikeDirection() {
+  const input=levelUI.read();let x=drag?.x ?? input.x,z=drag?.z ?? input.z;
+  for(const code of pressed){const d=directions.get(code);if(d){x+=d[0];z+=d[1];}}
+  return {moving:Math.hypot(x,z)>.01,yaw:Math.hypot(x,z)>.01?Math.atan2(x,z):cat.object.rotation.y};
+}
 const directions = new Map([
   ['ArrowLeft', [-1, 0]], ['KeyA', [-1, 0]], ['ArrowRight', [1, 0]], ['KeyD', [1, 0]],
   ['ArrowUp', [0, -1]], ['KeyW', [0, -1]], ['ArrowDown', [0, 1]], ['KeyS', [0, 1]],
@@ -90,7 +93,7 @@ window.addEventListener('keydown', event => {
     pressed.add(event.code);
   }
   if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') pressed.add(event.code);
-  if (event.code === 'KeyK' && !event.repeat) swat();
+  if (event.code === 'KeyK' && !event.repeat) levelUI.requestSwat();
 });
 window.addEventListener('keyup', event => pressed.delete(event.code));
 canvas.style.touchAction = 'none';
@@ -134,7 +137,7 @@ renderer.setAnimationLoop(timestamp => {
   next.set(target.x,target.z);
   christmasPhysics.step(delta,next,speed);
   const actual=christmasPhysics.catBody.translation();
-  cat.update(delta,actual.x-position.x,actual.z-position.z);
+  cat.update(delta,x*distance,z*distance);
   position.x=actual.x;position.z=actual.z;
   christmasProps.update(delta);
   // Keep the play angle and scale, following the cat as in the first level.

@@ -34,7 +34,7 @@ export async function createChristmasPhysics(tableHeight=.807,audio=null){
       const p=catBody.translation(),desired={x:(bounded.x-p.x)/delta,z:(bounded.z-p.z)/delta};
       const limitSpeed=Math.min(JOYSTICK_SPEED.dash,Math.max(0,maxSpeed));
       const speed=Math.hypot(desired.x,desired.z);if(speed>limitSpeed){desired.x*=limitSpeed/speed;desired.z*=limitSpeed/speed;}
-      physics.step(delta,()=>{
+      physics.step(delta,(_world,timestep)=>{
         const p=catBody.translation(),bounded=clampChristmasTarget(p.x,p.z);
         if(p.x!==bounded.x||p.z!==bounded.z){
           const v=catBody.linvel();

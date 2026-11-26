@@ -2,6 +2,31 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createBakingPhysics } from '../src/physics/baking-physics.js';
 import { JOYSTICK_SPEED } from '../src/joystick.js';
+import { CAT_EDGE_MARGIN } from '../src/assets/cat-avatar.js';
+
+test('round-table edge permits tangent motion without outward dash bounce',async()=>{
+  const env=await createBakingPhysics(.78,1.95),radius=1.95-CAT_EDGE_MARGIN;
+  try {
+    env.resetCat({x:radius,z:0});
+    for(let frame=0;frame<120;frame++) {
+      env.step(1/60,{x:radius,y:0},JOYSTICK_SPEED.dash);
+      assert.ok(Math.abs(env.catBody.translation().x-radius)<1e-5);
+    }
+    let previous=env.catBody.translation(),travel=0;
+    for(let frame=0;frame<120;frame++) {
+      const angle=Math.atan2(previous.z,previous.x);
+      const x=previous.x+(Math.cos(angle)-Math.sin(angle))*3.8/60;
+      const z=previous.z+(Math.sin(angle)+Math.cos(angle))*3.8/60;
+      const length=Math.hypot(x,z);
+      env.step(1/60,{x:x*radius/length,y:z*radius/length},JOYSTICK_SPEED.dash);
+      const p=env.catBody.translation();
+      assert.ok(Math.hypot(p.x,p.z)<=radius+1e-5);
+      assert.ok(Math.hypot(p.x,p.z)>=radius-.01,'sliding must not repeatedly pull inward');
+      travel+=Math.hypot(p.x-previous.x,p.z-previous.z);previous=p;
+    }
+    assert.ok(travel>1,'tangent motion is retained');
+  } finally {env.physics.dispose();}
+});
 
 test('kitchen movement preserves the dash speed through the physical motor', async () => {
   const environment = await createBakingPhysics(.78, 1.95);

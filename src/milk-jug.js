@@ -1,4 +1,4 @@
-import { inSwatRange } from './swat.js';
+import { inSwatRange, SWAT, swatIntersectsBody } from './swat.js';
 import { addBakingWindowColliders } from './physics/baking-window-colliders.js';
 import { addBakingChairColliders } from './physics/baking-chair-colliders.js';
 import * as THREE from 'three';
@@ -111,9 +111,9 @@ export async function createMilkJug(scene, renderer, tableHeight, tableRadius, l
   function swat(position,yaw) {
     if(broken)return;
     const center=body.worldCom();
-    if(!inSwatRange(position,yaw,center))return;
+    if(!inSwatRange(position,yaw,center) && !swatIntersectsBody(environment?.physics ?? physics,body,position,yaw))return;
     environment?.contactAudio?.notifyHit(body);
-    body.applyImpulseAtPoint({x:Math.sin(yaw)*.24,y:.035,z:Math.cos(yaw)*.24},
+    body.applyImpulseAtPoint({x:Math.sin(yaw)*SWAT.forwardImpulse,y:SWAT.upwardImpulse,z:Math.cos(yaw)*SWAT.forwardImpulse},
       {x:center.x,y:center.y+.22,z:center.z},true);
   }
   function update(delta, catPosition) {

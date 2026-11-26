@@ -2,6 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createScoring, roundRating } from '../src/level-scoring.js';
 
+test('Christmas three stars require most available combo points and no protected drop',()=>{
+  const rate=total=>roundRating({level:3,targetCount:31,baseMax:660,total});
+  assert.equal(rate(165).stars,1);
+  assert.equal(rate(660).stars,2);
+  assert.equal(rate(908).stars,2);
+  assert.equal(rate(1029).stars,2);
+  assert.equal(rate(1030).stars,3);
+  assert.equal(rate(1095).stars,3);
+  assert.equal(rate(1095-80).stars,2,'even a perfect combo cannot offset a protected drop for three stars');
+  assert.equal(roundRating({level:2,targetCount:20,baseMax:370,total:509}).stars,3);
+});
+
 test('weighted carriers score once, including topple then clear and odd point values', () => {
   const score = createScoring();
   score.startRound([{ id: 'scale', points: 30 }, { id: 'bag', points: 11 }]);

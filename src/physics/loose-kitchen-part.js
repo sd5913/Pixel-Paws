@@ -76,6 +76,7 @@ export function createLooseKitchenPart(scene, physics, nodes, {mass=.025, egg=fa
       const dx=center.x-position.x,dz=center.z-position.z;
       if(broken||!inSwatRange(position,yaw,center))return;
       release();onHit(body);body.applyImpulse({x:Math.sin(yaw)*.044,y:.012,z:Math.cos(yaw)*.044},true);
+      return true;
     },
     update(tableHeight,tableRadius){
       if(released&&!broken){

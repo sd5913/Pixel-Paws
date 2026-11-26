@@ -227,13 +227,17 @@ const mixingBowl = await createMixingBowl(scene, renderer, tableHeight, tableRad
 const milkJug = await createMilkJug(scene, renderer, tableHeight, tableRadius, loadGlb, bakingPhysics);
 const kitchenProps = await createKitchenProps(scene, bakingPhysics, tableHeight);
 
-let nextSwatAt = 0;
-const swat = () => { if (!levelUI.playing) return; const now=performance.now();if(now<nextSwatAt)return;nextSwatAt=now+SWAT.duration*1000;cat.swat(); mixingBowl.swat(cat.object.position, cat.object.rotation.y); milkJug.swat(cat.object.position, cat.object.rotation.y); kitchenProps.swat(cat.object.position, cat.object.rotation.y); };
+const swat = () => { if (!levelUI.playing) return; const strike=strikeDirection(); if(!strike.moving)cat.swat(); mixingBowl.swat(cat.object.position, strike.yaw); milkJug.swat(cat.object.position, strike.yaw); levelUI.recordSwat(kitchenProps.swat(cat.object.position, strike.yaw)); return true; };
 
-const levelUI = createLevelUI({ level: 2, targets: [...kitchenProps.scoreTargets, ...mixingBowl.scoreTargets, ...milkJug.scoreTargets], onSwat: () => swat(), onRestart: () => {
- nextSwatAt = 0; bakingPhysics.resetCat(); kitchenProps.reset(); milkJug.reset(); mixingBowl.reset();
+const levelUI = createLevelUI({ level: 2, camera, protectedRules: [{id:'15-glass-measuring-jug',name:'Glass measuring jug',penalty:50},{id:'05-mixing-bowl-and-whisk',name:'Mixing bowl',penalty:50}], targets: [...kitchenProps.scoreTargets, ...mixingBowl.scoreTargets, ...milkJug.scoreTargets], onSwat: () => swat(), onRestart: () => {
+  bakingPhysics.resetCat(); kitchenProps.reset(); milkJug.reset(); mixingBowl.reset();
  cat.reset(); cat.object.position.set(0, tableHeight + 0.007, 0); resetInput();
 } });
+function strikeDirection() {
+  const input=levelUI.read();let x=drag?.x ?? input.x,z=drag?.z ?? input.z;
+  for(const code of pressed){const d=directions.get(code);if(d){x+=d[0];z+=d[1];}}
+  return {moving:Math.hypot(x,z)>.01,yaw:Math.hypot(x,z)>.01?Math.atan2(x,z):cat.object.rotation.y};
+}
 const directions = new Map([
   ['ArrowLeft', [-1, 0]], ['KeyA', [-1, 0]], ['ArrowRight', [1, 0]], ['KeyD', [1, 0]],
   ['ArrowUp', [0, -1]], ['KeyW', [0, -1]], ['ArrowDown', [0, 1]], ['KeyS', [0, 1]],
@@ -251,7 +255,7 @@ window.addEventListener('keydown', event => {
     pressed.add(event.code);
   }
   if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') pressed.add(event.code);
-  if (event.code === 'KeyK' && !event.repeat) swat();
+  if (event.code === 'KeyK' && !event.repeat) levelUI.requestSwat();
 });
 window.addEventListener('keyup', event => pressed.delete(event.code));
 canvas.style.touchAction = 'none';
@@ -296,7 +300,7 @@ renderer.setAnimationLoop(timestamp => {
   next.set(position.x + x * distance, position.z + z * distance).clampLength(0, walkRadius);
   bakingPhysics.step(delta,next,speed);
   const actual = bakingPhysics.catBody.translation();
-  cat.update(delta,actual.x-position.x,actual.z-position.z);
+  cat.update(delta,x*distance,z*distance);
   position.x=actual.x;
   position.z=actual.z;
   // Keep the play angle and scale, following the cat as in the first level.

@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="style.css">
   </head>
   <body data-game-state="ready">
+<section id="loading-screen" aria-label="Loading Pixel Paws"><div class="loading-card"><img src="assets/ui/pixel-paws-logo-v2.png" alt="Pixel Paws"><p role="status">Getting the room ready…</p><div class="loading-track" aria-hidden="true"><span></span></div><button type="button" hidden>Try again</button></div></section>
     <main class="game-layout">
       <header class="hud">
         <div class="hud-panel timer-panel" aria-label="Time remaining 45 seconds">
@@ -31,6 +32,7 @@
         <span class="achievement-wordmark"><span class="sr-only">Achievements</span></span>
       </button>
       <div id="entry-menu">
+        <button id="choose-room" type="button">Choose a room</button>
         <img id="game-logo" src="assets/ui/pixel-paws-logo-v2.png" alt="Pixel Paws">
         <button id="start" class="art-button" type="button" aria-label="Start">
           <span class="start-fallback" aria-hidden="true">START</span>

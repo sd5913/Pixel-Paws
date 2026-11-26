@@ -1,4 +1,5 @@
 import { JOYSTICK_SPEED } from '../joystick.js';
+import { CAT_EDGE_MARGIN } from '../assets/cat-avatar.js';
 import { createFloorContactAudio } from '../feedback/floor-contact-audio.js';
 import { createPhysicsWorld } from './physics-world.js';
 import { addBakingChairColliders } from './baking-chair-colliders.js';
@@ -9,15 +10,10 @@ export async function createBakingPhysics(tableHeight, tableRadius, audio = null
   const { world, rapier: R } = physics;
   const table = world.createRigidBody(R.RigidBodyDesc.fixed());
   const tableGroup=(16<<16)|0xffff;
-  world.createCollider(R.ColliderDesc.cylinder(.075,tableRadius+.025)
+  world.createCollider(R.ColliderDesc.cylinder(.075,tableRadius)
     .setTranslation(0,tableHeight+.007-.075,0).setFriction(.6).setCollisionGroups(tableGroup),table);
-  // Keep the skirt support below the tabletop so flat props have a single contact face.
-  const rim=[];
-  for(const [radius,y] of [[tableRadius+.025,tableHeight-.015],[tableRadius+.075,tableHeight-.305]]){
-    for(let i=0;i<48;i++){const angle=i/48*Math.PI*2;rim.push(Math.cos(angle)*radius,y,Math.sin(angle)*radius);}
-  }
-  world.createCollider(R.ColliderDesc.convexHull(new Float32Array(rim))
-    .setFriction(.35).setCollisionGroups(tableGroup),table);
+  // The hanging cloth is decorative, not an outward-flared solid shelf.
+  // A single tabletop collider avoids trapping thin props between overlapping rims.
   const floor = world.createRigidBody(R.RigidBodyDesc.fixed());
   const floorCollider = world.createCollider(R.ColliderDesc.cuboid(10,.05,10).setTranslation(0,-.05,0),floor);
   const floorAudio=createFloorContactAudio(physics,floorCollider,audio);
@@ -41,7 +37,19 @@ export async function createBakingPhysics(tableHeight, tableRadius, audio = null
     const speed=Math.hypot(desired.x,desired.z);
     const speedLimit = Math.min(JOYSTICK_SPEED.dash, Math.max(0, maxSpeed));
     if(speed>speedLimit){desired.x*=speedLimit/speed;desired.z*=speedLimit/speed;}
-    physics.step(delta,()=>floorAudio.update(),(_world,timestep)=>{
+    physics.step(delta,(_world,timestep)=>{
+      const p=catBody.translation();
+      const radius=tableRadius-CAT_EDGE_MARGIN;
+      const length=Math.hypot(p.x,p.z);
+      if(length>=radius){
+        const nx=p.x/length,nz=p.z/length;
+        if(length>radius)catBody.setTranslation({x:nx*radius,y:p.y,z:nz*radius},true);
+        const velocity=catBody.linvel();
+        const outward=Math.max(0,velocity.x*nx+velocity.z*nz);
+        catBody.setLinvel({x:velocity.x-outward*nx,y:0,z:velocity.z-outward*nz},true);
+      }
+      floorAudio.update();
+    },(_world,timestep)=>{
       const velocity=catBody.linvel();let dx=desired.x-velocity.x,dz=desired.z-velocity.z;
       // Supply enough horizontal force to overcome tabletop friction without teleporting props.
       const acceleration = speedLimit > JOYSTICK_SPEED.walk ? 30 : 18;

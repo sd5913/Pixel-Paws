@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { IMPACT_CONFIG } from './config.js';
 import { impactLevel, impactVolume, parseAudioPath } from './audio-catalog.js';
+import { readAudioPreferences, normalizeAudioPreferences } from '../audio-preferences.js';
 
 export class AudioManager {
   constructor({ three = THREE, fetchImpl = (...args) => globalThis.fetch(...args), random = Math.random,
@@ -12,6 +13,9 @@ export class AudioManager {
     this.positional = [];
     this.ui = [];
     this.volume = 1;
+    this.preferences = readAudioPreferences();
+    this.preferencesChanged = event => this.setPreferences(event.detail);
+    globalThis.addEventListener?.('pixel-paws-audio', this.preferencesChanged);
     this.muted = false;
     this.disposed = false;
     this.nextVoice = 0;
@@ -121,7 +125,7 @@ export class AudioManager {
 
   /** @param {import('./events.js').ImpactEvent} event */
   playImpact(event) {
-    if (!this.ready() || !event.audioMaterial || !Number.isFinite(event.impactStrength)) return false;
+    if (!this.effectsReady() || !event.audioMaterial || !Number.isFinite(event.impactStrength)) return false;
     if (!event.position || !['x', 'y', 'z'].every(axis => Number.isFinite(event.position[axis]))) return false;
     const buffer = this.sample('impact', `${event.audioMaterial}/${event.surfaceMaterial ?? 'unknown'}/${impactLevel(event.impactStrength)}`);
     if (!buffer) return false;
@@ -130,7 +134,7 @@ export class AudioManager {
     if (source.isPlaying) source.stop();
     source.position.set(event.position.x, event.position.y, event.position.z);
     source.setBuffer(buffer);
-    source.setVolume(impactVolume(event.impactStrength));
+    source.setVolume(impactVolume(event.impactStrength) * this.preferences.effectsVolume);
     source.setPlaybackRate(IMPACT_CONFIG.playbackRateMin
       + this.random() * (IMPACT_CONFIG.playbackRateMax - IMPACT_CONFIG.playbackRateMin));
     source.play();
@@ -138,7 +142,7 @@ export class AudioManager {
   }
 
   playUISound(soundId, volume = 1) {
-    if (!this.ready()) return false;
+    if (!this.effectsReady()) return false;
     const buffer = this.sample('ui', soundId);
     if (!buffer) return false;
     const source = this.ui.find(voice => !voice.isPlaying) ?? this.ui[this.nextUIVoice++ % this.ui.length];
@@ -158,18 +162,18 @@ export class AudioManager {
     if(floorSound && this.musicVoice?.isPlaying){
       const now=this.listener.context.currentTime,gain=this.musicVoice.gain.gain;
       gain.cancelScheduledValues(now);gain.setValueAtTime(gain.value,now);
-      gain.linearRampToValueAtTime(.06,now+.015);
-      gain.setValueAtTime(.06,now+.18);
-      gain.linearRampToValueAtTime(.22,now+.38);
+      gain.linearRampToValueAtTime(.06*this.preferences.musicVolume,now+.015);
+      gain.setValueAtTime(.06*this.preferences.musicVolume,now+.18);
+      gain.linearRampToValueAtTime(.22*this.preferences.musicVolume,now+.38);
     }
     source.setPlaybackRate(floorSound ? 1 : 1);
-    source.setVolume(Math.max(0,Math.min(1,volume)));
+    source.setVolume(Math.max(0,Math.min(1,volume)) * this.preferences.effectsVolume);
     source.play();
     return true;
   }
 
   playObjectContact(objectId, landing = false) {
-    if (!this.ready()) return false;
+    if (!this.effectsReady()) return false;
     const variants=this.buffers.get('ui:floor-pop');
     if(!variants?.length)return false;
     let hash=0;
@@ -179,7 +183,7 @@ export class AudioManager {
     if(!voice){voice=new this.three.Audio(this.listener);this.objectVoices.set(key,voice);}
     if(voice.isPlaying)return false;
     voice.setBuffer(variants[hash%variants.length]);
-    voice.setVolume(landing?1:.85);
+    voice.setVolume((landing?1:.85) * this.preferences.effectsVolume);
     const now=this.listener.context.currentTime;
     const start=Math.max(now,this.nextObjectPopAt);
     this.nextObjectPopAt=start+.035;
@@ -197,26 +201,26 @@ export class AudioManager {
     if(!this.musicVoice?.isPlaying)return;
     const now=this.listener.context.currentTime,gain=this.musicVoice.gain.gain;
     gain.cancelScheduledValues(now);gain.setValueAtTime(gain.value,now);
-    gain.linearRampToValueAtTime(.06,now+.015);gain.setValueAtTime(.06,now+.18);
-    gain.linearRampToValueAtTime(.22,now+.38);
+    gain.linearRampToValueAtTime(.06*this.preferences.musicVolume,now+.015);gain.setValueAtTime(.06*this.preferences.musicVolume,now+.18);
+    gain.linearRampToValueAtTime(.22*this.preferences.musicVolume,now+.38);
   }
 
   startMusic() {
-    if (!this.ready() || globalThis.document?.hidden || this.musicVoice?.isPlaying) return false;
+    if (!this.ready() || !this.preferences.musicEnabled || this.preferences.musicVolume === 0 || globalThis.document?.hidden || this.musicVoice?.isPlaying) return false;
     const buffer = this.buffers.get('music:bgm')?.[0];
     if (!buffer) return false;
     if (!this.musicVoice) {
       this.musicVoice = new this.three.Audio(this.listener);
       this.musicVoice.setBuffer(buffer);
       this.musicVoice.setLoop(true);
-      this.musicVoice.setVolume(.22);
+      this.musicVoice.setVolume(.22 * this.preferences.musicVolume);
     }
     this.musicVoice.play();
     return true;
   }
 
   playCatMeow() {
-    if (!this.ready() || this.catVoice?.isPlaying) return false;
+    if (!this.effectsReady() || this.catVoice?.isPlaying) return false;
     const buffer = this.sample('ui', 'meow');
     if (!buffer) return false;
     if (!this.catVoice) this.catVoice = new this.three.Audio(this.listener);
@@ -224,9 +228,25 @@ export class AudioManager {
     // One complete meow from the supplied recording, without the other calls.
     this.catVoice.offset = 4.94;
     this.catVoice.duration = .68;
-    this.catVoice.setVolume(.8);
+    this.catVoice.setVolume(.8 * this.preferences.effectsVolume);
     this.catVoice.play();
     return true;
+  }
+
+  effectsReady() {
+    return this.ready() && this.preferences.effectsEnabled && this.preferences.effectsVolume > 0;
+  }
+
+  setPreferences(value) {
+    this.preferences = normalizeAudioPreferences(value);
+    // Stop existing effects so a disabled channel becomes silent immediately.
+    for (const source of [...this.positional, ...this.ui, ...this.objectVoices.values(), ...(this.catVoice ? [this.catVoice] : [])]) if (source.isPlaying) source.stop();
+    if (this.musicVoice) {
+      this.musicVoice.gain?.gain.cancelScheduledValues(this.listener.context.currentTime);
+      this.musicVoice.setVolume(.22 * this.preferences.musicVolume);
+      if ((!this.preferences.musicEnabled || this.preferences.musicVolume === 0) && this.musicVoice.isPlaying) this.musicVoice.pause();
+    }
+    this.startMusic();
   }
 
   setMasterVolume(value) {
@@ -248,6 +268,7 @@ export class AudioManager {
 
   dispose() {
     this.disposed = true;
+    globalThis.removeEventListener?.('pixel-paws-audio', this.preferencesChanged);
     globalThis.document?.removeEventListener('visibilitychange', this.visibility);
     this.removeGestureListeners();
     for (const source of [...this.positional, ...this.ui, ...this.objectVoices.values(), ...(this.catVoice ? [this.catVoice] : []), ...(this.musicVoice ? [this.musicVoice] : [])]) {

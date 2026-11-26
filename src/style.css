@@ -7,6 +7,25 @@
   --hud-height: min(76px, calc((100vw - var(--safe-left) - var(--safe-right) - 12px) / 5.04));
 }
 * { box-sizing: border-box; }
+#loading-screen { position:fixed; inset:0; z-index:100; display:grid; place-items:center; background:#dceef4; color:#613019; padding:24px; }
+.loading-card { width:min(82vw,350px); text-align:center; }
+.loading-card img { width:100%; height:auto; }
+.loading-card p { font-weight:800; line-height:1.5; }
+.loading-track { height:12px; border:2px solid #fff8ed; border-radius:99px; overflow:hidden; background:#b5d5df; }
+.loading-track span { display:block; width:35%; height:100%; background:#4b9cba; animation:loading-slide 1.2s ease-in-out infinite alternate; border-radius:99px; }
+.loading-failed .loading-track { display:none; }
+@keyframes loading-slide { to { transform:translateX(185%); } }
+@media(prefers-reduced-motion:reduce) { .loading-track span { animation:none; width:100%; } }
+.score-popup.score-penalty { color:#ffb5a3; }
+#protection-intro { width:min(94vw,440px); max-height:86dvh; overflow:visible; border:0; background:transparent; color:#fff5e6; text-align:center; padding:14px; }
+#protection-intro::backdrop { background:#26262aab; }
+#protection-intro h2 { font-size:clamp(20px,5.5vw,26px); margin:0 0 28px; text-shadow:0 2px 3px #302018; }
+.protection-items { display:flex; gap:22px; justify-content:center; align-items:start; }
+.protection-items article { position:relative; flex:1; max-width:170px; min-width:0; display:flex; flex-direction:column; gap:12px; }
+.protection-items img { display:block; width:100%; aspect-ratio:1; object-fit:contain; background:#dfedf1; border:4px solid #fff8ed; border-radius:50%; }
+.protection-items strong { font-size:15px; line-height:1.3; text-shadow:0 2px 3px #302018; }
+.protection-items .protection-penalty { position:absolute; top:0; right:-6px; min-width:58px; padding:8px 10px; border:2px solid #fff5e6; border-radius:99px; color:#fff5e6; background:#b7352d; font-size:20px; font-weight:900; line-height:1; box-shadow:0 3px 0 #671c2080; }
+#protection-intro .protection-countdown { margin:26px 0 0; color:#fff5e6; font-size:64px; font-weight:900; line-height:1; filter:drop-shadow(0 3px 2px #30201880); }
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
 .game-layout { position: fixed; inset: 0; overflow: hidden; }
 #game-root { position: absolute; inset: 0; overflow: hidden; background: #08131f; }
@@ -17,7 +36,7 @@ html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
 .score-panel { width: calc(var(--hud-height) * 2.81); order: -1; }
 .hud-panel img { width: 100%; height: 100%; display: block; }
 .hud-panel > span { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: clamp(18px, 5vw, 30px); }
-.timer-panel > span { left: 3%; width: 51%; }
+.timer-panel > span { left: 3%; width: 51%; font-size: clamp(15px, 4vw, 24px); }
 .score-panel > span { left: 43%; width: 53%; overflow: hidden; }
 .display-digits { display: inline-block; height: 1.14em; width: auto; max-width: 100%; fill: currentColor; vertical-align: middle; }
 .digit-library { position: absolute; width: 0; height: 0; pointer-events: none; }
@@ -131,6 +150,18 @@ body:not([data-game-state="playing"]) #swat { display: none; }
 @keyframes score-fade { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }
 #result::backdrop { background: #08131f9c; }
 .result-card { position: relative; width: 100%; color: #565556; container-type: inline-size; }
+/* The panel PNG includes a baked RESTART button. Erase its entire footprint
+   before painting the independently labelled Retry/Next control. */
+.result-card::before {
+  content: '';
+  position: absolute;
+  left: 51%;
+  top: 80.5%;
+  width: 35%;
+  height: 12%;
+  background: #f3f5f3;
+  pointer-events: none;
+}
 #final-score, #best-score, #new-record { position: absolute; inset-inline: 8%; margin: 0; text-align: center; line-height: 1; }
 #final-score { top: 39%; height: 18%; display: grid; place-items: center; font-size: 18cqw; font-weight: 900; }
 #new-record { top: 34.8%; right: 13%; color: #9d3527; font-size: 3.7cqw; font-weight: 900; text-align: right; text-transform: uppercase; }
@@ -367,6 +398,7 @@ body[data-game-state="ready"] #start { width: 170px; }
   }
   .hud { left: var(--hud-left); right: var(--hud-right); gap: 8px; }
   .hud-panel > span { font-size: clamp(20px, 6vw, 30px); }
+  .timer-panel > span { font-size: clamp(16px, 4.8vw, 24px); }
   #joystick { width: 144px; height: 144px; }
   .joystick-knob { width: 58px; height: 58px; }
   .joystick-dash-zone { inset: -44px; }
@@ -377,3 +409,44 @@ body[data-game-state="ready"] #start { width: 170px; }
 @media (orientation: portrait) and (max-width: 375px) {
   #swat { bottom: calc(var(--safe-bottom) + 248px); }
 }
+
+/* Artwork defines control edges; browser focus and tap rectangles should not overlay it. */
+:is(.game-layout, #game-root), :is(.game-layout, #game-root) * {
+  -webkit-tap-highlight-color: transparent;
+}
+:is(.game-layout, #game-root) :is(:focus, :focus-visible) {
+  outline: none;
+}
+:is(.game-layout, #game-root) img {
+  -webkit-user-drag: none;
+}
+
+/* Shared campaign panels use the same cream, blue and brick-red palette. */
+.campaign-panel { box-sizing: border-box; width: min(88vw, 370px); max-height: 86dvh; overflow: auto; padding: 16px; border: 3px solid #fff8ef; border-radius: 24px; color: #565556; background: #e8cdb7; }
+.campaign-panel::backdrop { background: #08131fa6; }
+.campaign-panel header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.campaign-panel h2 { margin: 0; font-size: 22px; }
+.panel-back { width: 40px; height: 40px; flex-shrink: 0; border: 2px solid #64180c; border-radius: 50%; color: #fff8ef; background: #aa3929; font-size: 25px; }
+.panel-primary, #choose-room, .pause-settings, .result-rooms { border: 2px solid #fff8ef; border-radius: 999px; padding: 8px 18px; background: #397e95; color: #fff8ef; font: inherit; font-weight: 800; cursor: pointer; }
+#choose-room { display: none; }
+body[data-game-state="ready"] #choose-room { display: block; position: absolute; left: 0; bottom: 0; pointer-events: auto; font-size: 14px; }
+.pause-settings { display: block; margin: 8px auto 0; font-size: 14px; }
+.result-rooms { display: block; margin: 8px auto 0; font-size: 13px; }
+.campaign-completion { margin: 8px 0 0; color: #fff8ef; text-align: center; font-weight: 900; }
+.room-list { display: grid; gap: 12px; }
+.room-list a { display: grid; gap: 5px; padding: 14px; border: 2px solid white; border-radius: 18px; color: #565556; background: #f3f5f3; text-decoration: none; }
+.room-stars { color: #af7621; font-size: 26px; letter-spacing: 5px; }
+.audio-settings { min-width: 0; margin: 0 0 14px; padding: 12px; border: 2px solid #fff8ef; border-radius: 18px; background: #f3f5f3; }
+.audio-settings legend { padding: 0 5px; font-weight: 850; }
+.audio-setting { display: grid; grid-template-columns: 1fr 42px; align-items: center; gap: 7px; margin-bottom: 12px; }
+.audio-setting:last-child { margin-bottom: 0; }
+.audio-setting input[type="checkbox"] { width: 22px; height: 22px; accent-color: #397e95; justify-self: center; }
+.audio-setting input[type="range"] { width: 100%; min-width: 0; accent-color: #397e95; }
+.audio-setting output { font-size: 13px; text-align: center; }
+.controls-guide { padding: 14px; border: 2px solid white; border-radius: 18px; background: #f3f5f3; }
+.controls-guide p { margin: 0 0 16px; font-size: 15px; line-height: 1.4; }
+.controls-guide strong { display: block; margin-bottom: 3px; color: #397e95; font-size: 19px; }
+.controls-guide small { display: block; line-height: 1.4; }
+.controls-guide .panel-primary { display: block; margin: 18px auto 0; }
+.campaign-panel :is(:focus, :focus-visible) { outline: none; }
+.campaign-panel button { -webkit-tap-highlight-color: transparent; }

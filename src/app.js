@@ -1,10 +1,13 @@
+import { finishLoading, failLoading } from './loading-screen.js';
+import { createCampaignProgress } from './campaign-progress.js';
+import { mountAudioSettings, addPauseSettings, ensureControlsGuide, showRoomSelection } from './campaign-ui.js';
 import { bindSwatButton } from './swat-button.js';
 import { PLAY_CAMERA, resizePlayCamera } from './play-camera.js';
 import { AudioManager } from './feedback/audio-manager.js';
 import { ImpactVFXManager } from './feedback/impact-vfx-manager.js';
 import { createObstacleFeedback } from './feedback/obstacle-feedback.js';
 import { createCatAvatar, CAT_EDGE_MARGIN } from './assets/cat-avatar.js';
-import { createJoystick, JOYSTICK_SPEED } from './ui-gameplay/joystick.js';
+import { createJoystick, JOYSTICK_SPEED } from './joystick.js';
 import { createGameLogic } from './ui-gameplay/game-logic.js';
 import { COMBO_WINDOW_MS, roundRating } from './ui-gameplay/scoring.js';
 import { formatRoundTime } from './ui-gameplay/round-timer.js';
@@ -120,6 +123,9 @@ world.add(floor);
 
 const appearance = document.querySelector('#appearance');
 const settings = document.querySelector('#settings');
+mountAudioSettings(settings.querySelector('.settings-content'));
+addPauseSettings(document.querySelector('#pause-menu'));
+document.querySelector('#choose-room').addEventListener('click', showRoomSelection);
 document.querySelector('#settings-button').addEventListener('click', () => settings.showModal());
 const originalAppearance = {
   background: '#EEE5E9', floor: '#EEE5E9', sky: '#dff7ff', bounce: '#11252e',
@@ -214,8 +220,10 @@ void Promise.all([createCatAvatar(), loadStudyScene()]).then(async ([avatar, stu
   if (!debugScoring) roundTargets = study.targets;
   resetPrototypeScene();
   ui.start.disabled = false;
+  finishLoading();
   renderScore(game.snapshot());
 }).catch(error => {
+  failLoading();
   catLoadError = true;
   document.querySelector('#retry').hidden = false;
   ui.status.textContent = 'Could not load scene. Refresh to retry.';
@@ -290,6 +298,8 @@ let roundTargets = debugScoring ? debugTargets : [];
 let resetTargets = null;
 let customRound = false;
 const achievements = createAchievements();
+let movingSwat = false;
+let strikeYaw = 0;
 const game = createGameLogic({
   async resetScene() {
     resetPrototypeScene();
@@ -303,8 +313,14 @@ const game = createGameLogic({
   },
   canSwat: () => Boolean(deskPhysics && catAvatar),
   onSwat(phase) {
-    if (phase === 'start') catAvatar.swat();
-    if (phase === 'impact') achievements.recordSwat(deskPhysics.swat(player.position, catAvatar.object.rotation.y));
+    if (phase === 'start') {
+      const input=joystick.read();
+      const dx=input.x+Number(keys.right)-Number(keys.left),dz=input.z+Number(keys.back)-Number(keys.forward);
+      movingSwat=Math.hypot(dx,dz)>.01;
+      strikeYaw=movingSwat?Math.atan2(dx,dz):catAvatar.object.rotation.y;
+      achievements.recordSwat(deskPhysics.swat(player.position,strikeYaw));
+      if(!movingSwat)catAvatar.swat();
+    }
     if (phase === 'cancel') catAvatar?.cancelSwat();
   },
 });
@@ -337,7 +353,7 @@ const roundIntroMessage = roundIntro.querySelector('p');
 roundIntro.addEventListener('cancel', event => event.preventDefault());
 let lastTimestamp = 0;
 const swatButton = document.querySelector('#swat');
-bindSwatButton(swatButton, game.requestSwat);
+bindSwatButton(swatButton, () => game.requestSwat({retrigger:true}));
 
 const achievementBook = document.querySelector('#achievement-book');
 const achievementPages = document.querySelector('#achievement-pages');
@@ -473,7 +489,7 @@ achievementBook.addEventListener('keydown', event => {
   turnAchievementPage(event.key === 'ArrowLeft' ? -1 : 1);
 });
 
-const keys = { left: false, right: false, forward: false, back: false };
+const keys = { left: false, right: false, forward: false, back: false, dash: false };
 function resetInput() {
   game.cancelSwat();
   resetMovement();
@@ -565,6 +581,8 @@ function renderScore(snapshot) {
   if (snapshot.state === 'ended' && snapshot.reason !== 'restart' && snapshot.reason !== 'home') {
     const { stars } = roundRating(snapshot);
     const cleared = snapshot.reason === 'cleared';
+    ui.nextLevel.textContent = cleared ? 'Next' : 'Retry';
+    if (!debugScoring && !customRound) createCampaignProgress().record(1, snapshot, stars);
     ui.resultArt.src = `assets/ui/ui-results-${cleared ? 'cleared' : 'time-up'}.png`;
     ui.roundRating.querySelector('img').src = ui.resultArt.src;
     ui.result.setAttribute('aria-label', cleared ? 'Table cleared' : 'Time’s up');
@@ -603,9 +621,10 @@ function onKey(event, pressed) {
   if (roundIntro.open) return;
   const target = event.target instanceof HTMLElement ? event.target : null;
   if (pressed && target?.closest('input, textarea, select, [contenteditable]')) return;
+  if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') { keys.dash = pressed; return; }
   // Start/Restart keeps keyboard focus; K and the touch button share one action.
   if ((event.code === 'KeyK' || event.key?.toLowerCase() === 'k') && pressed && !event.repeat) {
-    game.requestSwat();
+    game.requestSwat({retrigger:true});
     event.preventDefault();
     return;
   }
@@ -654,6 +673,7 @@ async function startRound() {
   if (ui.result.open) ui.result.close();
   ui.status.parentElement.hidden = true;
   try {
+    await ensureControlsGuide();
     if (await game.start(roundTargets)) {
       renderUnlocks([]);
       if (!debugScoring && !customRound) achievements.start(roundTargets);
@@ -704,7 +724,10 @@ for (const button of document.querySelectorAll('.home-button')) button.addEventL
 pauseMenu.addEventListener('cancel', event => { event.preventDefault(); resumeRound(); });
 document.querySelector('#retry').addEventListener('click', () => location.reload());
 ui.start.addEventListener('click', startRound);
-ui.nextLevel.addEventListener('click', () => window.location.assign('./level-2.html'));
+ui.nextLevel.addEventListener('click', () => {
+  if (game.snapshot().reason === 'cleared') window.location.assign('./level-2.html');
+  else void startRound();
+});
 ui.result.addEventListener('cancel', event => event.preventDefault());
 if (debugScoring) {
   const panel = document.querySelector('#scoring-debug');
@@ -737,12 +760,12 @@ function stepGame(delta) {
   const input = joystick.read();
   const dx = input.x + Number(keys.right) - Number(keys.left);
   const dz = input.z + Number(keys.back) - Number(keys.forward);
-  const speed = input.dash ? JOYSTICK_SPEED.dash : JOYSTICK_SPEED.walk;
+  const speed = input.dash || keys.dash ? JOYSTICK_SPEED.dash : JOYSTICK_SPEED.walk;
   const scale = speed / Math.max(1, Math.hypot(dx, dz));
   const { x, z } = player.position;
   if (!deskPhysics.step(delta, { x: dx * scale, z: dz * scale })) return;
-  movementX = player.position.x - x;
-  movementZ = player.position.z - z;
+  movementX = dx * scale * delta;
+  movementZ = dz * scale * delta;
 }
 function animate(timestamp) {
   const delta = Math.min((timestamp - (lastTimestamp || timestamp)) / 1000, 0.05);
@@ -755,9 +778,10 @@ function animate(timestamp) {
   if (showCountdown) renderDigits(ui.finalCountdown, remaining);
   game.tick(delta);
   stepGame(delta);
-  swatButton.disabled = !game.playing || game.swatting;
+  swatButton.disabled = !game.playing;
   const comboRemaining = game.comboRemainingMs;
   ui.comboClock.hidden = comboRemaining <= 0;
+  if(comboRemaining>0) document.querySelector('#combo-clock strong').textContent='COMBO ×'+game.snapshot().comboCount;
   if (comboRemaining > 0) ui.comboFill.style.width = `${100 * comboRemaining / COMBO_WINDOW_MS}%`;
   const homeView = document.body.dataset.gameState === 'ready';
   if (homeView && catAvatar) catAvatar.object.rotation.y = 0;

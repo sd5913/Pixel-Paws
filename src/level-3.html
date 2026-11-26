@@ -7,7 +7,8 @@
 <link rel="stylesheet" href="./style.css">
 </head>
 <body data-game-state="loading">
-<p id="room-loading" role="status" style="position:fixed;z-index:5;top:45%;width:100%;text-align:center;color:#613019;font:800 20px system-ui">Loading room…</p>
+<section id="loading-screen" aria-label="Loading Pixel Paws"><div class="loading-card"><img src="assets/ui/pixel-paws-logo-v2.png" alt="Pixel Paws"><p role="status">Getting the room ready…</p><div class="loading-track" aria-hidden="true"><span></span></div><button type="button" hidden>Try again</button></div></section>
+
 <main id="game-root" aria-label="Level 3: Christmas Cozy">
 </main>
 <script type="module" src="./level-3.js">
