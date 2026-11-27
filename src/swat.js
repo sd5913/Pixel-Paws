@@ -17,3 +17,17 @@ export function inSwatRange(position, yaw, point) {
   const sideways=dx*Math.cos(yaw)-dz*Math.sin(yaw);
   return forward>=.08 && forward<=.52 && Math.abs(sideways)<=.24;
 }
+
+// Test the visible-sized physical carrier, rather than requiring its centre
+// to fit inside the paw area (which excludes cushions and other large props).
+export function swatIntersectsBody(physics, body, position, yaw) {
+  const { rapier: R } = physics;
+  const center = { x: position.x + Math.sin(yaw) * SWAT.forwardOffset,
+    y: position.y + SWAT.centerHeight, z: position.z + Math.cos(yaw) * SWAT.forwardOffset };
+  const rotation = { x:0, y:Math.sin(yaw/2), z:0, w:Math.cos(yaw/2) };
+  const shape = new R.Cuboid(SWAT.width/2, SWAT.height/2, SWAT.depth/2);
+  for (let i=0;i<body.numColliders();i++) {
+    if (body.collider(i).intersectsShape(shape, center, rotation)) return true;
+  }
+  return false;
+}

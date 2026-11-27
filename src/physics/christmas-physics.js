@@ -1,3 +1,4 @@
+import { JOYSTICK_SPEED } from '../joystick.js';
 import {Box3,Vector3} from 'three';
 import {createPhysicsWorld} from './physics-world.js';
 import {createFloorContactAudio} from '../feedback/floor-contact-audio.js';
@@ -27,12 +28,13 @@ export async function createChristmasPhysics(tableHeight=.807,audio=null){
   const contactAudio=createFloorContactAudio(physics,floorCollider,audio);contactAudio.setCatBody(catBody);
   return {
     physics,catBody,floorCollider,contactAudio,
-    step(delta,target){
+    step(delta,target,maxSpeed=JOYSTICK_SPEED.walk){
       if(delta<=0)return;
       const bounded=clampChristmasTarget(target.x,target.y);
       const p=catBody.translation(),desired={x:(bounded.x-p.x)/delta,z:(bounded.z-p.z)/delta};
-      const speed=Math.hypot(desired.x,desired.z);if(speed>1.4){desired.x*=1.4/speed;desired.z*=1.4/speed;}
-      physics.step(delta,()=>{
+      const limitSpeed=Math.min(JOYSTICK_SPEED.dash,Math.max(0,maxSpeed));
+      const speed=Math.hypot(desired.x,desired.z);if(speed>limitSpeed){desired.x*=limitSpeed/speed;desired.z*=limitSpeed/speed;}
+      physics.step(delta,(_world,timestep)=>{
         const p=catBody.translation(),bounded=clampChristmasTarget(p.x,p.z);
         if(p.x!==bounded.x||p.z!==bounded.z){
           const v=catBody.linvel();
@@ -42,7 +44,7 @@ export async function createChristmasPhysics(tableHeight=.807,audio=null){
         contactAudio.update();
       },(_world,timestep)=>{
         const v=catBody.linvel();let dx=desired.x-v.x,dz=desired.z-v.z;
-        const change=Math.hypot(dx,dz),limit=7*timestep;
+        const change=Math.hypot(dx,dz),limit=(limitSpeed>JOYSTICK_SPEED.walk?30:18)*timestep;
         if(change>limit){dx*=limit/change;dz*=limit/change;}
         if(Math.hypot(dx,dz)>.0001)catBody.applyImpulse({x:dx*.45,y:0,z:dz*.45},true);
       });

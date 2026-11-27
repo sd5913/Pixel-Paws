@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {loadGlb} from './assets/load-assets.js';
 import {CHRISTMAS_PROPS} from './christmas-prop-layout.js';
-import {inSwatRange} from './swat.js';
+import {SWAT,swatIntersectsBody} from './swat.js';
 import {batchStaticMeshes} from './assets/batch-static-meshes.js';
 import {createChristmasEffects} from './christmas-effects.js';
 
@@ -112,12 +112,15 @@ export async function createChristmasProps(scene, environment, tableHeight, load
     entries,
     update(delta=0){for(const {object,body,spec,effects} of entries){if(!spec.scenery){object.position.copy(body.translation());object.quaternion.copy(body.rotation());}effects?.update(delta);}},
     swat(position,yaw){
+      const hits = [];
       for(const {body,spec} of entries){
-        if(spec.scenery||!inSwatRange(position,yaw,body.worldCom()))continue;
+        if(spec.scenery||!swatIntersectsBody(environment.physics,body,position,yaw))continue;
         environment.contactAudio.notifyHit(body);
+        hits.push('christmas-' + spec.id);
         const center=body.worldCom();
-        body.applyImpulseAtPoint({x:Math.sin(yaw)*.12,y:.012,z:Math.cos(yaw)*.12},{x:center.x,y:center.y+.04,z:center.z},true);
+        body.applyImpulseAtPoint({x:Math.sin(yaw)*SWAT.forwardImpulse,y:SWAT.upwardImpulse,z:Math.cos(yaw)*SWAT.forwardImpulse},{x:center.x,y:center.y+.04,z:center.z},true);
       }
+      return hits;
     },
     reset(){
       for(const {object,body,start,spec,effects} of entries){

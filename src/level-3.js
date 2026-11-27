@@ -1,3 +1,4 @@
+import { createLevelUI } from './level-ui.js';
 import {createChristmasPhysics,clampChristmasTarget,addChristmasEnvironmentColliders} from './physics/christmas-physics.js';
 import {createChristmasProps} from './christmas-props.js';
 import {SWAT} from './swat.js';
@@ -7,7 +8,7 @@ import * as THREE from 'three';
 import { PLAY_CAMERA, resizePlayCamera } from './play-camera.js';
 import { createCatAvatar } from './assets/cat-avatar.js';
 import { loadGlb } from './assets/load-assets.js';
-import { joystickVector, JOYSTICK_SPEED } from './joystick.js';
+import { joystickInput, JOYSTICK_SPEED } from './joystick.js';
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#39251d');
 const renderer = new THREE.WebGLRenderer({antialias:true});
@@ -61,19 +62,20 @@ scene.add(cat.object);
 const christmasPhysics=await createChristmasPhysics(tableHeight,audio);
 addChristmasEnvironmentColliders(christmasPhysics.physics,room);
 const christmasProps=await createChristmasProps(scene,christmasPhysics,tableHeight);
-document.querySelector('#loading').remove();
-for(const id of ['restart','swat'])document.getElementById(id).disabled=false;
-let nextSwatAt=0;
+
+
 const swat=()=>{
-  const now=performance.now();if(now<nextSwatAt)return;
-  nextSwatAt=now+SWAT.duration*1000;
-  cat.swat();christmasProps.swat(cat.object.position,cat.object.rotation.y);
+  if(!levelUI.playing)return;
+  const strike=strikeDirection();if(!strike.moving)cat.swat();levelUI.recordSwat(christmasProps.swat(cat.object.position,strike.yaw));return true;
 };
-document.querySelector('#swat').addEventListener('click',swat);
-document.querySelector('#restart').addEventListener('click',()=>{
-  nextSwatAt=0;resetInput();cat.reset();christmasPhysics.resetCat();christmasProps.reset();
-  cat.object.position.set(0,tableHeight+.007,0);focus.set(0,tableHeight+focusHeight,frameZ);
-});
+const levelUI = createLevelUI({ level: 3, camera, protectedRules: [{id:'christmas-11',name:'Snow globe',penalty:80},{id:'christmas-17',name:'Vintage lantern',penalty:80}], targets: christmasProps.entries.filter(e=>!e.spec.scenery).map(e=>({...e,id:'christmas-'+e.spec.id,points:e.spec.height>=.4?30:e.spec.flat?10:20, readBounds: () => new THREE.Box3(e.half.clone().negate(), e.half.clone()).applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(e.object.quaternion).setPosition(e.object.position))})), tableHeight, tableShape: { halfWidth: 1.95, halfDepth: 2.65 }, onSwat: swat, onRestart: () => {
+resetInput();cat.reset();christmasPhysics.resetCat();christmasProps.reset();cat.object.position.set(0,tableHeight+.007,0);focus.set(0,tableHeight+focusHeight,frameZ);
+} });
+function strikeDirection() {
+  const input=levelUI.read();let x=drag?.x ?? input.x,z=drag?.z ?? input.z;
+  for(const code of pressed){const d=directions.get(code);if(d){x+=d[0];z+=d[1];}}
+  return {moving:Math.hypot(x,z)>.01,yaw:Math.hypot(x,z)>.01?Math.atan2(x,z):cat.object.rotation.y};
+}
 const directions = new Map([
   ['ArrowLeft', [-1, 0]], ['KeyA', [-1, 0]], ['ArrowRight', [1, 0]], ['KeyD', [1, 0]],
   ['ArrowUp', [0, -1]], ['KeyW', [0, -1]], ['ArrowDown', [0, 1]], ['KeyS', [0, 1]],
@@ -85,22 +87,24 @@ const resetInput = () => { pressed.clear(); drag = null; };
 window.addEventListener('blur', resetInput);
 document.addEventListener('visibilitychange', () => { if (document.hidden) resetInput(); });
 window.addEventListener('keydown', event => {
+  if (!levelUI.playing) return;
   if (directions.has(event.code)) {
     event.preventDefault();
     pressed.add(event.code);
   }
-  if (event.code === 'KeyK' && !event.repeat) swat();
+  if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') pressed.add(event.code);
+  if (event.code === 'KeyK' && !event.repeat) levelUI.requestSwat();
 });
 window.addEventListener('keyup', event => pressed.delete(event.code));
 canvas.style.touchAction = 'none';
 canvas.addEventListener('pointerdown', event => {
-  if (drag || event.button !== 0) return;
+  if (!levelUI.playing || drag || event.button !== 0) return;
   canvas.setPointerCapture(event.pointerId);
   drag = { id: event.pointerId, startX: event.clientX, startY: event.clientY, x: 0, z: 0 };
 });
 canvas.addEventListener('pointermove', event => {
   if (drag?.id !== event.pointerId) return;
-  Object.assign(drag, joystickVector(event.clientX - drag.startX, event.clientY - drag.startY, 54));
+  Object.assign(drag, joystickInput(event.clientX - drag.startX, event.clientY - drag.startY, 54, 22));
 });
 for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
   canvas.addEventListener(type, event => {
@@ -113,21 +117,27 @@ const next = new THREE.Vector2();
 const clock = new THREE.Timer();
 renderer.setAnimationLoop(timestamp => {
   clock.update(timestamp);
-  let x = drag?.x ?? 0;
-  let z = drag?.z ?? 0;
+  levelUI.tick();
+  if (!levelUI.playing) { resetInput(); renderer.render(scene, camera); return; }
+  const input=levelUI.read();
+  let x = drag?.x ?? input.x;
+  let z = drag?.z ?? input.z;
   for (const code of pressed) {
-    const [dx, dz] = directions.get(code);
+    const direction=directions.get(code);if(!direction)continue;
+    const [dx, dz] = direction;
     x += dx;
     z += dz;
   }
   const delta = Math.min(clock.getDelta(), 0.05);
-  const distance = JOYSTICK_SPEED.walk * delta
+  const dashing=(drag?.dash ?? input.dash)||pressed.has('ShiftLeft')||pressed.has('ShiftRight');
+  const speed=dashing?JOYSTICK_SPEED.dash:JOYSTICK_SPEED.walk;
+  const distance = speed * delta
     / Math.max(1, Math.hypot(x, z));
   const target=clampChristmasTarget(position.x+x*distance,position.z+z*distance);
   next.set(target.x,target.z);
-  christmasPhysics.step(delta,next);
+  christmasPhysics.step(delta,next,speed);
   const actual=christmasPhysics.catBody.translation();
-  cat.update(delta,actual.x-position.x,actual.z-position.z);
+  cat.update(delta,x*distance,z*distance);
   position.x=actual.x;position.z=actual.z;
   christmasProps.update(delta);
   // Keep the play angle and scale, following the cat as in the first level.

@@ -6,6 +6,10 @@ export function joystickVector(dx, dy, radius) {
 }
 
 export const JOYSTICK_SPEED = Object.freeze({ walk: 1.4, dash: 3.8 });
+export function stableDash(distance, radius, wasDashing) {
+  const margin = Math.min(8, radius * 0.12);
+  return wasDashing ? distance > radius - margin : distance > radius + margin;
+}
 export function joystickInput(dx, dy, baseRadius, knobRadius) {
   return { ...joystickVector(dx, dy, baseRadius - knobRadius),
     dash: Math.hypot(dx, dy) > baseRadius };
@@ -27,7 +31,8 @@ export function createJoystick(element) {
     const box = element.getBoundingClientRect();
     const dx = event.clientX - box.left - box.width / 2;
     const dy = event.clientY - box.top - box.height / 2;
-    value = joystickInput(dx, dy, box.width / 2, knob.offsetWidth / 2);
+    const dash = stableDash(Math.hypot(dx, dy), box.width / 2, value.dash);
+    value = { ...joystickInput(dx, dy, box.width / 2, knob.offsetWidth / 2), dash };
     element.classList.toggle('is-dashing', value.dash);
     const length = Math.hypot(dx, dy);
     const travel = Math.min(length, box.width * 0.8 - knob.offsetWidth / 2);

@@ -14,6 +14,7 @@ export async function createCatAvatar({ loadModel = loadGlb } = {}) {
   const mixer = new AnimationMixer(object);
   const actions = new Map(source.animations.map(clip => [clip.name, mixer.clipAction(clip)]));
   let current;
+  let walkHoldSeconds = 0;
   const paw = actions.get('PawWave');
   if (paw) {
     paw.setLoop(LoopOnce, 1);
@@ -32,6 +33,7 @@ export async function createCatAvatar({ loadModel = loadGlb } = {}) {
   }
   function reset() {
     mixer.stopAllAction();
+    walkHoldSeconds = 0;
     current = null;
     object.rotation.y = Math.PI;
     play('Idle');
@@ -39,12 +41,15 @@ export async function createCatAvatar({ loadModel = loadGlb } = {}) {
   reset();
   return {
     object, reset, cancelSwat,
-    swat() { play('PawWave'); },
+    swat() { if (walkHoldSeconds <= 0) play('PawWave'); },
     update(delta, dx, dz) {
-      if (current === paw && paw.isRunning()) { mixer.update(delta); return; }
       const moving = Math.hypot(dx, dz) > 0.001;
+      // Render frames can outnumber fixed physics steps. Do not restart Walk
+      // whenever a frame has no new displacement between two physical steps.
+      walkHoldSeconds = moving ? 0.1 : Math.max(0, walkHoldSeconds - delta);
       if (moving) object.rotation.y = Math.atan2(dx, dz); // Source faces +Z.
-      play(moving ? 'Walk' : 'Idle');
+      if (!moving && current === paw && paw.isRunning()) { mixer.update(delta); return; }
+      play(walkHoldSeconds > 0 ? 'Walk' : 'Idle');
       mixer.update(delta);
     },
   };

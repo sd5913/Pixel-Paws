@@ -53,7 +53,7 @@ export function createAchievements({ storage = () => globalThis.localStorage, no
       for (const id of hits) round.swatHits.add(id);
       if (hits.size >= 2) round.multiTargetSwats++;
     },
-    settle(result, elapsedMs) {
+    settle(result, elapsedMs, stars = roundRating(result).stars) {
       const finished = round;
       round = null;
       if (!finished || !['cleared', 'timeout'].includes(result.reason)) return [];
@@ -62,7 +62,7 @@ export function createAchievements({ storage = () => globalThis.localStorage, no
       saved.totalFalls = Math.min(Number.MAX_SAFE_INTEGER, saved.totalFalls + result.fallenCount);
       const context = {
         fallenCount: result.fallenCount, uniqueSwatHits: finished.swatHits.size,
-        multiTargetSwats: finished.multiTargetSwats, stars: roundRating(result).stars, bestCombo: result.bestCombo,
+        multiTargetSwats: finished.multiTargetSwats, stars, bestCombo: result.bestCombo,
         cleared: result.reason === 'cleared' && result.targetCount > 0 && result.fallenCount === result.targetCount,
         elapsedMs, totalFalls: saved.totalFalls,
       };

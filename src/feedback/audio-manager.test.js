@@ -26,6 +26,28 @@ class Sound extends Group {
 const three = { AudioListener: Listener, PositionalAudio: Sound, Audio: Sound };
 const hit = { audioMaterial: 'ceramic', surfaceMaterial: 'wood', impactStrength: .2, position: { x: 1, y: 2, z: 3 } };
 
+test('music and effects channels can be changed independently while playing', async () => {
+  class MusicSound extends Sound {
+    gain = { gain: { cancelScheduledValues() {} }, disconnect() {} };
+    setLoop() {}
+    pause() { this.isPlaying = false; }
+  }
+  const manager = new AudioManager({ three: { ...three, Audio: MusicSound }, warn() {} });
+  manager.init(new Group(), new Group());
+  manager.buffers.set('music:bgm', [{}]);
+  manager.buffers.set('ui:start', [{}]);
+  await manager.unlock();
+  manager.setPreferences({ musicEnabled: true, musicVolume: .5, effectsEnabled: false });
+  assert.equal(manager.musicVoice.isPlaying, true);
+  assert.equal(manager.musicVoice.volume, .11);
+  assert.equal(manager.playUISound('start'), false);
+  manager.setPreferences({ musicEnabled: false, effectsEnabled: true, effectsVolume: .3 });
+  assert.equal(manager.musicVoice.isPlaying, false);
+  assert.equal(manager.playUISound('start'), true);
+  assert.equal(manager.ui[0].volume, .3);
+  manager.dispose();
+});
+
 test('audio is pooled, unlocks, clamps gain, warns once and disposes', async () => {
   const warnings = [];
   const manager = new AudioManager({ three, development: true, warn: message => warnings.push(message),

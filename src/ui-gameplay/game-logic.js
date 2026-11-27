@@ -35,7 +35,7 @@ export function createGameLogic({ now = () => performance.now(), resetScene = as
     resume() { if (!paused || resetting) return false; paused = false; timer.resume(now()); return true; },
     home() { generation++; resetting = false; paused = false; timer.stop(); action.reset(); score.reset(); },
     tick(delta) { timer.tick(now()); if (playing()) action.update(delta); },
-    requestSwat() { timer.tick(now()); return action.request(); },
+    requestSwat(options) { timer.tick(now()); return action.request(options); },
     notifyToppled(id) { timer.tick(now()); return playing() && score.notifyToppled(id); },
     notifyFallen(id) { timer.tick(now()); return playing() && score.notifyFallen(id, timer.elapsedMs); },
     endRound(reason = 'manual') { return score.endRound(reason); },

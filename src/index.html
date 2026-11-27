@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="style.css">
   </head>
   <body data-game-state="ready">
+<section id="loading-screen" aria-label="Loading Pixel Paws"><div class="loading-card"><img src="assets/ui/pixel-paws-logo-v2.png" alt="Pixel Paws"><p role="status">Getting the room ready…</p><div class="loading-track" aria-hidden="true"><span></span></div><button type="button" hidden>Try again</button></div></section>
     <main class="game-layout">
       <header class="hud">
         <div class="hud-panel timer-panel" aria-label="Time remaining 45 seconds">
@@ -24,11 +25,10 @@
         <strong>COMBO</strong>
         <div class="combo-bar"><span></span></div>
       </div>
-      <button id="pause-button" type="button" aria-label="Pause"><img src="assets/ui/ui-button-pause.png" alt=""></button>
+      <button id="pause-button" type="button" aria-label="Pause"><img src="assets/ui/ui-button-pause-bars.svg" alt=""></button>
       <button id="settings-button" class="art-button" type="button" aria-label="Settings"><img src="assets/ui/ui-button-settings.png" alt=""></button>
-      <button id="home-achievements" class="achievement-button" type="button">
+      <button id="home-achievements" class="achievement-button" type="button" aria-label="Achievements">
         <img src="assets/ui/ui-button-trophy.svg" alt="">
-        <span class="achievement-wordmark"><span class="sr-only">Achievements</span></span>
       </button>
       <div id="entry-menu">
         <img id="game-logo" src="assets/ui/pixel-paws-logo-v2.png" alt="Pixel Paws">
@@ -76,9 +76,9 @@
             <legend>Look</legend>
             <div id="appearance-options"></div>
           </fieldset>
-          <section class="achievement-reset" aria-labelledby="achievement-settings-title">
-            <h3 id="achievement-settings-title">Achievements</h3>
-            <button id="reset-achievements" type="button">Reset achievements</button>
+          <section class="achievement-reset" aria-labelledby="reset-title">
+            <h3 id="reset-title">RESET</h3>
+            <button id="reset-achievements" type="button">RESET</button>
             <p id="achievement-reset-status" role="status"></p>
           </section>
         </div>

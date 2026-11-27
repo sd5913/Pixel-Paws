@@ -1,6 +1,7 @@
-import { inSwatRange } from './swat.js';
+import { inSwatRange, SWAT, swatIntersectsBody } from './swat.js';
 import { createVaseBreakage } from './physics/vase-breakage.js';
 import { createLooseKitchenPart } from './physics/loose-kitchen-part.js';
+import { createTabletopSupport } from './physics/tabletop-support.js';
 import * as THREE from 'three';
 import { loadGlb } from './assets/load-assets.js';
 
@@ -79,6 +80,7 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
     const carrierBounds=new THREE.Box3().setFromObject(object,true);
     for(let i=0;i<excluded.length;i++){model.add(excluded[i]);excluded[i].visible=visibility[i];}
     let body=null;
+    let supportBoard=()=>{};
     if(!carrierBounds.isEmpty()){
       const localCenter=carrierBounds.getCenter(new THREE.Vector3()).sub(start);
       const carrierHalf=carrierBounds.getSize(new THREE.Vector3()).multiplyScalar(.5);
@@ -94,6 +96,35 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
       const collider=world.createCollider(R.ColliderDesc.cuboid(carrierHalf.x,holder?.008:carrierHalf.y,carrierHalf.z)
         .setTranslation(localCenter.x,holder?localCenter.y-carrierHalf.y+.008:localCenter.y,localCenter.z).setMass((holder?mass*.3:mass)*.8).setFriction(.65).setRestitution(0).setContactSkin(.003)
         .setSolverGroups(id==='13-egg-tray'||holder?0xffffffff:((2<<16)|3)),body);
+      if(id==='08-wooden-cutting-board'){
+        body.setAdditionalSolverIterations(8);
+        body.setAngularDamping(.8);
+        const corners=[];
+        for(const sx of [-1,1])for(const sy of [-1,1])for(const sz of [-1,1])
+          corners.push(new THREE.Vector3(localCenter.x+sx*carrierHalf.x,localCenter.y+sy*carrierHalf.y,localCenter.z+sz*carrierHalf.z));
+        const point=new THREE.Vector3(),rotation=new THREE.Quaternion();
+        supportBoard=()=>{
+          const position=body.translation();rotation.copy(body.rotation());
+          let lowest=Infinity,inside=true;
+          for(const corner of corners){
+            point.copy(corner).applyQuaternion(rotation).add(position);
+            if(Math.hypot(point.x,point.z)>1.94)inside=false;
+            lowest=Math.min(lowest,point.y);
+          }
+          // A thin, fast-spinning board can tunnel partly through the surface.
+          // Correct the physical body only while fully over the tabletop;
+          // never add an invisible support beyond its edge or over the floor.
+          const penetration=tableHeight+.009-lowest;
+          if(!inside||penetration<=.004||position.y<tableHeight-.35)return;
+          body.setTranslation({x:position.x,y:position.y+penetration,z:position.z},true);
+          const velocity=body.linvel();
+          if(velocity.y<0)body.setLinvel({x:velocity.x,y:0,z:velocity.z},true);
+        };
+      }
+      if(id!=='08-wooden-cutting-board' && carrierHalf.y<=.06){
+        body.setAdditionalSolverIterations(8);
+        supportBoard=createTabletopSupport(body,new THREE.Box3(localCenter.clone().sub(carrierHalf),localCenter.clone().add(carrierHalf)),tableHeight,1.95);
+      }
       if(holder){
         for(const [sx,sz] of [[-1,0],[1,0],[0,-1],[0,1]]){
           world.createCollider(R.ColliderDesc.cuboid(sx?.008:carrierHalf.x,carrierHalf.y,sz?.008:carrierHalf.z)
@@ -126,12 +157,14 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
         }));
       }
     }
-    return {id,object,body,start,held,rotation:object.quaternion.clone()};
+    return {id,object,body,start,held, parts,supportBoard, get cleared() { return body ? !object.visible : parts.length > 0 && parts.every(part => part.hasLeftTable(tableHeight, 1.95)); }, rotation:object.quaternion.clone()};
   }));
   return {
+    scoreTargets: entries,
     update() {
-      for(const {object,body,held} of entries){
+      for(const {object,body,held,supportBoard} of entries){
         if(!body)continue;
+        supportBoard();
         object.position.copy(body.translation());
         object.quaternion.copy(body.rotation());
         object.updateMatrixWorld(true);
@@ -145,16 +178,19 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
     },
     swat(position,yaw) {
       const forward = new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
-      for(const part of looseParts)part.swat(position,yaw);
-      for(const {body} of entries){
+      const hits = new Set();
+      for (const { id, parts } of entries) for (const part of parts) if (part.swat(position, yaw)) hits.add(id);
+      for(const {id,body} of entries){
         if(!body)continue;
         const center=body.worldCom();
         const dx=center.x-position.x,dz=center.z-position.z;
-        if(!inSwatRange(position,yaw,center))continue;
+        if(!inSwatRange(position,yaw,center) && !swatIntersectsBody(environment.physics,body,position,yaw))continue;
         onHit(body);
-        body.applyImpulseAtPoint({x:forward.x*.20,y:.025,z:forward.z*.20},
+        hits.add(id);
+        body.applyImpulseAtPoint({x:forward.x*SWAT.forwardImpulse,y:SWAT.upwardImpulse,z:forward.z*SWAT.forwardImpulse},
           {x:center.x,y:center.y+.10,z:center.z},true);
       }
+      return [...hits];
     },
     reset() {
       for(const {object,body,start,rotation} of entries){

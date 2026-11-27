@@ -72,6 +72,22 @@ test('walking cat physically pushes a Christmas prop and resets both audio phase
   env.physics.dispose();
 });
 
+test('a paw strike launches a Christmas prop and reaches the edge of a large cushion',async()=>{
+  const scene=new Scene(),env=await createChristmasPhysics(),props=await createChristmasProps(scene,env,.807,loadGeometry);
+  try {
+    const small=props.entries.find(e=>e.spec.id===25);
+    const large=props.entries.find(e=>e.spec.id===20);
+    for(const e of props.entries)if(e!==small&&e!==large)e.body.setEnabled(false);
+    small.body.setTranslation({x:0,y:small.start.y,z:.4},true);
+    large.body.setTranslation({x:1,y:large.start.y,z:.75},true);
+    env.physics.world.propagateModifiedBodyPositionsToColliders();
+    props.swat({x:0,y:.814,z:0},0);
+    assert.ok(small.body.linvel().z>3,'a hit produces a noticeable forward launch');
+    props.swat({x:1,y:.814,z:0},0);
+    assert.ok(large.body.linvel().z>3,'the cushion edge can be hit although its centre is farther away');
+  } finally {env.physics.dispose();}
+});
+
 test('cat reaches all four wooden edges and pushes props fully off the table',async()=>{
   for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){
     const env=await createChristmasPhysics(),{world,rapier:R}=env.physics;

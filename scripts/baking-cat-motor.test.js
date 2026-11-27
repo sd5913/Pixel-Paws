@@ -8,7 +8,7 @@ test('kitchen cat accelerates gradually and reset clears velocity',async()=>{
   try{
     env.step(1/60,new Vector2(.8,0));
     let velocity=env.catBody.linvel();
-    assert.ok(Math.hypot(velocity.x,velocity.z)<.15,'first frame push is bounded');
+    assert.ok(Math.hypot(velocity.x,velocity.z)<.31,'stronger first frame push remains below walking speed');
     for(let frame=0;frame<30;frame++)env.step(1/60,new Vector2(1.2,0));
     velocity=env.catBody.linvel();
     assert.ok(Math.hypot(velocity.x,velocity.z)<=1.41);
