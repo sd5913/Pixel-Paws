@@ -45,7 +45,7 @@ test('Christmas props settle, remain supported after falling, and reset',async()
   const dynamic=props.entries.filter(e=>!e.spec.scenery);
   assert.equal(dynamic.length,33);
   for(const e of dynamic){assert.ok(e.body.isSleeping(),'must settle: '+e.spec.file);assert.ok(new Box3().setFromObject(e.object,true).min.y>=.795,'above tabletop: '+e.spec.file);}
-  const fallen=dynamic.slice(0,4);
+  const fallen=dynamic.filter(e=>![2,11,17].includes(e.spec.id)).slice(0,4);
   fallen.forEach((e,i)=>{e.body.setTranslation({x:3+i*.5,y:1,z:1},true);e.body.setLinvel({x:0,y:0,z:0},true);});
   step(600);
   for(const e of fallen){assert.ok(e.body.isEnabled());assert.ok(new Box3().setFromObject(e.object,true).min.y>=-.016,'solid floor');assert.ok(e.body.isSleeping(),'fallen prop settles');}
@@ -120,4 +120,37 @@ test('snow stays inside a moving globe and lantern light follows its prop',async
   lantern.effects.update(.05);assert.notEqual(lantern.effects.light.intensity,1.25);
   lantern.effects.reset();assert.equal(lantern.effects.light.intensity,1.25);
   env.physics.dispose();
+});
+
+test('lantern, light string and globe fracture at first floor contact and reset',async()=>{
+ const scene=new Scene(),env=await createChristmasPhysics(),props=await createChristmasProps(scene,env,.807,loadGeometry);
+ const glass=props.entries.filter(e=>[2,11,17].includes(e.spec.id));
+ glass.forEach((e,i)=>e.body.setTranslation({x:3+i,y:1,z:1},true));
+ for(let i=0;i<300;i++){env.step(1/60,new Vector2());props.update(1/60);}
+ for(const entry of glass){assert.equal(entry.body.isEnabled(),false);assert.equal(entry.object.visible,false);}
+ props.reset();for(const entry of glass){assert.ok(entry.body.isEnabled());assert.ok(entry.object.visible);}
+ env.physics.dispose();
+});
+
+test('fire spreads to a nearby combustible prop and reset restores materials',async()=>{
+ const {createChristmasFire}=await import('../src/christmas-room-effects.js');
+ const scene=new Scene(),env=await createChristmasPhysics(),props=await createChristmasProps(scene,env,.807,loadGeometry);
+ const room=await loadGeometry('./assets/models/christmas-room.glb');
+ const gift=props.entries.find(e=>e.spec.id===10),bear=props.entries.find(e=>e.spec.id===19);
+ gift.object.position.set(0,1,0);bear.object.position.set(.1,1,0);
+ const fire=createChristmasFire(scene,[gift,bear],room);assert.ok(fire.ignite(gift));
+ for(let i=0;i<50;i++)fire.update(.05);
+ assert.ok(fire.burning.has(19));fire.reset();assert.equal(fire.burning.size,0);
+ assert.ok(!scene.getObjectByName('Spreading_prop_fire'));env.physics.dispose();
+});
+
+test('random Christmas layouts stay stable before and after repeated restarts',async()=>{
+ const {randomizeTableItems,parkTableProps}=await import('../src/random-prop-layout.js');
+ const scene=new Scene(),env=await createChristmasPhysics(),props=await createChristmasProps(scene,env,.807,loadGeometry);
+ for(let round=0;round<3;round++){
+  randomizeTableItems(props.spawnItems,{halfWidth:1.95,halfDepth:2.65});props.reset();env.resetCat();parkTableProps(env.physics.world,env.catBody);
+  for(let i=0;i<900;i++){env.step(1/60,new Vector2());props.update(1/60);}
+  for(const e of props.entries){assert.ok(e.body.isEnabled(),'no initial drop or fracture');assert.ok(e.body.isSleeping(),'random Christmas prop settles');}
+ }
+ env.physics.dispose();
 });

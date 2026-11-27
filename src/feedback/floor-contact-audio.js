@@ -38,8 +38,9 @@ export function createFloorContactAudio(physics, floorCollider, audio) {
           || body.userData?.floorAsset === 'player-cat' || !isTouching(floorCollider, collider)) return;
         landed.add(body.handle);
         if (!body.userData?.floorAsset) return;
-        if(audio.playObjectContact)audio.playObjectContact(body.userData.floorAsset+':'+body.handle,true);
-        else audio.playUISound('floor-pop',1);
+        const soundId=/vase|strawberry-jam|glass-spice-jar|glass-jug|christmas-prop-(02|11|17)$/.test(body.userData.floorAsset)?'glass-break':'floor-pop';
+        if(audio.playObjectContact)audio.playObjectContact(body.userData.floorAsset+':'+body.handle,true,soundId);
+        else audio.playUISound(soundId,1);
       });
     },
     reset() { landed.clear(); hit.clear(); audio?.resetObjectContactSounds?.(); },

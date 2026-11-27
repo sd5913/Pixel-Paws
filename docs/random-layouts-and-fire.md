@@ -1,0 +1,11 @@
+# Random room layouts and layered fire
+
+Levels two and three randomise all interactive prop assemblies on initial load and each new round/restart. Fixed background/mantel decorations remain unchanged. A complete layout is planned before any start transforms change. Largest measured X/Z footprints are placed first; placement keeps a margin inside the rectangle/circle, separates footprints by 0.055 m, and reserves an unobstructed cat spawn rectangle. Circular layouts check all four footprint corners. Failure does not partially move bodies.
+
+Kitchen carriers retain measured pivot offsets. The bowl and measuring jug are included in the same placement plan. Loose tools, cakes, cutters, eggs, berries and butter cubes are restored under their authored parents and then released from the new assembly locations. Carrier-less assemblies also move on reset. Authored assemblies begin asleep in their placed rest poses to avoid a settling burst; player contacts and swats wake them normally, without changing their existing physics tuning. Source GLB bytes and authored part transforms are unchanged.
+
+Third-room fracture, snow, lighting, protected-object scoring and fire reset all use the updated starts. Randomisation does not occur on pause/resume. The original timed-gameplay and score rules remain in place.
+
+Fire now uses five flickering pairs of narrow orange outer flames and golden inner flames with independent sway and height changes. Eighteen additive embers rise around each burning prop; twelve soft, low-opacity smoke particles drift upwards. Smoke/ember geometry and fire materials are released on restart, while the shared particle texture is retained. Existing ignition proximity, spread timing and charred-material restoration remain unchanged.
+
+Validation includes 40 seeded rectangular layout runs, circular corner limits, atomic placement failure, repeated real-model physics resets in both rooms, full regression tests, and Chrome checks that repeated layouts differ and render without page errors. Mobile viewport screenshots cover both random rooms and the layered fire. Actual-phone visual/performance review remains pending. Teammate review is required before merging to main.

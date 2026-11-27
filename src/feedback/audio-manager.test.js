@@ -39,7 +39,7 @@ test('music and effects channels can be changed independently while playing', as
   await manager.unlock();
   manager.setPreferences({ musicEnabled: true, musicVolume: .5, effectsEnabled: false });
   assert.equal(manager.musicVoice.isPlaying, true);
-  assert.equal(manager.musicVoice.volume, .11);
+  assert.equal(manager.musicVoice.volume, .06);
   assert.equal(manager.playUISound('start'), false);
   manager.setPreferences({ musicEnabled: false, effectsEnabled: true, effectsVolume: .3 });
   assert.equal(manager.musicVoice.isPlaying, false);
@@ -117,4 +117,16 @@ test('one missing sample does not discard working variants', async () => {
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /missing.mp3/);
   manager.dispose();
+});
+
+test('burning sound loops once, respects effects controls and stops cleanly',async()=>{
+ class FireSound extends Sound {setLoop(value){this.loop=value;}play(){super.play();this.source={};}}
+ const manager=new AudioManager({three:{...three,Audio:FireSound},warn(){}});
+ manager.init(new Group(),new Group());manager.buffers.set('ui:fire-crackle',[{}]);await manager.unlock();
+ assert.ok(manager.setBurningCount(1));const voice=manager.fireVoice;assert.equal(voice.loop,true);assert.ok(voice.volume<.25);
+ manager.setBurningCount(12);assert.equal(manager.fireVoice,voice);assert.ok(voice.volume<=.30);
+ manager.setBurningCount(0);assert.equal(voice.isPlaying,false);
+ manager.setPreferences({effectsEnabled:false});assert.equal(manager.setBurningCount(1),false);
+ manager.setPreferences({effectsEnabled:true,effectsVolume:.25});assert.ok(manager.setBurningCount(1));assert.ok(voice.volume<.075);
+ manager.setMuted(true);assert.equal(voice.isPlaying,false);manager.dispose();assert.ok(voice.disconnected);
 });

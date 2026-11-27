@@ -15,7 +15,7 @@ test('pop audio plays once on floor contact, then resets',async()=>{
     body.enableCcd(true);
     assert.equal(calls.length,0);
     for(let i=0;i<240;i++)env.step(1/60,{x:0,y:0});
-    assert.deepEqual(calls,[{id:'floor-pop',volume:1}]);
+    assert.deepEqual(calls,[{id:'glass-break',volume:1}]);
     env.resetCat();audio.listener.context.currentTime=2;
     body.setTranslation({x:2.9,y:.8,z:0},true);body.setLinvel({x:0,y:0,z:0},true);
     for(let i=0;i<240;i++)env.step(1/60,{x:0,y:0});

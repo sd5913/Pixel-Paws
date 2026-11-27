@@ -1,3 +1,5 @@
+import {randomizeTableItems,parkTableProps} from './random-prop-layout.js';
+import {decorateChristmasRoom,createChristmasFire} from './christmas-room-effects.js';
 import { createLevelUI } from './level-ui.js';
 import {createChristmasPhysics,clampChristmasTarget,addChristmasEnvironmentColliders} from './physics/christmas-physics.js';
 import {createChristmasProps} from './christmas-props.js';
@@ -46,8 +48,8 @@ function resize() {
   const { clientWidth: width, clientHeight: height } = renderer.domElement.parentElement;
   const aspect = width / height;
   resizePlayCamera(camera, aspect);
-  camera.left *= 1.15; camera.right *= 1.15;
-  camera.top *= 1.15; camera.bottom *= 1.15;
+  camera.left *= 1.02; camera.right *= 1.02;
+  camera.top *= 1.02; camera.bottom *= 1.02;
   camera.updateProjectionMatrix();
   renderer.setSize(width, height);
 }
@@ -62,6 +64,10 @@ scene.add(cat.object);
 const christmasPhysics=await createChristmasPhysics(tableHeight,audio);
 addChristmasEnvironmentColliders(christmasPhysics.physics,room);
 const christmasProps=await createChristmasProps(scene,christmasPhysics,tableHeight);
+const randomizeChristmas=()=>{randomizeTableItems(christmasProps.spawnItems,{halfWidth:1.95,halfDepth:2.65});christmasProps.reset();parkTableProps(christmasPhysics.physics.world,christmasPhysics.catBody);};
+randomizeChristmas();
+const roomEffects=await decorateChristmasRoom(scene,room);
+const propFire=createChristmasFire(scene,christmasProps.entries,room);
 
 
 const swat=()=>{
@@ -69,7 +75,7 @@ const swat=()=>{
   const strike=strikeDirection();if(!strike.moving)cat.swat();levelUI.recordSwat(christmasProps.swat(cat.object.position,strike.yaw));return true;
 };
 const levelUI = createLevelUI({ level: 3, camera, protectedRules: [{id:'christmas-11',name:'Snow globe',penalty:80},{id:'christmas-17',name:'Vintage lantern',penalty:80}], targets: christmasProps.entries.filter(e=>!e.spec.scenery).map(e=>({...e,id:'christmas-'+e.spec.id,points:e.spec.height>=.4?30:e.spec.flat?10:20, readBounds: () => new THREE.Box3(e.half.clone().negate(), e.half.clone()).applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(e.object.quaternion).setPosition(e.object.position))})), tableHeight, tableShape: { halfWidth: 1.95, halfDepth: 2.65 }, onSwat: swat, onRestart: () => {
-resetInput();cat.reset();christmasPhysics.resetCat();christmasProps.reset();cat.object.position.set(0,tableHeight+.007,0);focus.set(0,tableHeight+focusHeight,frameZ);
+audio.setBurningCount(0);propFire.reset();resetInput();cat.reset();christmasPhysics.resetCat();randomizeChristmas();cat.object.position.set(0,tableHeight+.007,0);focus.set(0,tableHeight+focusHeight,frameZ);
 } });
 function strikeDirection() {
   const input=levelUI.read();let x=drag?.x ?? input.x,z=drag?.z ?? input.z;
@@ -118,7 +124,7 @@ const clock = new THREE.Timer();
 renderer.setAnimationLoop(timestamp => {
   clock.update(timestamp);
   levelUI.tick();
-  if (!levelUI.playing) { resetInput(); renderer.render(scene, camera); return; }
+  if (!levelUI.playing) { audio.setBurningCount(0);resetInput(); renderer.render(scene, camera); return; }
   const input=levelUI.read();
   let x = drag?.x ?? input.x;
   let z = drag?.z ?? input.z;
@@ -140,6 +146,8 @@ renderer.setAnimationLoop(timestamp => {
   cat.update(delta,x*distance,z*distance);
   position.x=actual.x;position.z=actual.z;
   christmasProps.update(delta);
+  propFire.update(delta);roomEffects.update(timestamp/1000);
+  audio.setBurningCount([...propFire.burning.values()].filter(fire=>fire.entry.body.isEnabled()).length);
   // Keep the play angle and scale, following the cat as in the first level.
   const follow = 1 - Math.exp(-10 * delta);
   focus.x += (position.x - focus.x) * follow;

@@ -1,3 +1,4 @@
+import {createVaseBreakage} from './physics/vase-breakage.js';
 import * as THREE from 'three';
 import {loadGlb} from './assets/load-assets.js';
 import {CHRISTMAS_PROPS} from './christmas-prop-layout.js';
@@ -106,11 +107,13 @@ export async function createChristmasProps(scene, environment, tableHeight, load
       .setMass(spec.scenery?0:.08).setFriction(.65).setRestitution(0).setContactSkin(.002),body);
     const entry={spec,object,body,start,half};
     entry.effects=createChristmasEffects(entry);
+    if([2,11,17].includes(spec.id))entry.breakage=createVaseBreakage(environment.physics,{object3D:object},{rigidBody:body,colliders:[body.collider(0)]},environment.floorCollider,{fragmentColor:'#d8e9ef'});
     return entry;
   }));
   return {
     entries,
-    update(delta=0){for(const {object,body,spec,effects} of entries){if(!spec.scenery){object.position.copy(body.translation());object.quaternion.copy(body.rotation());}effects?.update(delta);}},
+    spawnItems:entries.filter(e=>!e.spec.scenery).map(e=>({key:e.spec.id,halfX:e.half.x,halfZ:e.half.z,apply(x,z){e.start.x=x;e.start.z=z;}})),
+    update(delta=0){for(const {object,body,spec,effects} of entries){if(!spec.scenery){object.position.copy(body.translation());object.quaternion.copy(body.rotation());}effects?.update(delta);}for(const entry of entries)entry.breakage?.update();},
     swat(position,yaw){
       const hits = [];
       for(const {body,spec} of entries){
@@ -123,7 +126,8 @@ export async function createChristmasProps(scene, environment, tableHeight, load
       return hits;
     },
     reset(){
-      for(const {object,body,start,spec,effects} of entries){
+      for(const entry of entries){
+        const {object,body,start,spec,effects}=entry;entry.breakage?.reset();
         if(spec.scenery)continue;
         body.setTranslation(start,true);body.setRotation({x:0,y:0,z:0,w:1},true);
         body.setLinvel({x:0,y:0,z:0},true);body.setAngvel({x:0,y:0,z:0},true);body.resetForces(true);body.resetTorques(true);
