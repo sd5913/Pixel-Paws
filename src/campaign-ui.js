@@ -92,7 +92,7 @@ export function confirmProgressReset() {
   setWordmark(dialog.querySelector('h2'), 'Reset progress');
   const content = document.createElement('div'); content.className = 'reset-confirm-content';
   const text = document.createElement('p');
-  text.textContent = 'Reset badges and the first-room guide? Badge progress will be cleared, and the guide will appear again next time you start room one. Room scores and stars will stay saved.';
+  text.textContent = 'Reset all game progress? All badges, best scores, stars and room clear records will be erased. The first-room guide will appear again.';
   const actions = document.createElement('div'); actions.className = 'reset-confirm-actions';
   const cancel = document.createElement('button'); cancel.type = 'button'; setWordmark(cancel, 'Cancel');
   const reset = document.createElement('button'); reset.type = 'button'; reset.className = 'confirm-reset'; setWordmark(reset, 'Reset');

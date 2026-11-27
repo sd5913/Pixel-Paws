@@ -2,6 +2,7 @@ import { finishLoading, failLoading } from './loading-screen.js';
 import { createCampaignProgress } from './campaign-progress.js';
 import { mountAudioSettings, confirmProgressReset } from './campaign-ui.js';
 import { ensureControlsGuide } from './controls-guide.js';
+import { resetSavedProgress } from './reset-progress.js';
 import { bindResultScroll } from './result-scroll.js';
 import { setWordmark } from './ui-wordmark.js';
 import { bindSwatButton } from './swat-button.js';
@@ -397,10 +398,14 @@ document.querySelector('#reset-achievements').addEventListener('click', async ev
   button.disabled = true;
   try {
     if (!await confirmProgressReset()) return;
-    const reset = achievements.reset();
+    const reset = resetSavedProgress() && achievements.reset();
     if (reset) {
       renderUnlocks([]);
-      localStorage.removeItem('pixel-paws.controls-seen');
+      bestScore = 0;
+      ui.bestScore.textContent = 'Best score: 0';
+      ui.newRecord.hidden = true;
+      ui.roundRating.dataset.stars = '0';
+      ui.roundRating.setAttribute('aria-label', '0 out of 3 stars');
     }
     document.querySelector('#achievement-reset-status').textContent = reset ? 'Progress reset.' : 'Could not reset progress on this device.';
   } finally { button.disabled = false; }

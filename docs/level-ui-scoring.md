@@ -96,8 +96,8 @@ a 24px gap and a faded bottom edge, without a visible scrollbar.
 Settings has separate music and sound-effect sliders with thicker tracks. Zero
 volume mutes a channel; raising the slider enables it again. Settings headings
 and look buttons use uppercase Nishiki-teki artwork. The RESET section opens a
-matching confirmation panel; only confirming clears badges, while room scores
-and stars remain saved. These
+matching confirmation panel; confirming clears badges, tutorial completion,
+all room best scores, stars and cleared flags. Audio preferences remain saved. These
 settings persist across room navigation and reloads. All rooms use double bars
 for Pause and a separate settings icon directly below it. Opening settings pauses
 the round; closing settings returns to the pause menu. First-time players
@@ -114,7 +114,7 @@ straight to their protected-object introduction, even with an empty save.
 ## Validation
 
 Validated with Node 24 after `npm ci`: the production build and asset validation
-pass. `npm test` passes 172 of 173 checks; the remaining iOS export-options check
+pass. `npm test` passes 174 of 175 checks; the remaining iOS export-options check
 cannot spawn `python3` in this Windows sandbox (EACCES). No iOS files changed.
 
 Chrome at a 390 by 844 touch viewport verifies simultaneous joystick/SWAT in all
