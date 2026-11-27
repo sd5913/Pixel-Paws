@@ -36,3 +36,14 @@ test('new kitchen props remain solid on the floor and return on restart', async 
   });
   env.physics.dispose();
 });
+
+test('random kitchen layouts reset carriers and loose contents without jitter',async()=>{
+ const {randomizeTableItems,parkTableProps}=await import('../src/random-prop-layout.js');
+ const scene=new Scene(),env=await createBakingPhysics(.78,1.95),props=await createKitchenProps(scene,env,.78,load),bowl=await createMixingBowl(scene,null,.78,1.95,load,env),jug=await createMilkJug(scene,null,.78,1.95,load,env),cat=new Vector3(0,.787,0);
+ for(let round=0;round<3;round++){
+  randomizeTableItems([...props.spawnItems,bowl.spawnItem,jug.spawnItem],{radius:1.95});props.reset();bowl.reset();jug.reset();env.resetCat();parkTableProps(env.physics.world,env.catBody);
+  for(let i=0;i<900;i++){env.step(1/60,new Vector2());props.update();bowl.update(1/60,cat);jug.update(1/60,cat);}
+  env.physics.world.forEachRigidBody(body=>{if(body.isDynamic()&&body.isEnabled())assert.ok(body.isSleeping(),'randomised kitchen body settles: '+body.userData?.floorAsset);});
+ }
+ env.physics.dispose();
+});

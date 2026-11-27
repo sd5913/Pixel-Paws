@@ -1,3 +1,4 @@
+import {randomizeTableItems,parkTableProps} from './random-prop-layout.js';
 import { createLevelUI } from './level-ui.js';
 import { AudioManager } from './feedback/audio-manager.js';
 import { SWAT } from './swat.js';
@@ -226,11 +227,13 @@ const bakingPhysics = await createBakingPhysics(tableHeight, tableRadius, audio)
 const mixingBowl = await createMixingBowl(scene, renderer, tableHeight, tableRadius, loadGlb, bakingPhysics);
 const milkJug = await createMilkJug(scene, renderer, tableHeight, tableRadius, loadGlb, bakingPhysics);
 const kitchenProps = await createKitchenProps(scene, bakingPhysics, tableHeight);
+const randomizeKitchen=()=>{randomizeTableItems([...kitchenProps.spawnItems,mixingBowl.spawnItem,milkJug.spawnItem],{radius:tableRadius});kitchenProps.reset();mixingBowl.reset();milkJug.reset();parkTableProps(bakingPhysics.physics.world,bakingPhysics.catBody);};
+randomizeKitchen();
 
 const swat = () => { if (!levelUI.playing) return; const strike=strikeDirection(); if(!strike.moving)cat.swat(); mixingBowl.swat(cat.object.position, strike.yaw); milkJug.swat(cat.object.position, strike.yaw); levelUI.recordSwat(kitchenProps.swat(cat.object.position, strike.yaw)); return true; };
 
 const levelUI = createLevelUI({ level: 2, camera, protectedRules: [{id:'15-glass-measuring-jug',name:'Glass measuring jug',penalty:50},{id:'05-mixing-bowl-and-whisk',name:'Mixing bowl',penalty:50}], targets: [...kitchenProps.scoreTargets, ...mixingBowl.scoreTargets, ...milkJug.scoreTargets], onSwat: () => swat(), onRestart: () => {
-  bakingPhysics.resetCat(); kitchenProps.reset(); milkJug.reset(); mixingBowl.reset();
+  bakingPhysics.resetCat(); randomizeKitchen();
  cat.reset(); cat.object.position.set(0, tableHeight + 0.007, 0); resetInput();
 } });
 function strikeDirection() {
