@@ -1,6 +1,9 @@
 import { finishLoading, failLoading } from './loading-screen.js';
 import { createCampaignProgress } from './campaign-progress.js';
-import { mountAudioSettings, addPauseSettings, ensureControlsGuide, showRoomSelection } from './campaign-ui.js';
+import { mountAudioSettings, confirmProgressReset } from './campaign-ui.js';
+import { ensureControlsGuide } from './controls-guide.js';
+import { bindResultScroll } from './result-scroll.js';
+import { setWordmark } from './ui-wordmark.js';
 import { bindSwatButton } from './swat-button.js';
 import { PLAY_CAMERA, resizePlayCamera } from './play-camera.js';
 import { AudioManager } from './feedback/audio-manager.js';
@@ -123,10 +126,16 @@ world.add(floor);
 
 const appearance = document.querySelector('#appearance');
 const settings = document.querySelector('#settings');
+setWordmark(settings.querySelector('#settings-title'), 'Settings');
+setWordmark(settings.querySelector('#appearance legend'), 'Look');
+setWordmark(settings.querySelector('#reset-title'), 'Reset');
+setWordmark(settings.querySelector('#reset-achievements'), 'Reset');
 mountAudioSettings(settings.querySelector('.settings-content'));
-addPauseSettings(document.querySelector('#pause-menu'));
-document.querySelector('#choose-room').addEventListener('click', showRoomSelection);
-document.querySelector('#settings-button').addEventListener('click', () => settings.showModal());
+document.querySelector('#settings-button').addEventListener('click', () => {
+  if (game.playing) { pauseRound(); pauseMenu.close(); }
+  settings.showModal();
+});
+settings.addEventListener('close', () => { if (game.paused && !pauseMenu.open) pauseMenu.showModal(); });
 const originalAppearance = {
   background: '#EEE5E9', floor: '#EEE5E9', sky: '#dff7ff', bounce: '#11252e',
   sun: '#ffe1a8', ambient: 1.4, key: 1.4, exposure: 1,
@@ -151,7 +160,7 @@ for (const [id, look] of [['', originalLook], ...Object.entries(presets)]) {
     palette.append(swatch);
   }
   const label = document.createElement('span');
-  label.textContent = look.name;
+  setWordmark(label, look.name);
   option.append(radio, palette, label);
   appearanceOptions.append(option);
 }
@@ -304,6 +313,10 @@ const game = createGameLogic({
   async resetScene() {
     resetPrototypeScene();
     await resetTargets?.();
+    if (!debugScoring && !customRound) await ensureControlsGuide({
+      onStart() { document.body.dataset.gameState = 'tutorial'; },
+      onFinish() { resetMovement(); },
+    });
     await showRoundIntro('Knock them off!');
   },
   onChange: renderScore,
@@ -365,8 +378,8 @@ const previousAchievement = document.querySelector('#achievement-previous');
 const nextAchievement = document.querySelector('#achievement-next');
 const storageNote = document.querySelector('#achievement-storage-note');
 const newAchievements = document.querySelector('#new-achievements');
+bindResultScroll(newAchievements);
 const newAchievementList = newAchievements.querySelector('ul');
-const achievementResetStatus = document.querySelector('#achievement-reset-status');
 let achievementIndex = 0;
 let achievementSwipe = null;
 
@@ -379,15 +392,20 @@ function renderUnlocks(unlocked) {
   newAchievements.hidden = unlocked.length === 0;
 }
 
-document.querySelector('#reset-achievements').addEventListener('click', () => {
-  if (!window.confirm('Reset achievements? This clears all badges and your total targets knocked off the desk.')) return;
-  if (achievements.reset()) {
-    renderUnlocks([]);
-    achievementResetStatus.textContent = 'Achievement progress reset.';
-  } else {
-    achievementResetStatus.textContent = 'Could not reset achievement progress on this device.';
-  }
+document.querySelector('#reset-achievements').addEventListener('click', async event => {
+  const button = event.currentTarget;
+  button.disabled = true;
+  try {
+    if (!await confirmProgressReset()) return;
+    const reset = achievements.reset();
+    if (reset) {
+      renderUnlocks([]);
+      localStorage.removeItem('pixel-paws.controls-seen');
+    }
+    document.querySelector('#achievement-reset-status').textContent = reset ? 'Progress reset.' : 'Could not reset progress on this device.';
+  } finally { button.disabled = false; }
 });
+
 
 function positionAchievementTrack(offset = 0) {
   achievementTrack.style.transform = `translateX(calc(${-100 * achievementIndex}% + ${offset}px))`;
@@ -673,7 +691,6 @@ async function startRound() {
   if (ui.result.open) ui.result.close();
   ui.status.parentElement.hidden = true;
   try {
-    await ensureControlsGuide();
     if (await game.start(roundTargets)) {
       renderUnlocks([]);
       if (!debugScoring && !customRound) achievements.start(roundTargets);

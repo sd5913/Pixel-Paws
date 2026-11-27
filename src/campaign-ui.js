@@ -1,5 +1,6 @@
 import { createCampaignProgress, ROOMS } from './campaign-progress.js';
 import { readAudioPreferences, saveAudioPreferences } from './audio-preferences.js';
+import { setWordmark } from './ui-wordmark.js';
 
 function panel(title) {
   const dialog = document.createElement('dialog');
@@ -10,6 +11,7 @@ function panel(title) {
   back.type = 'button'; back.className = 'panel-back'; back.textContent = '←'; back.setAttribute('aria-label', 'Back');
   back.onclick = () => dialog.close();
   const name = document.createElement('h2'); name.textContent = title;
+  if (title === 'Settings') setWordmark(name, title);
   heading.append(back, name); dialog.append(heading); document.body.append(dialog);
   return dialog;
 }
@@ -33,67 +35,73 @@ export function showRoomSelection() {
 
 export function mountAudioSettings(parent) {
   const group = document.createElement('fieldset'); group.className = 'audio-settings';
-  const legend = document.createElement('legend'); legend.textContent = 'Sound'; group.append(legend);
+  const legend = document.createElement('legend'); legend.textContent = 'Sound'; legend.className = 'sr-only'; group.append(legend);
   let value = readAudioPreferences();
   const controls = [];
   for (const [key, label] of [['music', 'Music'], ['effects', 'Sound effects']]) {
     const row = document.createElement('label'); row.className = 'audio-setting';
-    const text = document.createElement('span'); text.textContent = label;
-    const toggle = document.createElement('input'); toggle.type = 'checkbox'; toggle.checked = value[key + 'Enabled'];
-    toggle.setAttribute('aria-label', `${label} enabled`);
-    const volume = document.createElement('input'); volume.type = 'range'; volume.min = '0'; volume.max = '100'; volume.value = Math.round(value[key + 'Volume'] * 100);
+    const text = document.createElement('span'); setWordmark(text, label);
+    if (key === 'music') {
+      text.className = 'sound-music-heading';
+      const heading = document.createElement('span'); setWordmark(heading, 'Sound'); text.prepend(heading);
+    }
+    const volume = document.createElement('input'); volume.type = 'range'; volume.min = '0'; volume.max = '100'; volume.value = value[key + 'Enabled'] ? Math.round(value[key + 'Volume'] * 100) : 0;
     volume.setAttribute('aria-label', `${label} volume`);
     const output = document.createElement('output');
     const update = () => {
-      value[key + 'Enabled'] = toggle.checked; value[key + 'Volume'] = Number(volume.value) / 100;
-      output.textContent = `${volume.value}%`; volume.disabled = !toggle.checked;
+      value[key + 'Volume'] = Number(volume.value) / 100; value[key + 'Enabled'] = Number(volume.value) > 0;
+      output.textContent = `${volume.value}%`;
     };
-    toggle.onchange = volume.oninput = () => { update(); value = saveAudioPreferences(value); };
-    update(); row.append(text, toggle, volume, output); group.append(row);
-    controls.push({ key, toggle, volume, update });
+    volume.oninput = () => { update(); value = saveAudioPreferences(value); };
+    update(); row.append(text, volume, output); group.append(row);
+    controls.push({ key, volume, update });
   }
   parent.prepend(group);
   const dialog = parent.closest('dialog');
   dialog?.addEventListener('toggle', () => {
     if (!dialog.open) return;
     value = readAudioPreferences();
-    for (const { key, toggle, volume, update } of controls) {
-      toggle.checked = value[key + 'Enabled']; volume.value = Math.round(value[key + 'Volume'] * 100); update();
+    for (const { key, volume, update } of controls) {
+      volume.value = value[key + 'Enabled'] ? Math.round(value[key + 'Volume'] * 100) : 0; update();
     }
   });
 }
 
-export function addPauseSettings(pauseMenu) {
-  const open = document.createElement('button'); open.className = 'pause-settings'; open.type = 'button'; open.textContent = 'Sound settings';
-  pauseMenu.append(open);
+export function addGameSettings(shell, pauseMenu, pause) {
+  const open = document.createElement('button'); open.id = 'settings-button'; open.className = 'art-button'; open.type = 'button'; open.setAttribute('aria-label', 'Settings');
+  const icon = document.createElement('img'); icon.src = 'assets/ui/ui-button-settings.png'; icon.alt = ''; open.append(icon);
+  shell.append(open);
   open.onclick = () => {
+    pause();
     pauseMenu.close();
     const dialog = panel('Settings'); mountAudioSettings(dialog);
     dialog.addEventListener('close', () => { dialog.remove(); pauseMenu.showModal(); }, { once: true }); dialog.showModal();
   };
 }
 
-export function ensureControlsGuide() {
-  try { if (localStorage.getItem('pixel-paws.controls-seen') === '1') return Promise.resolve(); } catch { /* Show the guide when storage is unavailable. */ }
-  const dialog = panel('Make some mischief!');
-  dialog.querySelector('.panel-back').remove();
-  const list = document.createElement('div'); list.className = 'controls-guide';
-  for (const [title, text] of [
-    ['MOVE', 'Drag the joystick to move.'],
-    ['DASH', 'Push the joystick farther out to dash.'],
-    ['SWAT', 'Tap SWAT with your other finger while moving.'],
-  ]) {
-    const row = document.createElement('p'); const name = document.createElement('strong'); name.textContent = title;
-    row.append(name, document.createTextNode(text)); list.append(row);
+export function confirmProgressReset() {
+  const dialog = panel('Reset progress');
+  dialog.classList.add('reset-confirmation');
+  const settingsBack = document.querySelector('#settings .settings-heading button[aria-label="Back"]');
+  if (settingsBack) {
+    const back = settingsBack.cloneNode(true);
+    back.type = 'button'; back.removeAttribute('autofocus');
+    back.onclick = () => dialog.close();
+    dialog.querySelector('.panel-back').replaceWith(back);
   }
-  const keyboard = document.createElement('small'); keyboard.textContent = 'Keyboard: WASD / arrows · Shift to dash · K to swat'; list.append(keyboard);
-  const button = document.createElement('button'); button.type = 'button'; button.className = 'panel-primary'; button.textContent = 'Got it!'; list.append(button);
-  dialog.append(list); dialog.addEventListener('cancel', event => event.preventDefault());
+  setWordmark(dialog.querySelector('h2'), 'Reset progress');
+  const content = document.createElement('div'); content.className = 'reset-confirm-content';
+  const text = document.createElement('p');
+  text.textContent = 'Reset badges and the first-room guide? Badge progress will be cleared, and the guide will appear again next time you start room one. Room scores and stars will stay saved.';
+  const actions = document.createElement('div'); actions.className = 'reset-confirm-actions';
+  const cancel = document.createElement('button'); cancel.type = 'button'; setWordmark(cancel, 'Cancel');
+  const reset = document.createElement('button'); reset.type = 'button'; reset.className = 'confirm-reset'; setWordmark(reset, 'Reset');
+  actions.append(cancel, reset); content.append(text, actions); dialog.append(content);
+  let confirmed = false;
   return new Promise(resolve => {
-    button.onclick = () => {
-      try { localStorage.setItem('pixel-paws.controls-seen', '1'); } catch { /* Continue without persisting. */ }
-      dialog.close(); dialog.remove(); resolve();
-    };
-    dialog.showModal();
+    cancel.onclick = () => dialog.close();
+    reset.onclick = () => { confirmed = true; dialog.close(); };
+    dialog.addEventListener('close', () => { dialog.remove(); resolve(confirmed); }, { once: true });
+    dialog.showModal(); cancel.focus();
   });
 }

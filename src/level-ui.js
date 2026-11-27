@@ -1,4 +1,6 @@
 import { modelThumbnails } from './model-thumbnail.js';
+import { bindResultScroll } from './result-scroll.js';
+import { bodyHasLeftRoundTable } from './round-table-footprint.js';
 import { finishLoading } from './loading-screen.js';
 import { bindSwatButton } from './swat-button.js';
 import { createJoystick } from './joystick.js';
@@ -11,7 +13,7 @@ import { Box3, Vector3 } from 'three';
 import { hasLeftRoundTable, hasLeftRectangularTable } from './table-clearance.js';
 import { createAchievements } from './achievements.js';
 import { createCampaignProgress } from './campaign-progress.js';
-import { addPauseSettings, ensureControlsGuide, showRoomSelection } from './campaign-ui.js';
+import { addGameSettings } from './campaign-ui.js';
 
 // Carrier groups score once; decorative parts and breakage fragments never register targets.
 export const KITCHEN_POINTS = Object.freeze({
@@ -40,16 +42,17 @@ export function createLevelUI({ level, onSwat, onRestart, targets = [], tableHei
   library.setAttribute('aria-hidden', 'true');
   document.body.prepend(library);
   const find = selector => shell.querySelector(selector);
+  find('#pause-button img').src = 'assets/ui/ui-button-pause-bars.svg';
   const joystick = createJoystick(find('#joystick'));
   const targetBounds = new Box3();
   const intro = find('#round-intro');
   const pauseMenu = find('#pause-menu');
   const result = find('#result');
+  bindResultScroll(find('#new-achievements'));
   const achievements = createAchievements();
   const campaign = createCampaignProgress();
-  addPauseSettings(pauseMenu);
+  addGameSettings(shell, pauseMenu, pause);
   const completion = document.createElement('p'); completion.className = 'campaign-completion'; completion.hidden = true; result.append(completion);
-  const selectRoom = document.createElement('button'); selectRoom.type = 'button'; selectRoom.className = 'result-rooms'; selectRoom.textContent = 'Choose a room'; selectRoom.onclick = showRoomSelection; result.append(selectRoom);
   let state = 'ready';
   let started = false;
   let countdown;
@@ -187,8 +190,7 @@ export function createLevelUI({ level, onSwat, onRestart, targets = [], tableHei
   window.addEventListener('keydown', event => { if (event.code === 'Escape') pause(); });
   renderDigits(find('#timer'), '00:45');
   renderDigits(find('#score'), 0);
-  setState('tutorial');
-  void ensureControlsGuide().then(() => begin());
+  begin();
   return {
     get playing() { return state === 'playing'; },
     read: () => joystick.read(),
@@ -208,9 +210,11 @@ export function createLevelUI({ level, onSwat, onRestart, targets = [], tableHei
         // A carrier is cleared once its entire footprint leaves the table, even if a chair catches it.
         // Detached contents, puddles and fragments are not part of this roster.
         const bounds = target.body && (target.readBounds ? target.readBounds() : targetBounds.setFromObject(target.object, true));
-        const offSurface = bounds && (tableShape
+        let offSurface = bounds && (tableShape
           ? hasLeftRectangularTable(bounds, tableHeight, tableShape)
           : hasLeftRoundTable(bounds, tableHeight, tableRadius));
+        if(level===2 && target.body && !protectedIds.has(target.id))
+          offSurface=bodyHasLeftRoundTable(target.body,tableHeight,tableRadius) ?? offSurface;
         if(protectedIds.has(target.id)){if(offSurface)scorer.notifyProtectedFall(target.id);continue;}
         if (target.cleared || offSurface) scorer.notifyFallen(target.id, timer.elapsedMs);
         else if (target.body) {

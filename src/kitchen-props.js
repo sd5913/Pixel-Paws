@@ -1,9 +1,9 @@
 import { inSwatRange, SWAT, swatIntersectsBody } from './swat.js';
 import { createVaseBreakage } from './physics/vase-breakage.js';
 import { createLooseKitchenPart } from './physics/loose-kitchen-part.js';
+import { createTabletopSupport } from './physics/tabletop-support.js';
 import * as THREE from 'three';
 import { loadGlb } from './assets/load-assets.js';
-import { loosePartHasLeftTable } from './table-clearance.js';
 
 const ITEMS = [
   ['01-kitchen-scale', -.95,-1.10,.39,.60,.45],
@@ -121,6 +121,10 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
           if(velocity.y<0)body.setLinvel({x:velocity.x,y:0,z:velocity.z},true);
         };
       }
+      if(id!=='08-wooden-cutting-board' && carrierHalf.y<=.06){
+        body.setAdditionalSolverIterations(8);
+        supportBoard=createTabletopSupport(body,new THREE.Box3(localCenter.clone().sub(carrierHalf),localCenter.clone().add(carrierHalf)),tableHeight,1.95);
+      }
       if(holder){
         for(const [sx,sz] of [[-1,0],[1,0],[0,-1],[0,1]]){
           world.createCollider(R.ColliderDesc.cuboid(sx?.008:carrierHalf.x,carrierHalf.y,sz?.008:carrierHalf.z)
@@ -153,7 +157,7 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
         }));
       }
     }
-    return {id,object,body,start,held, parts,supportBoard, get cleared() { return body ? !object.visible : parts.length > 0 && parts.every(part => loosePartHasLeftTable(part.position, tableHeight, 1.95)); }, rotation:object.quaternion.clone()};
+    return {id,object,body,start,held, parts,supportBoard, get cleared() { return body ? !object.visible : parts.length > 0 && parts.every(part => part.hasLeftTable(tableHeight, 1.95)); }, rotation:object.quaternion.clone()};
   }));
   return {
     scoreTargets: entries,

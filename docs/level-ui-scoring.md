@@ -32,6 +32,15 @@ also completes its group. Detached contents and shards never score again.
 Cookie cutters count as one group, completed when all cutters leave the table.
 Clearance uses the world-space footprint and tabletop height, not a model pivot
 or a fixed drop distance. Props caught by chairs beyond the tabletop still count.
+Kitchen cuboid carriers use the convex hull of their rotated collider corners
+against the circular table, rather than an axis-aligned box that can overlap an
+empty table corner. Loose groups test each member's collider or rendered bounds;
+there is no extra 12cm center-distance requirement. All members must still leave.
+Small loose parts and thin carriers use additional solver iterations and a
+tabletop penetration guard. Loose-part support measures actual mesh vertices,
+so rounded berries do not hover on empty bounding-box corners. Corrections only
+apply wholly inside the table, never to sleeping bodies or floor-level props.
+Leaving the edge still allows normal falling and clearance.
 
 | Points | Groups |
 | --- | --- |
@@ -70,27 +79,42 @@ masses, friction, colliders and source models remain unchanged.
 ## Campaign UI and saved settings
 
 The time readout is smaller than the score readout so it has more breathing
-room inside its artwork. The home screen offers a compact room selector with
-each room's saved best score, highest star rating and cleared status. All rooms
-remain directly playable. Existing score records are retained. A timeout offers
+room inside its artwork. Room-selection entries are removed from the home and
+result screens; direct room URLs remain playable. Per-room best scores, highest
+star ratings and cleared flags remain saved. A timeout offers
 Retry; successful first and second rooms offer Next. The third room offers Replay
 and a completion message, with an all-rooms message only after all three clears.
 
 The seven achievements now record real swat hits and finished rounds in all
 three rooms. Protected objects cannot contribute to hit achievements or target
 clear counts. Clean Sweep uses the current room's star thresholds, including the
-harder third-room rating. Unlocked badges continue to appear in the home book.
+harder third-room rating. Unlocked badges continue to appear in the home book,
+opened with a circular trophy button and a Nishiki-teki wordmark. Result cards
+keep a fixed position; newly unlocked badges scroll separately underneath with
+a 24px gap and a faded bottom edge, without a visible scrollbar.
 
-Settings has separate music and sound-effect switches and volume sliders. These
-settings persist across room navigation and reloads. Sound settings are also
-available while paused; closing them returns to the pause menu. First-time players
-see a brief move/dash/swat guide before the initial round countdown. The guide
-and countdowns do not consume the 45-second round timer.
+Settings has separate music and sound-effect sliders with thicker tracks. Zero
+volume mutes a channel; raising the slider enables it again. Settings headings
+and look buttons use uppercase Nishiki-teki artwork. The RESET section opens a
+matching confirmation panel; only confirming clears badges, while room scores
+and stars remain saved. These
+settings persist across room navigation and reloads. All rooms use double bars
+for Pause and a separate settings icon directly below it. Opening settings pauses
+the round; closing settings returns to the pause menu. First-time players
+see a compact, three-page control panel before the initial countdown in room one
+only. Move, Dash and Swat each have a separate explanation. Red Next buttons
+advance the first two pages; the last page offers Start. The panel
+uses a centered inset with justified body text, quoted Nishiki-teki title artwork to
+match the score digits, and page numbers below the button. Keyboard captions
+are omitted. Body copy uses bundled Quicksand at 15px with a 1.3 line height;
+its SIL Open Font License is included with the font. Reading the instructions
+and countdowns do not consume round time. Rooms two and three go
+straight to their protected-object introduction, even with an empty save.
 
 ## Validation
 
 Validated with Node 24 after `npm ci`: the production build and asset validation
-pass. `npm test` passes 167 of 168 checks; the remaining iOS export-options check
+pass. `npm test` passes 172 of 173 checks; the remaining iOS export-options check
 cannot spawn `python3` in this Windows sandbox (EACCES). No iOS files changed.
 
 Chrome at a 390 by 844 touch viewport verifies simultaneous joystick/SWAT in all

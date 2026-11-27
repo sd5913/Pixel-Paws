@@ -1,3 +1,10 @@
+@font-face {
+  font-family: 'Quicksand';
+  src: url('assets/ui/fonts/Quicksand-Variable.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+}
 :root {
   font-family: system-ui, sans-serif; color: #edf8ff; background: #08131f;
   --safe-top: max(12px, env(safe-area-inset-top));
@@ -83,18 +90,20 @@ button:focus-visible { outline: 3px solid #4b9cba; outline-offset: 4px; }
 #settings-button { top: var(--safe-top); left: var(--safe-left); width: 58px; }
 #home-achievements {
   right: calc(var(--safe-right) + 14px);
-  bottom: calc(var(--safe-bottom) + 12px);
+  bottom: calc(var(--safe-bottom) + 24px);
   align-items: center;
-  gap: 6px;
-  min-height: 50px;
-  padding: 4px 12px 4px 7px;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  min-height: 0;
+  padding: 12px;
   border: 2px solid #613019;
-  border-radius: 16px;
+  border-radius: 50%;
   background: #fff0d4;
   color: #613019;
   box-shadow: 0 3px 0 #613019, inset 0 0 0 2px #fffaf0;
 }
-#home-achievements img { display: block; width: 36px; pointer-events: none; }
+#home-achievements > img { display: block; width: 44px; height: 44px; pointer-events: none; }
 .achievement-wordmark {
   display: block;
   width: min(100%, 160px);
@@ -117,7 +126,7 @@ body[data-game-state="ready"] #game-logo { display: block; width: min(92vw, 448p
   body[data-game-state="ready"] #game-logo { margin-top: 0; max-height: 26dvh; }
 }
 @media (max-width: 350px) {
-  #home-achievements { right: calc(var(--safe-right) + 8px); bottom: calc(var(--safe-bottom) + 8px); }
+  #home-achievements { right: calc(var(--safe-right) + 8px); bottom: calc(var(--safe-bottom) + 20px); }
   body[data-game-state="ready"] #entry-menu { padding-bottom: calc(11dvh + 12px); }
 }
 body[data-game-state="ready"] #entry-menu #start { grid-row: 3; }
@@ -141,7 +150,9 @@ body:not([data-game-state="playing"]) #swat { display: none; }
 #scoring-debug summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 700; }
 #scoring-debug h2 { font-size: 16px; }
 #scoring-debug button { margin: 4px 0; font-size: 12px; padding: 10px; }
-#result { padding: 0; border: 0; background: transparent; width: min(80vw, 384px, 66dvh); max-width: none; max-height: 90dvh; overflow: auto; }
+#result { --result-width: min(80vw, 384px, 66dvh); --result-height: calc(var(--result-width) * 1.07185); --result-footer-space: 0px; --result-list-height: 0px; position: fixed; inset: calc(50% - 18px) auto auto 50%; transform: translate(-50%, -50%); margin: 0; padding: 0; border: 0; background: transparent; width: var(--result-width); height: var(--result-height); max-width: none; max-height: none; overflow: visible; }
+#result:has(#new-achievements:not([hidden])) { --result-list-height: max(0px, min(230px, calc((100dvh - var(--result-height)) * .5 - var(--result-footer-space) - 40px))); }
+.level-ui #result { --result-footer-space: 24px; }
 .score-popup { position: absolute; z-index: 5; pointer-events: none; color: #fff0d7; font: 900 clamp(28px, 7vw, 42px)/1 system-ui, sans-serif; text-shadow: 0 2px 0 #671506, 2px 0 0 #671506, -2px 0 0 #671506, 0 -2px 0 #671506; animation: score-rise 0.9s ease-out forwards; }
 .score-popup:has(small) { text-align: center; }
 .score-popup small { display: block; width: max-content; margin-top: 4px; color: #ffce71; font-size: 12px; }
@@ -203,8 +214,10 @@ body:not([data-game-state="playing"]) #swat { display: none; }
 .result-action:active { background: #35100d36; }
 .result-action.home-button { left: 14.6%; }
 #next-level { left: 52.7%; background: #34768d; color: #fff5e6; border: 2px solid #f7e0c7; font-weight: 900; text-transform: uppercase; }
-#new-achievements { width: 82%; margin: 6px auto 0; color: #565556; container-type: inline-size; }
-#new-achievements ul { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+#new-achievements { position: absolute; top: calc(100% + 24px); left: 9%; width: 82%; height: var(--result-list-height); margin: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; scrollbar-width: none; -webkit-overflow-scrolling: touch; color: #565556; container-type: inline-size; mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 22px), transparent 100%); -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 22px), transparent 100%); cursor: grab; }
+#new-achievements::-webkit-scrollbar { display: none; }
+#new-achievements.is-dragging { cursor: grabbing; }
+#new-achievements ul { display: grid; gap: 5px; margin: 0; padding: 0 0 22px; list-style: none; }
 #new-achievements li {
   aspect-ratio: 2533 / 620;
   display: grid;
@@ -225,7 +238,7 @@ body:not([data-game-state="playing"]) #swat { display: none; }
   color: #46322a;
 }
 :is(#achievement-book, #settings)::backdrop { background: #08131fa6; }
-.settings-heading { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 8px; margin-bottom: 8px; }
+.settings-heading { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; gap: 8px; margin-bottom: 16px; }
 #settings-title {
   grid-column: 2;
   margin: 0;
@@ -239,10 +252,10 @@ body:not([data-game-state="playing"]) #swat { display: none; }
   font-size: 1.15rem;
   font-weight: 900;
 }
-.settings-content { padding: 12px; border: 2px solid #fff; border-radius: 18px; background: #f0f3f2; }
+.settings-content { padding: 20px 14px; border: 2px solid #fff; border-radius: 18px; background: #f0f3f2; }
 #appearance { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
-#appearance legend, .achievement-reset h3 { margin: 0 0 6px; padding: 0; font-size: 1rem; font-weight: 850; }
-#appearance-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+#appearance legend, .achievement-reset h3 { margin: 0 0 14px; padding: 0; font-size: 0.88rem; font-weight: 850; text-align: left; white-space: nowrap; }
+#appearance-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .look-option {
   position: relative;
   display: grid;
@@ -263,10 +276,10 @@ body:not([data-game-state="playing"]) #swat { display: none; }
 .look-option:has(:focus-visible) { outline: 2px solid #4b9cba; outline-offset: 2px; }
 .look-palette { display: flex; gap: 3px; }
 .look-palette span { width: 12px; height: 12px; border: 1px solid #73584866; border-radius: 50%; }
-.achievement-reset { margin-top: 12px; padding-top: 9px; border-top: 1px solid #d9d2ca; }
-#reset-achievements { width: 100%; min-height: 44px; padding: 7px; border: 2px solid #651c10; border-radius: 999px; background: #9d3527; color: #fff7e8; font-size: 0.88rem; }
+.achievement-reset { margin-top: 26px; padding-top: 20px; border-top: 1px solid #d9d2ca; }
+#reset-achievements { display: block; width: min(132px, 65%); min-height: 38px; margin-inline: auto; padding: 7px 18px; border: 2px solid #651c10; border-radius: 999px; background: #9d3527; color: #fff7e8; font-size: 0.88rem; }
 #reset-achievements:active { background: #7f2b20; }
-#achievement-reset-status { margin: 6px 0 0; font-size: 0.8rem; }
+#achievement-reset-status { margin: 10px 0 0; font-size: 0.8rem; text-align: center; }
 #achievement-reset-status:empty { display: none; }
 #achievement-book {
   position: fixed;
@@ -350,6 +363,7 @@ body:not([data-game-state="playing"]) #swat { display: none; }
 /* Updated artwork keeps its own rounded silhouettes. */
 #pause-button { display: none; position: absolute; z-index: 3; left: var(--safe-left); top: calc(var(--safe-top) + var(--hud-height) + 66px); width: 52px; min-height: 0; padding: 0; background: transparent; border-radius: 0; }
 body[data-game-state="playing"] #pause-button { display: block; }
+body[data-game-state="playing"] #settings-button { display: block; top: calc(var(--safe-top) + var(--hud-height) + 80px); left: var(--safe-left); width: 58px; padding: 0; min-height: 0; }
 #pause-button img { display: block; width: 100%; clip-path: circle(47% at 50% 50%); }
 #pause-menu { width: min(88vw, 430px, 112dvh); padding: 0; border: 0; background: transparent; max-height: 92dvh; }
 #pause-menu::backdrop { background: #08131f9c; }
@@ -427,26 +441,54 @@ body[data-game-state="ready"] #start { width: 170px; }
 .campaign-panel header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .campaign-panel h2 { margin: 0; font-size: 22px; }
 .panel-back { width: 40px; height: 40px; flex-shrink: 0; border: 2px solid #64180c; border-radius: 50%; color: #fff8ef; background: #aa3929; font-size: 25px; }
-.panel-primary, #choose-room, .pause-settings, .result-rooms { border: 2px solid #fff8ef; border-radius: 999px; padding: 8px 18px; background: #397e95; color: #fff8ef; font: inherit; font-weight: 800; cursor: pointer; }
-#choose-room { display: none; }
-body[data-game-state="ready"] #choose-room { display: block; position: absolute; left: 0; bottom: 0; pointer-events: auto; font-size: 14px; }
+.panel-primary, .pause-settings { border: 2px solid #fff8ef; border-radius: 999px; padding: 8px 18px; background: #397e95; color: #fff8ef; font: inherit; font-weight: 800; cursor: pointer; }
 .pause-settings { display: block; margin: 8px auto 0; font-size: 14px; }
-.result-rooms { display: block; margin: 8px auto 0; font-size: 13px; }
 .campaign-completion { margin: 8px 0 0; color: #fff8ef; text-align: center; font-weight: 900; }
+#result .campaign-completion { position: absolute; top: calc(100% + var(--result-list-height) + 34px); left: 0; width: 100%; margin: 0; }
 .room-list { display: grid; gap: 12px; }
 .room-list a { display: grid; gap: 5px; padding: 14px; border: 2px solid white; border-radius: 18px; color: #565556; background: #f3f5f3; text-decoration: none; }
 .room-stars { color: #af7621; font-size: 26px; letter-spacing: 5px; }
-.audio-settings { min-width: 0; margin: 0 0 14px; padding: 12px; border: 2px solid #fff8ef; border-radius: 18px; background: #f3f5f3; }
-.audio-settings legend { padding: 0 5px; font-weight: 850; }
-.audio-setting { display: grid; grid-template-columns: 1fr 42px; align-items: center; gap: 7px; margin-bottom: 12px; }
+.audio-settings { min-width: 0; margin: 0 0 28px; padding: 0; border: 0; background: transparent; }
+.audio-settings legend { margin-bottom: 16px; padding: 0; font-weight: 850; text-align: left; white-space: nowrap; }
+.audio-setting { display: grid; grid-template-columns: minmax(0, 1fr) 36px; align-items: center; gap: 10px; margin-bottom: 20px; }
 .audio-setting:last-child { margin-bottom: 0; }
-.audio-setting input[type="checkbox"] { width: 22px; height: 22px; accent-color: #397e95; justify-self: center; }
-.audio-setting input[type="range"] { width: 100%; min-width: 0; accent-color: #397e95; }
-.audio-setting output { font-size: 13px; text-align: center; }
-.controls-guide { padding: 14px; border: 2px solid white; border-radius: 18px; background: #f3f5f3; }
-.controls-guide p { margin: 0 0 16px; font-size: 15px; line-height: 1.4; }
-.controls-guide strong { display: block; margin-bottom: 3px; color: #397e95; font-size: 19px; }
-.controls-guide small { display: block; line-height: 1.4; }
-.controls-guide .panel-primary { display: block; margin: 18px auto 0; }
+.audio-setting > span { grid-column: 1 / -1; }
+.sound-music-heading { display: flex; align-items: center; gap: 14px; flex-wrap: nowrap; white-space: nowrap; }
+.sound-music-heading > span .ui-wordmark { height: 14px; }
+.audio-setting input[type="range"] { width: 100%; min-width: 0; height: 30px; appearance: none; -webkit-appearance: none; background: transparent; cursor: pointer; }
+.audio-setting input[type="range"]::-webkit-slider-runnable-track { height: 12px; border-radius: 999px; background: #397e95; }
+.audio-setting input[type="range"]::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 24px; height: 24px; margin-top: -6px; border: 3px solid #fff8ef; border-radius: 50%; background: #397e95; box-shadow: 0 1px 3px #30201840; }
+.audio-setting input[type="range"]::-moz-range-track { height: 12px; border-radius: 999px; background: #397e95; }
+.audio-setting input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border: 3px solid #fff8ef; border-radius: 50%; background: #397e95; }
+.audio-setting output { font-size: 11px; text-align: center; }
+.controls-panel { width: min(82vw, 310px); max-height: 85dvh; padding: 10px; border: 3px solid #fff8ef; border-radius: 24px; background: #e8cdb7; color: #565556; text-align: center; }
+.controls-panel::backdrop { background: #08131f8c; }
+.controls-inset { padding: 20px 14px 12px; border: 2px solid #fff8ef; border-radius: 17px; background: #f3f5f3; }
+.controls-page { margin: 10px 0 0; color: #66574d; font-size: 12px; font-weight: 800; }
+.controls-panel h2 { display: flex; justify-content: center; align-items: center; gap: 5px; margin: 0; padding: 0; border: 0; background: transparent; color: #565556; font-size: 32px; font-weight: 900; }
+.controls-panel h2::before { content: '“'; }
+.controls-panel h2::after { content: '”'; }
+.controls-panel h2::before, .controls-panel h2::after { align-self: flex-start; font: 900 32px/1 Georgia, serif; }
+.controls-panel h2 img { display: block; width: auto; height: 34px; max-width: calc(100% - 40px); }
+.controls-crayon { display: block; width: 132px; height: 14px; margin: 6px auto -20px; pointer-events: none; }
+.controls-description { width: 100%; max-width: 230px; min-height: 94px; margin: 28px auto 16px; font-family: 'Quicksand', system-ui, sans-serif; font-size: 15px; font-weight: 600; line-height: 1.3; text-align: justify; text-align-last: left; }
+.controls-next { display: block; width: 85%; min-height: 42px; margin: 0 auto; padding: 8px 14px; border: 3px solid #64180c; border-radius: 999px; color: #fff8ef; background: #a63828; font-size: 17px; font-weight: 900; }
 .campaign-panel :is(:focus, :focus-visible) { outline: none; }
 .campaign-panel button { -webkit-tap-highlight-color: transparent; }
+.ui-wordmark { display: block; width: auto; max-width: 100%; height: 13px; object-fit: contain; white-space: nowrap; }
+#settings-title .ui-wordmark { height: 19px; margin: auto; filter: brightness(0) invert(1); }
+.look-option .ui-wordmark { height: 11px; margin: auto; }
+.audio-settings legend .ui-wordmark, #appearance legend .ui-wordmark { height: 14px; }
+.pause-settings .ui-wordmark { height: 14px; filter: brightness(0) invert(1); }
+.campaign-panel h2 .ui-wordmark { height: 24px; }
+#reset-title .ui-wordmark { height: 14px; }
+#reset-achievements .ui-wordmark { height: 14px; margin: auto; filter: brightness(0) invert(1); }
+.reset-confirm-content { padding: 14px; border: 2px solid #fff8ef; border-radius: 18px; background: #f3f5f3; }
+.reset-confirm-content p { margin: 0 0 22px; font: 600 13px/1.4 'Quicksand', system-ui, sans-serif; }
+.reset-confirm-actions { display: flex; gap: 10px; }
+.reset-confirm-actions button { flex: 1; min-width: 0; min-height: 42px; padding: 10px; border: 2px solid #fff8ef; border-radius: 999px; background: #397e95; }
+.reset-confirm-actions .confirm-reset { background: #a63828; border-color: #64180c; }
+.reset-confirm-actions .ui-wordmark { height: 13px; margin: auto; filter: brightness(0) invert(1); }
+.reset-confirmation .panel-back { padding: 0; min-height: 40px; }
+.reset-confirmation h2 { flex: 1; min-width: 0; }
+.reset-confirmation h2 .ui-wordmark { height: 16px; }

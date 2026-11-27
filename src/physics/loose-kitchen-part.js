@@ -1,4 +1,7 @@
 import { inSwatRange } from '../swat.js';
+import { bodyHasLeftRoundTable } from '../round-table-footprint.js';
+import { hasLeftRoundTable } from '../table-clearance.js';
+import { createTabletopSupport } from './tabletop-support.js';
 import * as THREE from 'three';
 
 // Detachable authored assemblies retain their original transforms for round reset.
@@ -10,6 +13,7 @@ export function createLooseKitchenPart(scene, physics, nodes, {mass=.025, egg=fa
   body.userData={floorAsset:egg?'egg':nodes.map(node=>node.name).join(' ').toLowerCase()};
   body.setLinearDamping(.3);body.setAngularDamping(.4);body.setEnabled(false);
   let collider=null,released=false,broken=false;
+  let supportTable = null, supportBounds = null;
   const hullPoints=[];
 
   const debris=[];
@@ -24,6 +28,8 @@ export function createLooseKitchenPart(scene, physics, nodes, {mass=.025, egg=fa
     root.traverse(node=>{if(!node.isMesh)return;const matrix=inverse.clone().multiply(node.matrixWorld),attribute=node.geometry.attributes.position;for(let i=0;i<attribute.count;i++){point.fromBufferAttribute(attribute,i).applyMatrix4(matrix);vertices.push(point.x,point.y,point.z);}});
     hullPoints.length=0;
     for(let i=0;i<vertices.length;i+=3)hullPoints.push(new THREE.Vector3(vertices[i],vertices[i+1],vertices[i+2]));
+    supportBounds=new THREE.Box3().setFromPoints(hullPoints);supportTable=null;
+    body.setAdditionalSolverIterations(8);
     if(collider)world.removeCollider(collider,true);
     let descriptor;
     if(tableSupport){
@@ -70,6 +76,11 @@ export function createLooseKitchenPart(scene, physics, nodes, {mass=.025, egg=fa
     reset,
     get released(){return released;},
     get position(){return body.translation();},
+    hasLeftTable(tableHeight, tableRadius) {
+      if (!released) return false;
+      return broken || (bodyHasLeftRoundTable(body,tableHeight,tableRadius)
+        ?? hasLeftRoundTable(new THREE.Box3().setFromObject(root,true),tableHeight,tableRadius));
+    },
     swat(position,yaw){
       scene.updateMatrixWorld(true);
       const center=released?new THREE.Vector3().copy(body.worldCom()):new THREE.Box3().setFromObject(nodes[0],true).getCenter(new THREE.Vector3());
@@ -80,6 +91,8 @@ export function createLooseKitchenPart(scene, physics, nodes, {mass=.025, egg=fa
     },
     update(tableHeight,tableRadius){
       if(released&&!broken){
+        supportTable ??= createTabletopSupport(body,supportBounds,tableHeight,tableRadius,hullPoints);
+        supportTable();
         root.position.copy(body.translation());root.quaternion.copy(body.rotation());
         let touchedFloor = false;
         if (egg && floorCollider) {
