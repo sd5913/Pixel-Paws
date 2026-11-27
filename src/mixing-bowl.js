@@ -234,5 +234,7 @@ export async function createMixingBowl(scene, renderer, tableHeight, tableRadius
       stream.scale.set(.012+rate*.045,direction.length(),.012+rate*.045);
     }
   }
-  return {update,swat,reset, scoreTargets: [{id: '05-mixing-bowl-and-whisk', object: model, body, start}]};
+  model.updateMatrixWorld(true);
+  const spawnBox=new THREE.Box3().setFromObject(model,true),spawnHalf=spawnBox.getSize(new THREE.Vector3()).multiplyScalar(.5),spawnOffset=spawnBox.getCenter(new THREE.Vector3()).sub(start);
+  return {spawnItem:{key:'bowl',halfX:spawnHalf.x,halfZ:spawnHalf.z,apply(x,z){start.x=x-spawnOffset.x;start.z=z-spawnOffset.z;}},update,swat,reset, scoreTargets: [{id: '05-mixing-bowl-and-whisk', object: model, body, start}]};
 }

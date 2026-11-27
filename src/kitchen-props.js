@@ -81,6 +81,7 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
     for(let i=0;i<excluded.length;i++){model.add(excluded[i]);excluded[i].visible=visibility[i];}
     let body=null;
     let supportBoard=()=>{};
+
     if(!carrierBounds.isEmpty()){
       const localCenter=carrierBounds.getCenter(new THREE.Vector3()).sub(start);
       const carrierHalf=carrierBounds.getSize(new THREE.Vector3()).multiplyScalar(.5);
@@ -92,6 +93,7 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
         body.setLinearDamping(.8);body.setAngularDamping(1.2);
       }
       body.enableCcd(true);body.setSoftCcdPrediction(.05);
+
       const holder=id==='03-utensil-holder';
       const collider=world.createCollider(R.ColliderDesc.cuboid(carrierHalf.x,holder?.008:carrierHalf.y,carrierHalf.z)
         .setTranslation(localCenter.x,holder?localCenter.y-carrierHalf.y+.008:localCenter.y,localCenter.z).setMass((holder?mass*.3:mass)*.8).setFriction(.65).setRestitution(0).setContactSkin(.003)
@@ -157,10 +159,11 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
         }));
       }
     }
-    return {id,object,body,start,held, parts,supportBoard, get cleared() { return body ? !object.visible : parts.length > 0 && parts.every(part => part.hasLeftTable(tableHeight, 1.95)); }, rotation:object.quaternion.clone()};
+    return {id,object,body,start,layoutHalf:half.clone(),layoutOffset:center.clone(),held, parts,supportBoard, get cleared() { return body ? !object.visible : parts.length > 0 && parts.every(part => part.hasLeftTable(tableHeight, 1.95)); }, rotation:object.quaternion.clone()};
   }));
   return {
     scoreTargets: entries,
+    spawnItems:entries.map(e=>({key:e.id,halfX:e.layoutHalf.x,halfZ:e.layoutHalf.z,apply(x,z){e.start.x=x-e.layoutOffset.x;e.start.z=z-e.layoutOffset.z;}})),
     update() {
       for(const {object,body,held,supportBoard} of entries){
         if(!body)continue;
@@ -194,6 +197,7 @@ export async function createKitchenProps(scene, environment, tableHeight, loadMo
     },
     reset() {
       for(const {object,body,start,rotation} of entries){
+        object.position.copy(start);object.quaternion.copy(rotation);
         if(!body)continue;
         body.setTranslation(start,true);body.setRotation(rotation,true);
         body.setLinvel({x:0,y:0,z:0},true);body.setAngvel({x:0,y:0,z:0},true);

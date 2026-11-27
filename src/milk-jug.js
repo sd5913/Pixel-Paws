@@ -169,5 +169,7 @@ export async function createMilkJug(scene, renderer, tableHeight, tableRadius, l
       stream.scale.set(.012+rate*.045,direction.length(),.012+rate*.045);
     }
   }
-  return {update,swat,reset, scoreTargets: [{id: '15-glass-measuring-jug', object: model, body, start, get cleared() { return broken; }}]};
+  model.updateMatrixWorld(true);
+  const spawnBox=new THREE.Box3().setFromObject(model,true),spawnHalf=spawnBox.getSize(new THREE.Vector3()).multiplyScalar(.5),spawnOffset=spawnBox.getCenter(new THREE.Vector3()).sub(start);
+  return {spawnItem:{key:'jug',halfX:spawnHalf.x,halfZ:spawnHalf.z,apply(x,z){start.x=x-spawnOffset.x;start.z=z-spawnOffset.z;}},update,swat,reset, scoreTargets: [{id: '15-glass-measuring-jug', object: model, body, start, get cleared() { return broken; }}]};
 }
