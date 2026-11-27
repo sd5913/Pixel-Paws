@@ -1,2 +1,4 @@
 Floor-contact sounds use the three user-supplied cartoon/cork pop recordings listed in pop-audio-sources.json.
 Each clip is cropped to one pop and converted to PCM WAV. Bubble-pop and the prior Kenney floor clips are no longer used.
+
+Glass-break and fire-crackle WAVs are original deterministic synthesized sounds. Reproduction scripts: src/assets/generators/generate-glass-break.mjs and generate-fire-crackle.mjs. No third-party recordings are used for these two sound categories.

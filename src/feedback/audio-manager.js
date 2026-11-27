@@ -25,6 +25,7 @@ export class AudioManager {
     this.visibility = () => {
       if (globalThis.document?.hidden) {
         if (this.musicVoice?.isPlaying) this.musicVoice.pause();
+        if (this.fireVoice?.isPlaying) this.fireVoice.stop();
       } else void this.unlock();
     };
     this.gesture = () => { void this.unlock(); };
@@ -164,7 +165,7 @@ export class AudioManager {
       gain.cancelScheduledValues(now);gain.setValueAtTime(gain.value,now);
       gain.linearRampToValueAtTime(.06*this.preferences.musicVolume,now+.015);
       gain.setValueAtTime(.06*this.preferences.musicVolume,now+.18);
-      gain.linearRampToValueAtTime(.22*this.preferences.musicVolume,now+.38);
+      gain.linearRampToValueAtTime(.12*this.preferences.musicVolume,now+.38);
     }
     source.setPlaybackRate(floorSound ? 1 : 1);
     source.setVolume(Math.max(0,Math.min(1,volume)) * this.preferences.effectsVolume);
@@ -172,9 +173,9 @@ export class AudioManager {
     return true;
   }
 
-  playObjectContact(objectId, landing = false) {
+  playObjectContact(objectId, landing = false, soundId = 'floor-pop') {
     if (!this.effectsReady()) return false;
-    const variants=this.buffers.get('ui:floor-pop');
+    const variants=this.buffers.get('ui:'+soundId);
     if(!variants?.length)return false;
     let hash=0;
     for(const character of objectId)hash=(Math.imul(hash,31)+character.charCodeAt(0))>>>0;
@@ -183,7 +184,7 @@ export class AudioManager {
     if(!voice){voice=new this.three.Audio(this.listener);this.objectVoices.set(key,voice);}
     if(voice.isPlaying)return false;
     voice.setBuffer(variants[hash%variants.length]);
-    voice.setVolume((landing?1:.85) * this.preferences.effectsVolume);
+    voice.setVolume((landing?1.35:1.1) * this.preferences.effectsVolume);
     const now=this.listener.context.currentTime;
     const start=Math.max(now,this.nextObjectPopAt);
     this.nextObjectPopAt=start+.035;
@@ -202,7 +203,7 @@ export class AudioManager {
     const now=this.listener.context.currentTime,gain=this.musicVoice.gain.gain;
     gain.cancelScheduledValues(now);gain.setValueAtTime(gain.value,now);
     gain.linearRampToValueAtTime(.06*this.preferences.musicVolume,now+.015);gain.setValueAtTime(.06*this.preferences.musicVolume,now+.18);
-    gain.linearRampToValueAtTime(.22*this.preferences.musicVolume,now+.38);
+    gain.linearRampToValueAtTime(.12*this.preferences.musicVolume,now+.38);
   }
 
   startMusic() {
@@ -213,9 +214,21 @@ export class AudioManager {
       this.musicVoice = new this.three.Audio(this.listener);
       this.musicVoice.setBuffer(buffer);
       this.musicVoice.setLoop(true);
-      this.musicVoice.setVolume(.22 * this.preferences.musicVolume);
+      this.musicVoice.setVolume(.12 * this.preferences.musicVolume);
     }
     this.musicVoice.play();
+    return true;
+  }
+
+  setBurningCount(count) {
+    const active=Math.max(0,Number.isFinite(count)?count:0);
+    if(!active||!this.effectsReady()||globalThis.document?.hidden){if(this.fireVoice?.isPlaying)this.fireVoice.stop();return false;}
+    const buffer=this.buffers.get('ui:fire-crackle')?.[0];if(!buffer)return false;
+    if(!this.fireVoice){this.fireVoice=new this.three.Audio(this.listener);this.fireVoice.setBuffer(buffer);this.fireVoice.setLoop(true);}
+    const volume=Math.min(.30,.16+Math.log2(active+1)*.035)*this.preferences.effectsVolume;
+    if(this.fireVoice.isPlaying&&this.fireVoice.gain?.gain.setTargetAtTime)this.fireVoice.gain.gain.setTargetAtTime(volume,this.listener.context.currentTime,.06);
+    else this.fireVoice.setVolume(volume);
+    if(!this.fireVoice.isPlaying)this.fireVoice.play();
     return true;
   }
 
@@ -240,10 +253,10 @@ export class AudioManager {
   setPreferences(value) {
     this.preferences = normalizeAudioPreferences(value);
     // Stop existing effects so a disabled channel becomes silent immediately.
-    for (const source of [...this.positional, ...this.ui, ...this.objectVoices.values(), ...(this.catVoice ? [this.catVoice] : [])]) if (source.isPlaying) source.stop();
+    for (const source of [...this.positional, ...this.ui, ...this.objectVoices.values(), ...(this.catVoice ? [this.catVoice] : []), ...(this.fireVoice ? [this.fireVoice] : [])]) if (source.isPlaying) source.stop();
     if (this.musicVoice) {
       this.musicVoice.gain?.gain.cancelScheduledValues(this.listener.context.currentTime);
-      this.musicVoice.setVolume(.22 * this.preferences.musicVolume);
+      this.musicVoice.setVolume(.12 * this.preferences.musicVolume);
       if ((!this.preferences.musicEnabled || this.preferences.musicVolume === 0) && this.musicVoice.isPlaying) this.musicVoice.pause();
     }
     this.startMusic();
@@ -256,7 +269,7 @@ export class AudioManager {
 
   setMuted(value) {
     this.muted = Boolean(value);
-    if (this.muted) for (const source of [...this.positional, ...this.ui, ...this.objectVoices.values(), ...(this.catVoice ? [this.catVoice] : []), ...(this.musicVoice ? [this.musicVoice] : [])]) if (source.isPlaying) source.stop();
+    if (this.muted) for (const source of [...this.positional, ...this.ui, ...this.objectVoices.values(), ...(this.catVoice ? [this.catVoice] : []), ...(this.fireVoice ? [this.fireVoice] : []), ...(this.musicVoice ? [this.musicVoice] : [])]) if (source.isPlaying) source.stop();
     this.setMasterVolume(this.volume);
     if (!this.muted) this.startMusic();
   }
@@ -271,7 +284,7 @@ export class AudioManager {
     globalThis.removeEventListener?.('pixel-paws-audio', this.preferencesChanged);
     globalThis.document?.removeEventListener('visibilitychange', this.visibility);
     this.removeGestureListeners();
-    for (const source of [...this.positional, ...this.ui, ...this.objectVoices.values(), ...(this.catVoice ? [this.catVoice] : []), ...(this.musicVoice ? [this.musicVoice] : [])]) {
+    for (const source of [...this.positional, ...this.ui, ...this.objectVoices.values(), ...(this.catVoice ? [this.catVoice] : []), ...(this.fireVoice ? [this.fireVoice] : []), ...(this.musicVoice ? [this.musicVoice] : [])]) {
       if (source.isPlaying) source.stop();
       // Unplayed THREE.Audio nodes have not yet connected their graph.
       if (source.source) source.disconnect();
